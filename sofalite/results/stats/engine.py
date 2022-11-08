@@ -10,12 +10,16 @@ import copy
 import decimal
 import logging
 import math
+from typing import Sequence
+
 import numpy as np
 
 from sofalite.results.stats.conf import (
-    MAX_RANKDATA_VALS,
-    MannWhitneyDets, MannWhitneyExtendedDets, MeanDiffsDets, OrdinalSampleDets,
-    SampleDets, SpearmansDets, SpearmansInitTbl, WilcoxonExtendedDets)
+    MAX_RANKDATA_VALS, AnovaResult,
+    MannWhitneyDets, MannWhitneyDetsExt,
+    NormalTestResult,  NumericSampleDets, NumericSampleDetsExt, OrdinalResult,
+    Result, Sample, SpearmansDets, SpearmansInitTbl, WilcoxonDetsExt)
+from sofalite.results.stats import utils as stats_utils
 from sofalite.utils.maths import n2d
 
 D = decimal.Decimal
@@ -163,7 +167,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     for i in range(a):
         sample = lst_samples[i]
         label = lst_labels[i]
-        sample_dets = MeanDiffsDets(
+        sample_dets = NumericSampleDets(
             lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
             sample_min=min(sample), sample_max=max(sample))
         dets.append(sample_dets)
@@ -235,65 +239,119 @@ def get_ci95(sample=None, mymean=None, mysd=None, n=None, *, high=False):
     upper95 = mymean + diff
     return lower95, upper95
 
-def anova(samples, labels, *, high=True):
+def get_numeric_sample_dets_extended(sample_dets: Sample, *, high=False) -> NumericSampleDetsExt:
+    sample = sample_dets.sample
+    mymean = mean(sample, high=high)
+    std_dev = stdev(sample, high=high)
+    ci95 = get_ci95(sample, mymean, std_dev, n=None, high=high)
+    normaltest_result = normaltest(sample)
+    kurtosis_val = (normaltest_result.ckurtosis if normaltest_result.ckurtosis is not None
+        else 'Unable to calculate kurtosis')
+    skew_val = (normaltest_result.cskew if normaltest_result.cskew is not None
+        else 'Unable to calculate skew')
+    p = (normaltest_result.p if normaltest_result.p is not None
+        else 'Unable to calculate overall p for normality test')
+    numeric_sample_dets_extended = NumericSampleDetsExt(
+        lbl=sample_dets.lbl, n=len(sample), mean=mymean, stdev=std_dev,
+        sample_min=min(sample), sample_max=max(sample), ci95=ci95,
+        kurtosis=kurtosis_val, skew=skew_val, p=p)
+    return numeric_sample_dets_extended
+
+def anova(group_lbl: str, measure_fld_lbl: str,
+        samples_dets: Sequence[Sample], *, high=True) -> AnovaResult:
     """
     From NIST algorithm used for their ANOVA tests.
 
-    Added correction factor. And a zero division trap.
+    Note - keep anova_lite following same logic as here but without the extras.
 
     :param bool high: high precision but much, much slower. Multiplies each by
      10 (and divides by 10 and 100 as appropriate) plus uses decimal rather than
      floating point. Needed to handle difficult datasets e.g. ANOVA test 9 from
      NIST site.
     """
-    n_samples = len(samples)
-    sample_ns = list(map(len, samples))
+    orig_samples = [sample_dets.sample for sample_dets in samples_dets]
+    n_samples = len(orig_samples)
+    sample_ns = list(map(len, orig_samples))
     dets = []
-    for i in range(n_samples):
-        sample = samples[i]
-        label = labels[i]
-        mymean = mean(sample, high=high)
-        mystdev = stdev(sample, high=high)
-        ci95 = get_ci95(sample, mymean, mystdev, n=None, high=high)
-        sample_dets = MeanDiffsDets(lbl=label, n=sample_ns[i], mean=mymean, stdev=mystdev,
-            sample_min=min(sample), sample_max=max(sample), ci95=ci95)
-        dets.append(sample_dets)
-    if high:  ## inflate
+    for sample_dets in samples_dets:
+        sample_dets_extended = get_numeric_sample_dets_extended(sample_dets, high=high)
+        dets.append(sample_dets_extended)
+    if high:  ## inflate for ss (sum squares) calculations only
         ## if to 1 decimal point will push from float to integer (reduce errors)
+        ## deflates final results appropriately in get_sswn() and get_ssbn()
         inflated_samples = []
-        for sample in samples:
+        for sample in orig_samples:
             inflated_samples.append([x * 10 for x in sample])  ## NB inflated
-        samples = inflated_samples
-        sample_means = [n2d(mean(x, high=high)) for x in samples]  ## NB inflated
+        samples4ss_calc = inflated_samples
+        sample_means4ss_calc = [n2d(mean(x, high=high)) for x in samples4ss_calc]  ## NB inflated
     else:
-        sample_means = [mean(x, high=high) for x in samples]
-    sswn = get_sswn(samples, sample_means, high=high)
+        samples4ss_calc = orig_samples
+        sample_means4ss_calc = [mean(x, high=high) for x in samples4ss_calc]
+    sswn = get_sswn(samples4ss_calc, sample_means4ss_calc, high=high)
     dfwn = sum(sample_ns) - n_samples
     mean_squ_wn = sswn / dfwn
     if mean_squ_wn == 0:
-        raise ValueError("Inadequate variability - mean_squ_wn is 0")
-    ssbn = get_ssbn(samples, sample_means, n_samples, sample_ns, high=high)
+        raise ValueError(f"Inadequate variability in samples of {measure_fld_lbl} "
+            f"for groups defined by {group_lbl} - mean_squ_wn is 0")
+    ssbn = get_ssbn(samples4ss_calc, sample_means4ss_calc, n_samples, sample_ns, high=high)
     dfbn = n_samples - 1
     mean_squ_bn = ssbn / dfbn
     F = mean_squ_bn / mean_squ_wn
     p = fprob(dfbn, dfwn, F, high=high)
-    return p, F, dets, sswn, dfwn, mean_squ_wn, ssbn, dfbn, mean_squ_bn
+    try:
+        ## sim_variance threshold parameter not used or relevant because ignoring is_similar part of output
+        _is_similar, p_sim = sim_variance(orig_samples, high=high)
+        obriens_msg = stats_utils.get_p_str(p_sim)
+    except Exception as e:
+        logging.info("Unable to calculate O'Briens test "
+            f"for homogeneity of variance.\nOrig error: {e}")
+        obriens_msg = "Unable to calculate O'Briens test for homogeneity of variance"
+    return AnovaResult(p=p, F=F, groups_dets=dets,
+        sum_squares_within_groups=sswn, degrees_freedom_within_groups=dfwn, mean_squares_within_groups=mean_squ_wn,
+        sum_squares_between_groups=ssbn, degrees_freedom_between_groups=dfbn, mean_squares_between_groups=mean_squ_bn,
+        obriens_msg=obriens_msg)
+
+def anova_p_only(samples: Sequence[float], *, high=True) -> float:
+    """
+    Should be exactly the same calculation as in anova()
+    but everything stripped out that isn't needed
+    when you only care about producing a p value.
+    Needs to stay in sync in unlikely event of any changes.
+    """
+    orig_samples = samples
+    n_samples = len(orig_samples)
+    sample_ns = list(map(len, orig_samples))
+    if high:  ## inflate for ss (sum squares) calculations only
+        ## if to 1 decimal point will push from float to integer (reduce errors)
+        ## deflates final results appropriately in get_sswn() and get_ssbn()
+        inflated_samples = []
+        for sample in orig_samples:
+            inflated_samples.append([x * 10 for x in sample])  ## NB inflated
+        samples4ss_calc = inflated_samples
+        sample_means4ss_calc = [n2d(mean(x, high=high)) for x in samples4ss_calc]  ## NB inflated
+    else:
+        samples4ss_calc = orig_samples
+        sample_means4ss_calc = [mean(x, high=high) for x in samples4ss_calc]
+    sswn = get_sswn(samples4ss_calc, sample_means4ss_calc, high=high)
+    dfwn = sum(sample_ns) - n_samples
+    mean_squ_wn = sswn / dfwn
+    if mean_squ_wn == 0:
+        raise ValueError("Inadequate variability in samples - mean_squ_wn is 0")
+    ssbn = get_ssbn(samples4ss_calc, sample_means4ss_calc, n_samples, sample_ns, high=high)
+    dfbn = n_samples - 1
+    mean_squ_bn = ssbn / dfbn
+    F = mean_squ_bn / mean_squ_wn
+    p = fprob(dfbn, dfwn, F, high=high)
+    return p
 
 def get_sswn(samples, sample_means, *, high=False):
     """
-    Get sum of squares within treatment
+    Get sum of squares within treatment.
+
+    If high precision, the function receives uniformly inflated
+    samples and sample means and produces a deflated result.
     """
-    if not high:
-        sswn = 0  ## sum of squares within treatment
-        for i, sample in enumerate(samples):
-            diffs = []
-            sample_mean = sample_means[i]
-            for val in sample:
-                diffs.append(val - sample_mean)
-            squ_diffs = [(x ** 2) for x in diffs]
-            sum_squ_diffs = sum(squ_diffs)
-            sswn += sum_squ_diffs
-    else:
+    if high:
         sswn = D('0')  ## sum of squares within treatment
         for i, sample in enumerate(samples):
             diffs = []
@@ -304,14 +362,24 @@ def get_sswn(samples, sample_means, *, high=False):
             sum_squ_diffs = sum(squ_diffs)
             sswn += sum_squ_diffs
         sswn = sswn / 10 ** 2  ## deflated
+    else:
+        sswn = 0  ## sum of squares within treatment
+        for i, sample in enumerate(samples):
+            diffs = []
+            sample_mean = sample_means[i]
+            for val in sample:
+                diffs.append(val - sample_mean)
+            squ_diffs = [(x ** 2) for x in diffs]
+            sum_squ_diffs = sum(squ_diffs)
+            sswn += sum_squ_diffs
     return sswn
 
 def get_ssbn(samples, sample_means, n_samples, sample_ns, *, high=False):
     """
     Get sum of squares between treatment.
 
-    Has high-precision (but slower) version. NB Samples and sample means are
-    inflated uniformly in the high precision versions.
+    If high precision, the function receives uniformly inflated
+    samples and sample means and produces a deflated result.
     """
     if not high:
         sum_all_vals = sum(sum(x) for x in samples)
@@ -337,7 +405,7 @@ def get_ssbn(samples, sample_means, n_samples, sample_ns, *, high=False):
         ssbn = sum_n_x_squ_diffs / (10 ** 2)  ## deflated
     return ssbn
 
-def get_summary_dics(samples, labels, quant=False) -> list[SampleDets]:
+def get_summary_dics(samples, labels, quant=False) -> list[Result]:
     """
     Get a list of dictionaries - one for each sample. Each contains label, n,
     median, min, and max.
@@ -358,7 +426,7 @@ def get_summary_dics(samples, labels, quant=False) -> list[SampleDets]:
         if quant:
             kwargs['mean'] = mean(sample)
             kwargs['stdev'] = stdev(sample)
-        sample_dets = SampleDets(**kwargs)
+        sample_dets = Result(**kwargs)
         dets.append(sample_dets)
     return dets
 
@@ -446,9 +514,9 @@ def ttest_ind(sample_a, sample_b, label_a, label_b, *, use_orig_var=False):
     max_b = max(sample_b)
     ci95_a = get_ci95(sample_a, mean_a, sd_a)
     ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = MeanDiffsDets(lbl=label_a, n=n_a, mean=mean_a, stdev=sd_a,
+    dets_a = NumericSampleDets(lbl=label_a, n=n_a, mean=mean_a, stdev=sd_a,
         sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = MeanDiffsDets(lbl=label_b, n=n_b, mean=mean_b, stdev=sd_b,
+    dets_b = NumericSampleDets(lbl=label_b, n=n_b, mean=mean_b, stdev=sd_b,
         sample_min=min_b, sample_max=max_b, ci95=ci95_b)
     return t, p, dets_a, dets_b, df
 
@@ -496,9 +564,9 @@ def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
     sd_b = math.sqrt(var_b)
     ci95_a = get_ci95(sample_a, mean_a, sd_a)
     ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = MeanDiffsDets(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
+    dets_a = NumericSampleDets(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
         sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = MeanDiffsDets(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
+    dets_b = NumericSampleDets(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
         sample_min=min_b, sample_max=max_b, ci95=ci95_b)
     return t, p, dets_a, dets_b, df, diffs
 
@@ -594,7 +662,7 @@ def mannwhitneyu_details(
     u_1 = len_1 * len_2 + (len_1 * (len_1 + 1)) / 2.0 - sum_rank_1
     u_2 = len_1 * len_2 - u_1
     u = min(u_1, u_2)
-    details = MannWhitneyExtendedDets(
+    details = MannWhitneyDetsExt(
         lbl_1=label_1, lbl_2=label_2,
         n_1=len_1, n_2=len_2,
         ranks_1=ranks_1, val_dets=val_dets, sum_rank_1=sum_rank_1, u_1=u_1, u_2=u_2, u=u
@@ -648,9 +716,9 @@ def wilcoxont(
     min_b = min(sample_b)
     max_a = max(sample_a)
     max_b = max(sample_b)
-    dets_a = OrdinalSampleDets(
+    dets_a = OrdinalResult(
         lbl=label_a, n=n, median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
-    dets_b = OrdinalSampleDets(
+    dets_b = OrdinalResult(
         lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
     return wt, prob, dets_a, dets_b
 
@@ -693,7 +761,7 @@ def wilcoxont_details(sample_a, sample_b):
     ## calculate t and N (N excludes 0-diff pairs)
     t = min(sum_plus_ranks, sum_minus_ranks)
     n = len(plus_ranks) + len(minus_ranks)
-    details = WilcoxonExtendedDets(diff_dets=diff_dets, ranking_dets=ranking_dets,
+    details = WilcoxonDetsExt(diff_dets=diff_dets, ranking_dets=ranking_dets,
         plus_ranks=plus_ranks, minus_ranks=minus_ranks,
         sum_plus_ranks=round(sum_plus_ranks, 2), sum_minus_ranks=round(sum_minus_ranks, 2),
         t=t, n=n
@@ -1764,10 +1832,8 @@ def kurtosis(a, dimension=None):
     return (np.where(zero, 0, moment(a, 4, dimension) / denom)
             - FISHER_KURTOSIS_ADJUSTMENT)
 
-def achisqprob(chisq, df):
+def achisqprob(chisq, df) -> float:
     """
-    From stats.py.  No changes except renamed function, N->np, print updated.
-    ------------------------------------
     Returns the (1-tail) probability value associated with the provided
     chi-square value and df.  Heavily modified from chisq.c in Gary Perlman's
     |Stat.  Can handle multiple dimensions.
@@ -1848,9 +1914,10 @@ def achisqprob(chisq, df):
         probs = np.where(
             np.equal(probs, 1), 1,
             np.where(np.greater(a, BIG), a_big_frozen, a_notbig_frozen))
-        return probs
+        result = probs[0]
     else:
-        return s
+        result = s[0]
+    return result
 
 #####################################
 ########  NORMALITY TESTS  ##########
@@ -1936,7 +2003,7 @@ def kurtosistest(a, dimension=None):
     return Z, (1.0 - azprob(Z)) * 2, kurt  ## I want to return the Fischer Adjusted kurtosis, not b2
 
 # noinspection PyBroadException
-def normaltest(a, dimension=None):
+def normaltest(a, dimension=None) -> NormalTestResult:
     """
     From stats.py.  No changes except renamed function, some vars names, N->np,
     included in return the results for skew and kurtosis, and handled errors in
@@ -1975,11 +2042,11 @@ def normaltest(a, dimension=None):
         ckurtosis = None
     try:
         k2 = np.power(zskew, 2) + np.power(zkurtosis, 2)
-        p_arr = achisqprob(k2, 2)
+        p = achisqprob(k2, 2)
     except Exception:
         k2 = None
-        p_arr = None
-    return k2, p_arr, cskew, zskew, ckurtosis, zkurtosis
+        p = None
+    return NormalTestResult(k2, p, cskew, zskew, ckurtosis, zkurtosis)
 
 ## misc
 
@@ -2039,10 +2106,8 @@ def obrientransform(*args):
             raise ValueError('Lack of convergence in obrientransform.')
     return nargs
 
-def sim_variance(samples, threshold=0.05):
+def sim_variance(samples: Sequence[Sequence[float]], *, threshold=0.05, high=False) -> tuple[bool, float]:
     """
-    Returns bolsim, p
-
     From stats.py. From inside lpaired. F_oneway changed to anova and no need to
     column extract to get transformed samples.
 
@@ -2053,8 +2118,7 @@ def sim_variance(samples, threshold=0.05):
     Using O'BRIEN'S TEST FOR HOMOGENEITY OF VARIANCE, Maxwell & delaney, p.112
     """
     r = obrientransform(*samples)
-    trans_samples = [r[0], r[1]]
-    labels = ['sample a', 'sample b']
-    p, *_unused = anova(trans_samples, labels)
-    bolsim = (p >= threshold)
-    return bolsim, p
+    transformed_samples = [r[0], r[1]]
+    p = anova_p_only(transformed_samples, high=high)
+    is_similar = (p >= threshold)
+    return is_similar, p

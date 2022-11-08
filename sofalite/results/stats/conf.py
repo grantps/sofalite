@@ -1,10 +1,16 @@
 from dataclasses import dataclass
-from typing import Optional
+from decimal import Decimal
+from typing import Any, Optional, Sequence
 
 MAX_RANKDATA_VALS = 100_000
 
 @dataclass(frozen=True)
-class MeanDiffsDets:
+class Sample:
+    lbl: str
+    sample: Sequence[Any]
+
+@dataclass(frozen=True, kw_only=True)
+class NumericSampleDets:
     lbl: str
     n: int
     mean: float
@@ -13,8 +19,14 @@ class MeanDiffsDets:
     sample_max: float
     ci95: Optional[tuple[float, float]] = None
 
+@dataclass(frozen=True, kw_only=True)
+class NumericSampleDetsExt(NumericSampleDets):
+    kurtosis: float | str
+    skew: float | str
+    p: float | str
+
 @dataclass(frozen=True)
-class OrdinalSampleDets:
+class OrdinalResult:
     lbl: str
     n: int
     median: float
@@ -22,7 +34,7 @@ class OrdinalSampleDets:
     sample_max: float
 
 @dataclass(frozen=True)
-class SampleDets(OrdinalSampleDets):
+class Result(OrdinalResult):
     mean: Optional[float] = None
     stdev: Optional[float] = None
 
@@ -36,7 +48,7 @@ class MannWhitneyDets:
     sample_max: float
 
 @dataclass(frozen=True)
-class MannWhitneyExtendedDets:
+class MannWhitneyDetsExt:
     lbl_1: str
     lbl_2: str
     n_1: int
@@ -49,7 +61,7 @@ class MannWhitneyExtendedDets:
     u: float
 
 @dataclass(frozen=True)
-class WilcoxonExtendedDets:
+class WilcoxonDetsExt:
     diff_dets: list[dict]
     ranking_dets: list[dict]
     plus_ranks: list[int]
@@ -79,3 +91,31 @@ class SpearmansInitTbl:
     rank_y: int
     diff: int
     diff_squared: int
+
+## https://medium.com/@aniscampos/python-dataclass-inheritance-finally-686eaf60fbb5
+@dataclass(frozen=True, kw_only=True)
+class AnovaResult:
+    p: float | Decimal
+    F: float | Decimal
+    groups_dets: Sequence[NumericSampleDetsExt]
+    sum_squares_within_groups: float | Decimal
+    degrees_freedom_within_groups: float
+    mean_squares_within_groups: float | Decimal
+    sum_squares_between_groups: float | Decimal
+    degrees_freedom_between_groups: int
+    mean_squares_between_groups: float | Decimal
+    obriens_msg: str
+
+@dataclass(frozen=True, kw_only=True)
+class AnovaResultExt(AnovaResult):
+    group_lbl: str
+    measure_fld_lbl: str
+
+@dataclass(frozen=True)
+class NormalTestResult:
+    k2: float | None
+    p: float | None
+    cskew: float | None
+    zskew: float | None
+    ckurtosis: float | None
+    zkurtosis: float | None
