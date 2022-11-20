@@ -1,12 +1,10 @@
-from typing import Optional
-
-from sofalite.results.sql_extraction.db import ExtendedCursor
+from sofalite.sql_extraction.db import ExtendedCursor
 
 def get_sample_numbers(cur: ExtendedCursor,
         tbl_name: str,
         grouping_filt_fld_name: str, grouping_filt_val, grouping_filt_val_is_numeric,
         measure_fld_name: str,
-        tbl_filt_clause: Optional[str] = None) -> list[float]:
+        tbl_filt_clause: str | None = None) -> list[float]:
     """
     Get list of non-missing values in numeric measure field for a group defined by another field
     e.g. getting weights for males.

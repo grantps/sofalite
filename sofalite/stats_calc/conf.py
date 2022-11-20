@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 MAX_RANKDATA_VALS = 100_000
 
@@ -17,13 +17,31 @@ class NumericSampleDets:
     stdev: float
     sample_min: float
     sample_max: float
-    ci95: Optional[tuple[float, float]] = None
+    ci95: tuple[float, float] | None = None
 
 @dataclass(frozen=True, kw_only=True)
 class NumericSampleDetsExt(NumericSampleDets):
     kurtosis: float | str
     skew: float | str
     p: float | str
+    vals: Sequence[float]
+
+@dataclass(frozen=True)
+class NumericSampleDetsFormatted:
+    """
+    Just the fields needed for tabular display as output.
+    Usually formatted with decimal places and p in a helpful string etc
+    """
+    lbl: str
+    n: str
+    mean: str
+    ci95: str
+    stdev: str
+    sample_min: str
+    sample_max: str
+    kurtosis: str
+    skew: str
+    p: str
 
 @dataclass(frozen=True)
 class OrdinalResult:
@@ -35,8 +53,8 @@ class OrdinalResult:
 
 @dataclass(frozen=True)
 class Result(OrdinalResult):
-    mean: Optional[float] = None
-    stdev: Optional[float] = None
+    mean: float | None = None
+    stdev: float | None = None
 
 @dataclass(frozen=True)
 class MannWhitneyDets:
@@ -119,3 +137,13 @@ class NormalTestResult:
     zskew: float | None
     ckurtosis: float | None
     zkurtosis: float | None
+
+@dataclass(frozen=True)
+class RegressionDets:
+    slope: float
+    intercept: float
+    r: float
+    x0: float
+    y0: float
+    x1: float
+    y1: float

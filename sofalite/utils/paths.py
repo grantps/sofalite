@@ -14,5 +14,5 @@ def get_local_path(my_platform: Platform) -> Path:
             user_path = home_path
     else:
         user_path = home_path
-    local_path = user_path / 'sofastats'
+    local_path = user_path / 'sofalite'
     return local_path

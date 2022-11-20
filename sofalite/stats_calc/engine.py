@@ -14,12 +14,13 @@ from typing import Sequence
 
 import numpy as np
 
-from sofalite.results.stats.conf import (
+from sofalite.stats_calc.conf import (
     MAX_RANKDATA_VALS, AnovaResult,
     MannWhitneyDets, MannWhitneyDetsExt,
     NormalTestResult,  NumericSampleDets, NumericSampleDetsExt, OrdinalResult,
-    Result, Sample, SpearmansDets, SpearmansInitTbl, WilcoxonDetsExt)
-from sofalite.results.stats import utils as stats_utils
+    RegressionDets, Result,
+    Sample, SpearmansDets, SpearmansInitTbl, WilcoxonDetsExt)
+from sofalite.stats_calc import utils as stats_utils
 from sofalite.utils.maths import n2d
 
 D = decimal.Decimal
@@ -254,7 +255,7 @@ def get_numeric_sample_dets_extended(sample_dets: Sample, *, high=False) -> Nume
     numeric_sample_dets_extended = NumericSampleDetsExt(
         lbl=sample_dets.lbl, n=len(sample), mean=mymean, stdev=std_dev,
         sample_min=min(sample), sample_max=max(sample), ci95=ci95,
-        kurtosis=kurtosis_val, skew=skew_val, p=p)
+        kurtosis=kurtosis_val, skew=skew_val, p=p, vals=sample)
     return numeric_sample_dets_extended
 
 def anova(group_lbl: str, measure_fld_lbl: str,
@@ -311,7 +312,7 @@ def anova(group_lbl: str, measure_fld_lbl: str,
         sum_squares_between_groups=ssbn, degrees_freedom_between_groups=dfbn, mean_squares_between_groups=mean_squ_bn,
         obriens_msg=obriens_msg)
 
-def anova_p_only(samples: Sequence[float], *, high=True) -> float:
+def anova_p_only(samples: Sequence[Sequence[float]], *, high=True) -> float:
     """
     Should be exactly the same calculation as in anova()
     but everything stripped out that isn't needed
@@ -1119,6 +1120,16 @@ def scoreatpercentile(vals, percent):
     score = binsize * (numer / denom) + (lrl + binsize * i)
     return score
 
+def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionDets:
+    try:
+        slope, intercept, r, unused, unused = linregress(xs, ys)
+    except Exception as e:
+        raise Exception(f"Unable to get regression details. Orig error: {e}")
+    x0 = min(xs)
+    x1 = max(ys)
+    y0 = (x0*slope) + intercept
+    y1 = (x1*slope) + intercept
+    return RegressionDets(slope=slope, intercept=intercept, r=r, x0=x0, y0=y0, x1=x1, y1=y1)
 
 def get_quartiles(vals):
     """
@@ -2122,3 +2133,26 @@ def sim_variance(samples: Sequence[Sequence[float]], *, threshold=0.05, high=Fal
     p = anova_p_only(transformed_samples, high=high)
     is_similar = (p >= threshold)
     return is_similar, p
+
+def normpdf_from_old_mpl(x, *args):
+    """
+    Return the normal pdf evaluated at *x*; args provides *mu*, *sigma*
+    """
+    mu, sigma = args
+    return 1. / (np.sqrt(2 * np.pi) * sigma) * np.exp(-0.5 * (1. / sigma * (x - mu))**2)
+
+def get_normal_ys(vals, bins):
+    """
+    Get np array of y values for normal distribution curve with given values
+    and bins.
+    """
+    if len(vals) < 2:
+        raise Exception('Need multiple values to calculate normal curve.')
+    mu = mean(vals)
+    sigma = stdev(vals)
+    logging.debug(f"bins={bins}, mu={mu}, sigma={sigma}")
+    if sigma == 0:
+        raise Exception(
+            'Unable to get y-axis values for normal curve with a sigma of 0.')
+    norm_ys = normpdf_from_old_mpl(bins, mu, sigma)
+    return norm_ys
