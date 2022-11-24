@@ -1,26 +1,8 @@
-from sofalite.conf.misc import StyleDets
+"""
+TODO: continue this once sorted out Dojo charting esp .pmg vs .gif plus everything baked into dojo js (minified)
+"""
 
-BLACK_BLUE = '#333435'
-BLACK_BROWN = '#423126'
-LIGHT_GREY_BLUE = '#f2f1f0'
-LIGHT_GREY = '#f5f5f5'
-GREY_BLUE = '#ccd9d7'
-MID_GREY_BROWN = '#b8a49e'
-MID_GREY = '#c0c0c0'
-DARKER_MID_GREY = '#a1a1a1'
-CHARCOAL_BROWN = '#736354'
-BURNT_ORANGE = '#e95f29'
-ORANGE = '#ef7d44'
-YORANGE = '#f4cb3a'
-PALE_YORANGE = '#f7d858'
-BLUE_TURQUOISE = '#4495c3'
-TURQUOISE = '#62add2'
-DARK_GREEN = '#44953a'
-GREEN = '#62ad58'
-OFF_SCARLET = '#f43a3a'
-PALE_SCARLET = '#f75858'
-WHITE = '#ffffff'
-BLACK = '#000000'
+from sofalite.conf.misc import StyleDets
 
 def get_style_dets(rel_img_root: str) -> StyleDets:
     style_dets = StyleDets(

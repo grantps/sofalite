@@ -41,7 +41,7 @@ def make_group_histogram(results: AnovaResultExt, style_dets: StyleDets,
 
 def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         dp: int, show_workings=False) -> str:
-    anova_tpl = """\
+    tpl = """\
     <style>
         {{default_css}}
     </style>
@@ -200,6 +200,6 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         'workings_msg': workings_msg,
     }
     environment = jinja2.Environment()
-    template = environment.from_string(anova_tpl)
+    template = environment.from_string(tpl)
     html = template.render(context)
     return html

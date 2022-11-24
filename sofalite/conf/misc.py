@@ -42,6 +42,14 @@ class HistogramDetails:
     n_extra_points: int
 
 @dataclass(frozen=True)
+class BarChartDetails:
+    title: str
+    subtitle: str
+    rotate: bool = False
+    show_n: bool = False
+    show_borders: bool = False
+
+@dataclass(frozen=True)
 class StyleDets:
     ## table
     first_cell_font_colour: str
@@ -49,7 +57,6 @@ class StyleDets:
     data_cell_border_grey: str
     tbl_heading_lbl_bg_colour: str
     tbl_var_font_colour: str
-    tbl_var_bg_colour: str
     tbl_row_borders_top_bottom: str
     heading_footnote_font_colour: str
     footnote_font_colour: str
@@ -60,7 +67,7 @@ class StyleDets:
     gui_note_bg_colour: str
     gui_note_font_colour: str
     ## charting
-    chart_bg: str
+    chart_bg_colour: str
     chart_font_colour: str
     plot_bg: str
     plot_font_colour: str

@@ -1,7 +1,13 @@
+import importlib
+
 import jinja2
 
 from sofalite.conf.misc import StyleDets
 from sofalite.utils.misc import todict
+
+def get_style_dets(style: str, rel_img_root: str) -> StyleDets:
+    style_module = importlib.import_module(f"sofalite.output.css.{style}")
+    return style_module.get_style_dets(rel_img_root)
 
 def get_css_from_style_dets(style_dets: StyleDets) -> str:
     css_tpl = """\
