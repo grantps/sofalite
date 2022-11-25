@@ -2,15 +2,15 @@ import importlib
 
 import jinja2
 
-from sofalite.conf.misc import StyleDets
+from sofalite.conf.misc import DojoStyleDets, StyleDets, TableStyleDets
 from sofalite.utils.misc import todict
 
-def get_style_dets(style: str, rel_img_root: str) -> StyleDets:
+def get_style_dets(style: str) -> StyleDets:
     style_module = importlib.import_module(f"sofalite.output.css.{style}")
-    return style_module.get_style_dets(rel_img_root)
+    return style_module.get_style_dets()
 
-def get_css_from_style_dets(style_dets: StyleDets) -> str:
-    css_tpl = """\
+def get_table_css(style_dets: TableStyleDets) -> str:
+    static_css = """\
         body{
             font-size: 12px;
             font-family: Ubuntu, Helvetica, Arial, sans-serif;
@@ -26,7 +26,6 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             font-size: 16px;
         }
         .gui-msg-medium, gui-msg-small{
-            color: {{gui_msg_font_colour}};
             font-family: Ubuntu, Helvetica, Arial, sans-serif;
         }
         .gui-msg-medium{
@@ -41,8 +40,6 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             line-height: 150%;
         }
         .gui-note{
-            background-color: {{gui_note_bg_colour}};
-            color: {{gui_note_font_colour}};
             font-weight: bold;
             padding: 2px;
         }
@@ -70,21 +67,13 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             padding: 0px 0px 12px 0px;
             margin: 0;
         }
-
-        th, .rowvar, .rowval, .datacell, .firstdatacell {
-            border: solid 1px {{heading_cell_border_grey}};
-        }
         th{
             margin: 0;
             padding: 0px 6px;
         }
         td{
             padding: 2px 6px;
-            border: solid 1px {{data_cell_border_grey}};
             font-size: 13px;
-        }
-        .subtable{
-            border-top: solid 3px {{data_cell_border_grey}};
         }
         .rowval{
             margin: 0;
@@ -97,21 +86,6 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             font-family: Ubuntu, Helvetica, Arial, sans-serif;
             font-weight: bold;
             font-size: 14px;
-            color: {{first_cell_font_colour}};
-        }
-        .firstcolvar, .firstrowvar{
-            background-color: {{tbl_var_font_colour}};
-        }
-        .firstrowvar{
-            border-left: solid 1px {{tbl_var_font_colour}};
-            border-bottom:  solid 1px {{tbl_var_font_colour}};
-        }
-        .topline{
-            border-top: 2px solid {{data_cell_border_grey}};
-        }
-        .spaceholder {
-            background-image: {{spaceholder_bg_img_or_none}} !important; /*else tundra forces none*/
-            background-color: {{spaceholder}};
         }
         .firstcolvar{
             padding: 9px 6px;
@@ -121,7 +95,6 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             font-family: Ubuntu, Helvetica, Arial, sans-serif;
             font-weight: bold;
             font-size: 14px;
-            color: {{tbl_var_font_colour}};
             background-color: white;
         }
         .colvar{
@@ -147,7 +120,6 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
         }
         td.lbl{
             text-align: left;
-            background-color: {{tbl_heading_lbl_bg_colour}};
         }
         td.right{
             text-align: right;
@@ -158,74 +130,125 @@ def get_css_from_style_dets(style_dets: StyleDets) -> str:
             text-align: left; /* IE and Opera*/
             margin-left: 0; /* Firefox, Chrome, Safari */
         }
+    """
+    tpl = """\
+        .gui-msg-medium, gui-msg-small{
+            color: {{gui_msg_font_colour}};
+        }
+        .gui-note{
+            background-color: {{gui_note_bg_colour}};
+            color: {{gui_note_font_colour}};
+        }
+        th, .rowvar, .rowval, .datacell, .firstdatacell {
+            border: solid 1px {{heading_cell_border}};
+        }
+        td{
+            border: solid 1px {{main_border}};
+        }
+        .subtable{
+            border-top: solid 3px {{main_border}};
+        }
+        .firstcolvar, .firstrowvar, .spaceholder {
+            color: {{first_cell_font_colour}};
+        }
+        .firstcolvar, .firstrowvar{
+            background-color: {{first_cell_bg_colour}};
+        }
+        .firstrowvar{
+            border-left: solid 1px {{first_row_border}};
+            border-bottom:  solid 1px {{first_row_border}};
+        }
+        .topline{
+            border-top: 2px solid {{main_border}};
+        }
+        .spaceholder {
+            background-image: {{spaceholder_bg_img_or_none}} !important; /*else tundra forces none*/
+            background-color: {{spaceholder}};
+        }
+        .rowvar, .colvar{
+            color: {{var_font_colour}};
+        }
+        td.lbl{
+            background-color: {{heading_lbl_bg_colour}};
+        }
         .tbl-heading-footnote{
             color: {{heading_footnote_font_colour}};
         }
         .footnote{
             color: {{footnote_font_colour}};
         }
+    """
+    environment = jinja2.Environment()
+    template = environment.from_string(tpl)
+    context = todict(style_dets, shallow=True)
+    dynamic_css = template.render(context)
+    css = f"{static_css}\n{dynamic_css}"
+    return css
+
+def get_dojo_css(style_dets: DojoStyleDets) -> str:
+    tpl = """\
         /* Tool tip connector arrows */
-        .dijitTooltipBelow-defbrown {
+        .dijitTooltipBelow-{{connector_style}} {
           padding-top: 13px;
         }
-        .dijitTooltipAbove-defbrown {
+        .dijitTooltipAbove-{{connector_style}} {
           padding-bottom: 13px;
         }
-        .tundra .dijitTooltipBelow-defbrown .dijitTooltipConnector {
+        .tundra .dijitTooltipBelow-{{connector_style}} .dijitTooltipConnector {
           top: 0px;
           left: 3px;
           background: url("{{tooltip_connector_up}}") no-repeat top left !important;
           width:16px;
           height:14px;
         }
-        .dj_ie .tundra .dijitTooltipBelow-defbrown .dijitTooltipConnector {
+        .dj_ie .tundra .dijitTooltipBelow-{{connector_style}} .dijitTooltipConnector {
           background-image: url("{{tooltip_connector_up}}") !important;
         }
-        .tundra .dijitTooltipAbove-defbrown .dijitTooltipConnector {
+        .tundra .dijitTooltipAbove-{{connector_style}} .dijitTooltipConnector {
           bottom: 0px;
           left: 3px;
           background:url("{{tooltip_connector_down}}") no-repeat top left !important;
           width:16px;
           height:14px;
         }
-        .dj_ie .tundra .dijitTooltipAbove-defbrown .dijitTooltipConnector {
+        .dj_ie .tundra .dijitTooltipAbove-{{connector_style}} .dijitTooltipConnector {
           background-image: url("{{tooltip_connector_down}}") !important;
         }
-        .dj_ie6 .tundra .dijitTooltipAbove-defbrown .dijitTooltipConnector {
+        .dj_ie6 .tundra .dijitTooltipAbove-{{connector_style}} .dijitTooltipConnector {
           bottom: -3px;
         }
-        .tundra .dijitTooltipLeft-defbrown {
+        .tundra .dijitTooltipLeft-{{connector_style}} {
           padding-right: 14px;
         }
-        .dj_ie6 .tundra .dijitTooltipLeft-defbrown {
+        .dj_ie6 .tundra .dijitTooltipLeft-{{connector_style}} {
           padding-left: 15px;
         }
-        .tundra .dijitTooltipLeft-defbrown .dijitTooltipConnector {
+        .tundra .dijitTooltipLeft-{{connector_style}} .dijitTooltipConnector {
           right: 0px;
           bottom: 3px;
           background:url("{{tooltip_connector_right}}") no-repeat top left !important;
           width:16px;
           height:14px;
         }
-        .dj_ie .tundra .dijitTooltipLeft-defbrown .dijitTooltipConnector {
+        .dj_ie .tundra .dijitTooltipLeft-{{connector_style}} .dijitTooltipConnector {
           background-image: url("{{tooltip_connector_right}}") !important;
         }
-        .tundra .dijitTooltipRight-defbrown {
+        .tundra .dijitTooltipRight-{{connector_style}} {
           padding-left: 14px;
         }
-        .tundra .dijitTooltipRight-defbrown .dijitTooltipConnector {
+        .tundra .dijitTooltipRight-{{connector_style}} .dijitTooltipConnector {
           left: 0px;
           bottom: 3px;
           background:url("{{tooltip_connector_left}}") no-repeat top left !important;
           width:16px;
           height:14px;
         }
-        .dj_ie .tundra .dijitTooltipRight-defbrown .dijitTooltipConnector {
+        .dj_ie .tundra .dijitTooltipRight-{{connector_style}} .dijitTooltipConnector {
           background-image: url("{{tooltip_connector_left}}") !important;
         }
     """
     environment = jinja2.Environment()
-    template = environment.from_string(css_tpl)
+    template = environment.from_string(tpl)
     context = todict(style_dets, shallow=True)
     css = template.render(context)
     return css

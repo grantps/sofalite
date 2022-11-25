@@ -1,4 +1,5 @@
-from sofalite.conf.misc import StyleDets
+from sofalite.conf.misc import (SOFASTATS_REPORT_EXTRAS_ROOT,
+    ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
 
 BLACK_BLUE = '#333435'
 BLACK_BROWN = '#423126'
@@ -22,21 +23,27 @@ PALE_SCARLET = '#f75858'
 WHITE = '#ffffff'
 BLACK = '#000000'
 
-def get_style_dets(rel_img_root: str) -> StyleDets:
-    style_dets = StyleDets(
+def get_style_dets() -> StyleDets:
+    table_dets = TableStyleDets(
         first_cell_font_colour=WHITE,
-        heading_cell_border_grey=DARKER_MID_GREY,
-        data_cell_border_grey=MID_GREY,
-        tbl_heading_lbl_bg_colour=LIGHT_GREY,
-        tbl_var_font_colour=BLACK_BLUE,
-        tbl_row_borders_top_bottom=BLACK,
+        var_font_colour=BLACK_BLUE,
         heading_footnote_font_colour=WHITE,
         footnote_font_colour=BLACK,
+        gui_msg_font_colour=BLACK_BROWN,  ## replacing #29221c;
+        gui_note_font_colour=BURNT_ORANGE,
+        ## background colours
+        first_cell_bg_colour=BLACK_BLUE,
+        heading_lbl_bg_colour=LIGHT_GREY,
+        gui_note_bg_colour=BURNT_ORANGE,
+        ## borders
+        main_border=MID_GREY,
+        heading_cell_border=DARKER_MID_GREY,
+        first_row_border=None,
+        ## spaceholders
         spaceholder=GREY_BLUE,
         spaceholder_bg_img_or_none='none',
-        gui_msg_font_colour=BLACK_BROWN,  ## replacing #29221c;
-        gui_note_bg_colour=BURNT_ORANGE,
-        gui_note_font_colour=WHITE,
+    )
+    chart_dets = ChartStyleDets(
         chart_bg_colour=WHITE,
         chart_font_colour=BLACK_BROWN,
         plot_bg=LIGHT_GREY_BLUE,
@@ -50,16 +57,23 @@ def get_style_dets(rel_img_root: str) -> StyleDets:
         tooltip_border_colour=CHARCOAL_BROWN,
         normal_curve_colour=BLACK_BROWN,
         colour_mappings=[
-            (BURNT_ORANGE, ORANGE),
-            (YORANGE, PALE_YORANGE),
-            (BLUE_TURQUOISE, TURQUOISE),
-            (DARK_GREEN, GREEN),
-            (OFF_SCARLET, PALE_SCARLET),
+            ColourWithHighlight(BURNT_ORANGE, ORANGE),
+            ColourWithHighlight(YORANGE, PALE_YORANGE),
+            ColourWithHighlight(BLUE_TURQUOISE, TURQUOISE),
+            ColourWithHighlight(DARK_GREEN, GREEN),
+            ColourWithHighlight(OFF_SCARLET, PALE_SCARLET),
         ],
+    )
+    dojo_dets = DojoStyleDets(
         connector_style='defbrown',
-        tooltip_connector_up=f"{rel_img_root}/tooltipConnectorUp-defbrown.png",
-        tooltip_connector_down=f"{rel_img_root}/tooltipConnectorUDown-defbrown.png",
-        tooltip_connector_left=f"{rel_img_root}/tooltipConnectorLeft-defbrown.png",
-        tooltip_connector_right=f"{rel_img_root}/tooltipConnectorRight-defbrown.png",
+        tooltip_connector_up=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUp-defbrown.png",
+        tooltip_connector_down=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUDown-defbrown.png",
+        tooltip_connector_left=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorLeft-defbrown.png",
+        tooltip_connector_right=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorRight-defbrown.png",
+    )
+    style_dets = StyleDets(
+        table=table_dets,
+        chart=chart_dets,
+        dojo=dojo_dets,
     )
     return style_dets

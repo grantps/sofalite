@@ -1,12 +1,14 @@
 from pathlib import Path
+import base64
+from io import BytesIO
 
 import jinja2
 
-from sofalite.conf.misc import StyleDets
+from sofalite.conf.misc import ChartStyleDets, StyleDets
 from sofalite.conf.paths import INTERNAL_REPORT_IMG_FPATH
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.charts.conf import HistogramConf, HistogramData
-from sofalite.output.css.misc import get_css_from_style_dets
+from sofalite.output.css.misc import get_dojo_css, get_table_css
 from sofalite.output.stats.conf import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
@@ -17,33 +19,33 @@ from sofalite.stats_calc.conf import AnovaResultExt, NumericSampleDetsExt, Numer
 from sofalite.stats_calc.utils import get_p_str
 from sofalite.utils.maths import formatnum
 
-def make_group_histogram(results: AnovaResultExt, style_dets: StyleDets,
-        group_dets: NumericSampleDetsExt) -> Path:
+def get_group_histogram_html(results: AnovaResultExt, style_dets: ChartStyleDets,
+        group_dets: NumericSampleDetsExt) -> str:
     """
     Make histogram image and return its path.
     """
     first_colour_mapping = style_dets.colour_mappings[0]
-    main_colour, _hover_colour = first_colour_mapping
     chart_conf = HistogramConf(
         var_lbl=group_dets.lbl,
         chart_lbl=results.measure_fld_lbl,
         inner_bg_colour=style_dets.plot_bg,
-        bar_colour=main_colour,
+        bar_colour=first_colour_mapping.main,
         line_colour=style_dets.major_grid_line_colour)
     data_dets = HistogramData(vals=group_dets.vals)
     fig = mpl_pngs.get_histogram_fig(chart_conf, data_dets)
     fig.set_size_inches((5.0, 3.5))  ## see dpi to get image size in pixels
-    fixed_lbl = group_dets.lbl.replace('-', '_')
-    img_fname = f"histo_{fixed_lbl}.png"
-    img_fpath = INTERNAL_REPORT_IMG_FPATH / img_fname
-    fig.savefig(img_fpath)
-    return img_fpath
+    bio = BytesIO()
+    fig.savefig(bio)
+    chart_base64 = base64.b64encode(bio.getvalue()).decode('utf-8')
+    html = f'<img src="data:image/png;base64,{chart_base64}"/>'
+    return html
 
 def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{default_css}}
+        {{table_css}}
+        {{dojo_css}}
     </style>
 
     <div class='default'>
@@ -129,7 +131,8 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
     {% endif %}
     </div>
     """
-    default_css = get_css_from_style_dets(style_dets)
+    table_css = get_table_css(style_dets.table)
+    dojo_css = get_dojo_css(style_dets.dojo)
     group_vals = [group_dets.lbl for group_dets in results.groups_dets]
     if len(group_vals) < 2:
         raise Exception(f"Expected multiple groups in ANOVA. Details:\n{results}")
@@ -167,16 +170,17 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         formatted_groups_dets.append(formatted_group_dets)
         ## make images
         try:
-            img_fpath = make_group_histogram(results, style_dets, orig_group_dets)
+            histogram_html = get_group_histogram_html(results, style_dets.chart, orig_group_dets)
         except Exception as e:
-            img_fpath_or_msg = (
+            html_or_msg = (
                 f"<b>{orig_group_dets.lbl}</b> - unable to display histogram. Reason: {e}")
         else:
-            img_fpath_or_msg = f'<img src="file://{img_fpath}">'
-        histograms2show.append(img_fpath_or_msg)
+            html_or_msg = histogram_html
+        histograms2show.append(html_or_msg)
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
-        'default_css': default_css,
+        'table_css': table_css,
+        'dojo_css': dojo_css,
         'title': title,
         'degrees_freedom_between_groups': f"{results.degrees_freedom_between_groups:,}",
         'sum_squares_between_groups': num_tpl.format(round(results.sum_squares_between_groups, dp)),
