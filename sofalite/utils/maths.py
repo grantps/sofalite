@@ -1,10 +1,10 @@
 import decimal
 import math
 
-def formatnum(num):
+def format_num(num):
     try:
-        formatted = f'{num:,}'  ## e.g. 1_000
-    except ValueError:  ## e.g. a string '1000'
+        formatted = f'{num:,}'  ## e.g. 1_000 -> '1,000'
+    except ValueError:  ## e.g. a string '1000' -> '1,000'
         formatted = num
     return formatted
 

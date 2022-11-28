@@ -1,5 +1,6 @@
-from sofalite.conf.misc import (SOFASTATS_REPORT_EXTRAS_ROOT,
+from sofalite.conf.style import (
     ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
+from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 
 GREY_PURPLE = '#5a5a79'
 RED_BROWN = '#ae0000'
@@ -28,6 +29,7 @@ WHITE = '#ffffff'
 BLACK = '#000000'
 
 def get_style_dets() -> StyleDets:
+    connector_style = 'greypurp'
     table_dets = TableStyleDets(
         first_cell_font_colour=WHITE,
         var_font_colour=BLACK_BLUE,
@@ -45,12 +47,12 @@ def get_style_dets() -> StyleDets:
         first_row_border=None,
         ## spaceholders
         spaceholder=GREY_BLUE,
-        spaceholder_bg_img_or_none=f"{SOFASTATS_REPORT_EXTRAS_ROOT}/prestige_spirals.gif",
+        spaceholder_bg_img_or_none=f"{SOFALITE_WEB_RESOURCES_ROOT}/prestige_spirals.gif",
     )
     chart_dets = ChartStyleDets(
         chart_bg_colour=WHITE,
         chart_font_colour=BLACK_BLUE,
-        plot_bg=BLACK_BLUE,
+        plot_bg_colour=BLACK_BLUE,
         plot_font_colour=WHITE,
         plot_bg_filled=BLACK_BLUE,
         plot_font_colour_filled=WHITE,
@@ -80,11 +82,11 @@ def get_style_dets() -> StyleDets:
         ],
     )
     dojo_dets = DojoStyleDets(
-        connector_style='paleblue',
-        tooltip_connector_up=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUp-paleblue.png",
-        tooltip_connector_down=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUDown-paleblue.png",
-        tooltip_connector_left=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorLeft-paleblue.png",
-        tooltip_connector_right=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorRight-paleblue.png",
+        connector_style=connector_style,
+        tooltip_connector_up=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorUp-{connector_style}.png",
+        tooltip_connector_down=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorDown-{connector_style}.png",
+        tooltip_connector_left=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorLeft-{connector_style}.png",
+        tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
     style_dets = StyleDets(
         table=table_dets,

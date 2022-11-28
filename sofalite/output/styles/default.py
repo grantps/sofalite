@@ -1,5 +1,6 @@
-from sofalite.conf.misc import (SOFASTATS_REPORT_EXTRAS_ROOT,
+from sofalite.conf.style import (
     ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
+from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 
 BLACK_BLUE = '#333435'
 BLACK_BROWN = '#423126'
@@ -24,6 +25,7 @@ WHITE = '#ffffff'
 BLACK = '#000000'
 
 def get_style_dets() -> StyleDets:
+    connector_style = 'defbrown'
     table_dets = TableStyleDets(
         first_cell_font_colour=WHITE,
         var_font_colour=BLACK_BLUE,
@@ -46,7 +48,7 @@ def get_style_dets() -> StyleDets:
     chart_dets = ChartStyleDets(
         chart_bg_colour=WHITE,
         chart_font_colour=BLACK_BROWN,
-        plot_bg=LIGHT_GREY_BLUE,
+        plot_bg_colour=LIGHT_GREY_BLUE,
         plot_font_colour=BLACK_BROWN,
         plot_bg_filled=LIGHT_GREY_BLUE,
         plot_font_colour_filled=BLACK_BROWN,
@@ -65,11 +67,11 @@ def get_style_dets() -> StyleDets:
         ],
     )
     dojo_dets = DojoStyleDets(
-        connector_style='defbrown',
-        tooltip_connector_up=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUp-defbrown.png",
-        tooltip_connector_down=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorUDown-defbrown.png",
-        tooltip_connector_left=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorLeft-defbrown.png",
-        tooltip_connector_right=f"{SOFASTATS_REPORT_EXTRAS_ROOT}tooltipConnectorRight-defbrown.png",
+        connector_style=connector_style,
+        tooltip_connector_up=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorUp-{connector_style}.png",
+        tooltip_connector_down=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorDown-{connector_style}.png",
+        tooltip_connector_left=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorLeft-{connector_style}.png",
+        tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
     style_dets = StyleDets(
         table=table_dets,

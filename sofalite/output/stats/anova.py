@@ -1,14 +1,12 @@
-from pathlib import Path
 import base64
 from io import BytesIO
 
 import jinja2
 
-from sofalite.conf.misc import ChartStyleDets, StyleDets
-from sofalite.conf.paths import INTERNAL_REPORT_IMG_FPATH
+from sofalite.conf.style import ChartStyleDets, StyleDets
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.charts.conf import HistogramConf, HistogramData
-from sofalite.output.css.misc import get_dojo_css, get_table_css
+from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.output.stats.conf import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
@@ -17,7 +15,7 @@ from sofalite.output.stats.conf import (
 )
 from sofalite.stats_calc.conf import AnovaResultExt, NumericSampleDetsExt, NumericSampleDetsFormatted
 from sofalite.stats_calc.utils import get_p_str
-from sofalite.utils.maths import formatnum
+from sofalite.utils.maths import format_num
 
 def get_group_histogram_html(results: AnovaResultExt, style_dets: ChartStyleDets,
         group_dets: NumericSampleDetsExt) -> str:
@@ -28,7 +26,7 @@ def get_group_histogram_html(results: AnovaResultExt, style_dets: ChartStyleDets
     chart_conf = HistogramConf(
         var_lbl=group_dets.lbl,
         chart_lbl=results.measure_fld_lbl,
-        inner_bg_colour=style_dets.plot_bg,
+        inner_bg_colour=style_dets.plot_bg_colour,
         bar_colour=first_colour_mapping.main,
         line_colour=style_dets.major_grid_line_colour)
     data_dets = HistogramData(vals=group_dets.vals)
@@ -44,8 +42,9 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{table_css}}
-        {{dojo_css}}
+        {{common_css}}
+        {{styled_misc_css}}
+        {{styled_dojo_css}}
     </style>
 
     <div class='default'>
@@ -131,8 +130,8 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
     {% endif %}
     </div>
     """
-    table_css = get_table_css(style_dets.table)
-    dojo_css = get_dojo_css(style_dets.dojo)
+    styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
+    styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
     group_vals = [group_dets.lbl for group_dets in results.groups_dets]
     if len(group_vals) < 2:
         raise Exception(f"Expected multiple groups in ANOVA. Details:\n{results}")
@@ -146,7 +145,7 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
     mpl_pngs.set_gen_mpl_settings(axes_lbl_size=10, xtick_lbl_size=8, ytick_lbl_size=8)
     histograms2show = []
     for orig_group_dets in results.groups_dets:
-        n = formatnum(orig_group_dets.n)
+        n = format_num(orig_group_dets.n)
         ci95_left = num_tpl.format(round(orig_group_dets.ci95[0], dp))
         ci95_right = num_tpl.format(round(orig_group_dets.ci95[1], dp))
         ci95 = f"{ci95_left} - {ci95_right}"
@@ -179,8 +178,9 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         histograms2show.append(html_or_msg)
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
-        'table_css': table_css,
-        'dojo_css': dojo_css,
+        'common_css': common_css,
+        'styled_misc_css': styled_misc_css,
+        'styled_dojo_css': styled_dojo_css,
         'title': title,
         'degrees_freedom_between_groups': f"{results.degrees_freedom_between_groups:,}",
         'sum_squares_between_groups': num_tpl.format(round(results.sum_squares_between_groups, dp)),
