@@ -19,6 +19,8 @@ AVG_LINE_HEIGHT_PIXELS = 12
 AVG_CHAR_WIDTH_PIXELS = 6.5
 DOJO_Y_TITLE_OFFSET_0 = 45
 TEXT_WIDTH_WHEN_ROTATED = 4
+MIN_CHART_WIDTH_PIXELS = 450
+MAX_SAFE_X_LBL_LEN_PIXELS = 180
 
 JS_BOOL = Literal['true', 'false']
 
@@ -121,7 +123,7 @@ class OverallBarChartDets:
     connector_style: str
     grid_line_width: int
     major_grid_line_colour: str
-    margin_offset_l: int
+    left_margin_offset: int
     minor_ticks: JS_BOOL
     n_records: int
     plot_bg_colour: str
@@ -129,7 +131,7 @@ class OverallBarChartDets:
     plot_font_colour_filled: str
     tooltip_border_colour: str
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
-    x_font_size: int
+    x_font_size: float
     x_gap: int
     x_title: str
     y_max: int

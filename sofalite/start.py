@@ -39,13 +39,13 @@ def run_bar_chart():
         legend_lbl='NZ',  ## e.g. "Italy", or None if only one series
         x_axis_dets=x_axis_dets,
         y_vals=[10.123456789, 6, 7.501],
-        tool_tips=['10 :-)', '6', '7.5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
+        tool_tips=['10', '6', '7.5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
     )
     series_dets_aus = SeriesDetails(
         legend_lbl='Australia',
         x_axis_dets=x_axis_dets,
         y_vals=[12.88, 4, 10.6574],
-        tool_tips=['13 :-)', '4', '11'],
+        tool_tips=['13', '4', '11'],
     )
     series_dets_japan = SeriesDetails(
         legend_lbl='Japan',
@@ -90,7 +90,7 @@ def run_bar_chart():
         dp=4,
         overall_details=overall_details,
     )
-    style_dets = get_style_dets(style='default')
+    style_dets = get_style_dets(style='two_degrees')
     html = bar.get_html(bar_chart_details, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_bar_chart.html'
     with open(fpath, 'w') as f:
