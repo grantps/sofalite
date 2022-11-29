@@ -9,10 +9,10 @@ from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, DOJO_Y_TITLE_OFFSET_0, JS_BOOL, TEXT_WIDTH_WHEN_ROTATED,
     BarChartDetails, ChartDetails, OverallBarChartDets)
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
-from sofalite.conf.style import StyleDets
+from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_x_axis_lbl_dets, get_y_max, get_y_title_offset)
-from sofalite.output.charts.html import tpl_html_top
+from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -64,7 +64,6 @@ make_bar_chart_{{chart_uuid}} = function(){
         conf["chart_bg"] = "{{chart_bg_colour}}";
         conf["connector_style"] = "{{connector_style}}";
         conf["gridline_width"] = {{grid_line_width}};
-        conf["highlight"] = highlight_{{chart_uuid}};
         conf["major_gridline_colour"] = "{{major_grid_line_colour}}";
         conf["margin_offset_l"] = {{margin_offset_l}};
         conf["minor_ticks"] = {{minor_ticks}};
@@ -75,12 +74,15 @@ make_bar_chart_{{chart_uuid}} = function(){
         conf["tooltip_border_colour"] = "{{tooltip_border_colour}}";
         conf["xaxis_lbls"] = {{x_axis_lbls}};
         conf["xfontsize"] = {{x_font_size}};
-        conf["xgap"] = {{x_gap}};
         conf["x_title"] = "{{x_title}}";
         conf["ymax"] = {{y_max}};
-        conf["y_title_offset"] = {{y_title_offset}};
         conf["y_title"] = "{{y_title}}";
-        makeBarChart("bar_chart_{{chart_uuid}}", series, conf);
+        conf["y_title_offset"] = {{y_title_offset}};
+
+        conf["xgap"] = {{x_gap}};
+        conf["highlight"] = highlight_{{chart_uuid}};
+
+    makeBarChart("bar_chart_{{chart_uuid}}", series, conf);
 }
 </script>
 
@@ -97,11 +99,6 @@ make_bar_chart_{{chart_uuid}} = function(){
         </div>
     {% endif %}
 </div>
-"""
-
-html_bottom = """\
-</body>
-</html>
 """
 
 def get_sizing_dets(x_title: str, n_clusters: int, n_bars_in_cluster: int,
@@ -159,6 +156,9 @@ def get_overall_chart_dets(
     """
     Get details that apply to all charts in bar chart set
     (often just one bar chart in set)
+
+    Lots of interactive tweaking required to get charts to actually come out
+    well under lots of interactive conditions (different numbers of columns etc).
     """
     rotated_x_lbls = chart_dets.rotate_x_lbls
     multi_chart = (len(chart_dets.overall_details.charts_details) > 1)
@@ -182,14 +182,38 @@ def get_overall_chart_dets(
     max_safe_x_lbl_len_pixels = 180
     y_title_offset = get_y_title_offset(
         chart_dets.overall_details.max_y_lbl_length, x_lbl_len, max_safe_x_lbl_len_pixels,
-        rotate=chart_dets.rotate_x_lbls)
+        rotate=rotated_x_lbls)
     margin_offset_l = sizing_dets.init_margin_offset_l + y_title_offset - DOJO_Y_TITLE_OFFSET_0
+    if rotated_x_lbls:
+        margin_offset_l += 15
+    ## colour mappings
+    colour_mappings = style_dets.chart.colour_mappings
+    single_series = len(first_chart_dets.series_dets) == 1
+    if single_series:
+        colour_mappings = colour_mappings[:1]
+        if colour_mappings[0].main == '#e95f29':  ## BURNT_ORANGE
+            ## This is an important special case because it affects the bar charts using the default style
+            colour_mappings = [ColourWithHighlight('#e95f29', '#736354'), ]
     ## other
+    if multi_chart:
+        width = sizing_dets.width * 0.9
+        x_gap = sizing_dets.x_gap * 0.8
+        x_font_size = sizing_dets.x_font_size * 0.75
+    else:
+        width = sizing_dets.width
+        x_gap = sizing_dets.x_gap
+        x_font_size = sizing_dets.x_font_size
+    width += margin_offset_l
+    height = 310
+    if rotated_x_lbls:
+        height += AVG_CHAR_WIDTH_PIXELS * chart_dets.overall_details.max_x_lbl_length
+    height += axis_lbl_drop  ## compensate for loss of bar display height
     n_records = 'N = ' + format_num(first_chart_dets.n_records) if chart_dets.show_n else ''
     x_axis_lbl_dets = get_x_axis_lbl_dets(first_series.x_axis_dets)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
     y_max = get_y_max(chart_dets.overall_details.charts_details)
     legend = chart_dets.overall_details.overall_legend_lbl
+    stroke_width = style_dets.chart.stroke_width if chart_dets.show_borders else 0
     return OverallBarChartDets(
         multi_chart=multi_chart,
         legend=legend,
@@ -208,18 +232,18 @@ def get_overall_chart_dets(
         plot_font_colour_filled=style_dets.chart.plot_font_colour_filled,
         tooltip_border_colour=style_dets.chart.tooltip_border_colour,
         x_axis_lbls=x_axis_lbls,  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
-        x_font_size=chart_dets.x_font_size,
-        x_gap=sizing_dets.x_gap,
+        x_font_size=x_font_size,
+        x_gap=x_gap,
         x_title=chart_dets.x_title,
         y_max=y_max,
         y_title_offset=y_title_offset,
         y_title=chart_dets.y_title,
-        colour_mappings=style_dets.chart.colour_mappings,
-        stroke_width=style_dets.chart.stroke_width,
+        colour_mappings=colour_mappings,
+        stroke_width=stroke_width,
         show_borders=chart_dets.show_borders,
         dp=chart_dets.dp,
-        width=chart_dets.width,
-        height=chart_dets.height,
+        width=width,
+        height=height,
     )
 
 def get_indiv_chart_html(overall_chart_dets: OverallBarChartDets, chart_dets: ChartDetails,

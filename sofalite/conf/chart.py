@@ -85,6 +85,21 @@ class BarChartDetails:
     show_n: bool = False
     show_borders: bool = False  ## show border lines around coloured bars?
     x_font_size: int = 12
+    dp: int
+    ## generic chart details
+    overall_details: OverallChartsDetails
+
+@dataclass(frozen=True, kw_only=True)
+class LineChartDetails:
+    """
+    C.f. bar lacks show_borders
+    """
+    ## specific details for bar charts
+    x_title: str
+    y_title: str
+    rotate_x_lbls: bool = False
+    show_n: bool = False
+    x_font_size: int = 12
     width: float  ## inches
     height: float
     dp: int

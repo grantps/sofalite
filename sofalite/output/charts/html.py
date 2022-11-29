@@ -1,3 +1,8 @@
+html_bottom = """\
+</body>
+</html>
+"""
+
 tpl_html_top = """\
 <!DOCTYPE html>
 
