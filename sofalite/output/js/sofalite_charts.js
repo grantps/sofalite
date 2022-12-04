@@ -1,4 +1,6 @@
 //Details on ticks etc http://www.ibm.com/developerworks/web/library/wa-moredojocharts/
+
+// BAR ***************************************************************************************
 makeBarChart = function(chartname, series, conf){
     nChart = conf["n_records"];
     nChartFontColour = conf["plot_font_colour"]
@@ -101,6 +103,7 @@ makeBarChart = function(chartname, series, conf){
     var legend = new dojox.charting.widget.Legend({chart: mychart, horizontal: 6}, "legend_for_" + chartname);
 }
 
+// PIE ***************************************************************************************
 makePieChart = function(chartname, slices, conf){
     nChartFontColour = conf["plot_font_colour_filled"]
     nChart = conf["n_chart"];
@@ -169,6 +172,7 @@ function labelfTime(o)
    return d;
 }
 
+// LINE ***************************************************************************************
 makeLineChart = function(chartname, series, conf){
     nChartFontColour = conf["plot_font_colour"]
     nChart = conf["n_records"];
@@ -182,8 +186,8 @@ makeLineChart = function(chartname, series, conf){
             l: conf['left_margin_offset'],
             t: 10,
             r: 10,
-            b: 10+conf['axis_lbl_drop'],
-            yTitleOffset: conf['y_title_offset']}});
+            b: 10+conf['axis_lbl_drop']},
+            yTitleOffset: conf['y_title_offset']});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
@@ -258,6 +262,7 @@ makeLineChart = function(chartname, series, conf){
     var legend = new dojox.charting.widget.Legend({chart: mychart}, "legend_for_" + chartname);
 }
 
+// AREA ***************************************************************************************
 makeAreaChart = function(chartname, series, conf){
     nChartFontColour = conf["plot_font_colour"]
     nChart = conf["n_chart"];
@@ -347,6 +352,7 @@ makeAreaChart = function(chartname, series, conf){
     mychart.render();
 }
 
+// HISTOGRAM ***************************************************************************************
 makeHistogram = function(chartname, datadets, conf){
     nChartFontColour = conf["plot_font_colour"]
     nChart = conf["n_chart"];
@@ -436,6 +442,7 @@ makeHistogram = function(chartname, datadets, conf){
     mychart.render();
 }
 
+// SCATTERPLOT ***************************************************************************************
 makeScatterplot = function(chartname, series, conf){
     nChartFontColour = conf["plot_font_colour_filled"]
     nChart = conf["n_chart"];
@@ -533,6 +540,7 @@ makeScatterplot = function(chartname, series, conf){
     mychart.render();
 }
 
+// BOX ***************************************************************************************
 makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
     nChartFontColour = conf["plot_font_colour"]
     nChart = conf["n_chart"];

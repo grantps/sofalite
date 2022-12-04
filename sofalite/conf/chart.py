@@ -61,8 +61,11 @@ class SeriesDetails:
     and a series of red bars for Germany.
 
     Pie charts only ever have one series per chart.
+
+    legend_lbl: Needed if multiple lines being displayed (and thus a legend displayed) e.g. "Italy".
+    So needed if either multiple series or a single series with a smooth or trend line also displayed.
     """
-    legend_lbl: str | None  ## e.g. "Italy", or None if only one series
+    legend_lbl: str | None  ##
     x_axis_specs: Sequence[XAxisSpec]
     y_vals: Sequence[float]
     tool_tips: Sequence[str]  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
@@ -75,7 +78,7 @@ class ChartDetails:
     Italy, Germany, and Japan.
     """
     n_records: int  ## number of values underlying chart e.g. N=534 records
-    lbl: str | None  ## e.g. "Gender: Male" if multi-chart or None if only one chart
+    lbl: str | None  ## e.g. "Gender: Male" if multi-chart otherwise None
     series_dets: Sequence[SeriesDetails]  ## one or multiple series
 
 @dataclass(frozen=True, kw_only=True)

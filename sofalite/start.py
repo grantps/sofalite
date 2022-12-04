@@ -31,57 +31,58 @@ def run_anova():
             f.write(html)
         open_new_tab(url=f"file://{fpath}")
 
+x_axis_specs_os = [
+    XAxisSpec(val=1, lbl='Linux', lbl_split_into_lines='Linux'),
+    XAxisSpec(val=2, lbl='Windows', lbl_split_into_lines='Windows'),
+    XAxisSpec(val=3, lbl='Mac', lbl_split_into_lines='Mac'),
+]
+series_dets_nz = SeriesDetails(
+    legend_lbl='NZ',  ## e.g. "Italy", or None if only one series
+    x_axis_specs=x_axis_specs_os,
+    y_vals=[10.123456789, 6, 7.501],
+    tool_tips=['10', '6', '7.5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
+)
+series_dets_aus = SeriesDetails(
+    legend_lbl='Australia',
+    x_axis_specs=x_axis_specs_os,
+    y_vals=[12.88, 4, 10.6574],
+    tool_tips=['13', '4', '11'],
+)
+series_dets_japan = SeriesDetails(
+    legend_lbl='Japan',
+    x_axis_specs=x_axis_specs_os,
+    y_vals=[7.99, 5.8, 12.12],
+    tool_tips=['8', '6', '12'],
+)
+series_dets_taiwan = SeriesDetails(
+    legend_lbl='Taiwan',
+    x_axis_specs=x_axis_specs_os,
+    y_vals=[26, 4, 17.1],
+    tool_tips=['26', '4', '17'],
+)
+series_dets_usa = SeriesDetails(
+    legend_lbl='USA',
+    x_axis_specs=x_axis_specs_os,
+    y_vals=[14, 15, 11],
+    tool_tips=['14', '15', '11'],
+)
+chart_details = ChartDetails(
+    n_records=1024,
+    lbl='Countries',  ## e.g. "Gender: Male" or None if only one chart
+    series_dets=[series_dets_nz, series_dets_aus, series_dets_japan,
+        series_dets_taiwan, series_dets_usa],
+)
+generic_charting_dets = GenericChartingDetails(
+    overall_title='overall title',
+    overall_subtitle='overall subtitle',
+    overall_legend_lbl='Country',
+    max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
+    max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
+    max_lbl_lines=1,  ## used to set axis lbl drop
+    charts_details=[chart_details],
+)
+
 def run_bar_chart():
-    x_axis_specs = [
-        XAxisSpec(val=1, lbl='Linux', lbl_split_into_lines='Linux'),
-        XAxisSpec(val=2, lbl='Windows', lbl_split_into_lines='Windows'),
-        XAxisSpec(val=3, lbl='Mac', lbl_split_into_lines='Mac'),
-    ]
-    series_dets_nz = SeriesDetails(
-        legend_lbl='NZ',  ## e.g. "Italy", or None if only one series
-        x_axis_specs=x_axis_specs,
-        y_vals=[10.123456789, 6, 7.501],
-        tool_tips=['10', '6', '7.5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
-    )
-    series_dets_aus = SeriesDetails(
-        legend_lbl='Australia',
-        x_axis_specs=x_axis_specs,
-        y_vals=[12.88, 4, 10.6574],
-        tool_tips=['13', '4', '11'],
-    )
-    series_dets_japan = SeriesDetails(
-        legend_lbl='Japan',
-        x_axis_specs=x_axis_specs,
-        y_vals=[7.99, 5.8, 12.12],
-        tool_tips=['8', '6', '12'],
-    )
-    series_dets_taiwan = SeriesDetails(
-        legend_lbl='Taiwan',
-        x_axis_specs=x_axis_specs,
-        y_vals=[26, 4, 17.1],
-        tool_tips=['26', '4', '17'],
-    )
-    series_dets_usa = SeriesDetails(
-        legend_lbl='USA',
-        x_axis_specs=x_axis_specs,
-        y_vals=[14, 15, 11],
-        tool_tips=['14', '15', '11'],
-    )
-    chart_details = ChartDetails(
-        n_records=1024,
-        lbl='Countries',  ## e.g. "Gender: Male" or None if only one chart
-        series_dets=[series_dets_nz, series_dets_aus, series_dets_japan,
-            series_dets_taiwan, series_dets_usa],
-    )
-    generic_charting_dets = GenericChartingDetails(
-        overall_title='overall title',
-        overall_subtitle='overall subtitle',
-        overall_legend_lbl='Gender',
-        max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
-        max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
-        max_lbl_lines=1,  ## used to set axis lbl drop
-        charts_details=[chart_details],
-    )
     bar_charting_spec = BarChartingSpec(
         x_title='Operating System',
         y_title='Technical Excellence',
@@ -139,7 +140,7 @@ x_axis_specs_billing = [
 ]
 
 series_dets_cars = SeriesDetails(
-    legend_lbl=None,  ## e.g. "Italy", or None if only one series
+    legend_lbl='Cars',  ## e.g. "Italy", or None if only one series
     x_axis_specs=x_axis_specs_cars,
     y_vals=[135, 62, 116, 75, 158, 80, 160, 59, 59, 98, 171, 94, 96, 92, 24, 14, 7],
     tool_tips=['135<br>9.0%', '62<br>4.1%', '116<br>7.7%', '75<br>5.0%', '158<br>10.5%', '80<br>5.3%', '160<br>10.7%',
@@ -148,7 +149,7 @@ series_dets_cars = SeriesDetails(
     ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
 )
 series_dets_billing = SeriesDetails(
-    legend_lbl=None,  ## e.g. "Italy", or None if only one series
+    legend_lbl='Billing',
     x_axis_specs=x_axis_specs_billing,
     y_vals=[135, 62, 116, 75, 158, 80, 160, 59, 59, 98, 171, 94, 96, 92, 24, 14, 7],
     tool_tips=['135<br>9.0%', '62<br>4.1%', '116<br>7.7%', '75<br>5.0%', '158<br>10.5%', '80<br>5.3%', '160<br>10.7%',
@@ -171,7 +172,7 @@ chart_details_billing = ChartDetails(
 generic_charting_dets_cars = GenericChartingDetails(
     overall_title='overall title',
     overall_subtitle='overall subtitle',
-    overall_legend_lbl='Countries',
+    overall_legend_lbl='Lines',
     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
     max_lbl_lines=1,  ## used to set axis lbl drop
@@ -180,7 +181,7 @@ generic_charting_dets_cars = GenericChartingDetails(
 generic_charting_dets_billing = GenericChartingDetails(
     overall_title='overall title',
     overall_subtitle='overall subtitle',
-    overall_legend_lbl='Countries',
+    overall_legend_lbl='Lines',
     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
     max_lbl_lines=1,  ## used to set axis lbl drop
@@ -215,6 +216,20 @@ line_charting_spec_billing = LineChartingSpec(
     x_title='Billing Date',
     y_title='Frequency',
 )
+line_charting_spec_os = LineChartingSpec(
+    dp=4,
+    generic_charting_dets=generic_charting_dets,
+    is_time_series=False,
+    major_ticks=False,
+    rotate_x_lbls=True,
+    show_markers=True,
+    show_n=True,
+    show_smooth_line=False,
+    show_trend_line=False,
+    x_font_size=12,
+    x_title='Operating System',
+    y_title='Technical Quality',
+)
 
 def run_line_chart_cars():
     style_dets = get_style_dets(style='default')
@@ -223,6 +238,7 @@ def run_line_chart_cars():
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
+
 def run_line_chart_billing():
     style_dets = get_style_dets(style='default')  ## prestige_screen
     html = line.get_html(line_charting_spec_billing, style_dets)
@@ -231,7 +247,16 @@ def run_line_chart_billing():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+def run_line_chart_os():
+    style_dets = get_style_dets(style='default')  ## prestige_screen
+    html = line.get_html(line_charting_spec_os, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_line_chart_os.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
 # run_anova()
 # run_bar_chart()
-run_line_chart_cars()
-run_line_chart_billing()
+# run_line_chart_cars()
+# run_line_chart_billing()
+run_line_chart_os()

@@ -27,7 +27,7 @@ DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM = 100
 DUMMY_TOOL_TIPS = ['', ]  ## no labels or markers on trend line so dummy tool tips OK
 
 left_margin_offset_dets = LeftMarginOffsetDetails(
-    initial_offset=15, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
+    initial_offset=18, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
 
 @dataclass(frozen=True, kw_only=True)
 class LineChartingSpec:
@@ -270,8 +270,10 @@ def get_overall_charting_dets(
     has_minor_ticks_js_bool = 'true' if n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     has_micro_ticks_js_bool = 'true' if n_x_items > DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM else 'false'
     is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
-    legend_lbl = ('' if single_series
-        else charting_spec.generic_charting_dets.overall_legend_lbl)
+    if single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
+        legend_lbl = ''
+    else:
+        legend_lbl = charting_spec.generic_charting_dets.overall_legend_lbl
     ## sizing
     max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if rotated_x_lbls else max_x_lbl_length)
     y_title_offset = get_y_title_offset(
@@ -332,10 +334,10 @@ def get_overall_charting_dets(
 def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
         single_series_dets: SeriesDetails) -> DojoSeriesDetails:
     """
-    We're using coordinates so can just have the end points
+    For time-series lines we're using coordinates so can just have the end points
     e.g. [all[0], all[-1]]
-    The non-time series approach is only linear
-    when it has regular x gaps between the y values.
+    The non-time series lines need one value per x-axis detail
+    otherwise the line only goes from the first to the second x-value.
 
     id is 01 because only a single other series and that will be 00
     smooth will be 02
@@ -347,17 +349,18 @@ def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
     trend_series_id = '01'
     trend_series_lbl = 'Trend line'
     trend_line_colour = overall_charting_dets.colours[1]  ## obviously don't conflict with main series colour or possible smooth line colour
-    marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
-    trend_options = (f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, """
-        f"""yLbls: {DUMMY_TOOL_TIPS}, plot: "{marker_plot_style}"}}""")
     if overall_charting_dets.is_time_series:
         trend_series_x_axis_specs = [
             overall_charting_dets.x_axis_specs[0], overall_charting_dets.x_axis_specs[-1]]
         trend_series_y_vals = [trend_y_vals[0], trend_y_vals[-1]]
         trend_series_vals = get_time_series_vals(
             trend_series_x_axis_specs, trend_series_y_vals, overall_charting_dets.x_title)
+        marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
     else:
-        trend_series_vals = trend_y_vals
+        trend_series_vals = trend_y_vals  ## need
+        marker_plot_style = PlotStyle.UNMARKED
+    trend_options = (f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, """
+        f"""yLbls: {DUMMY_TOOL_TIPS}, plot: "{marker_plot_style}"}}""")
     trend_series_dets = DojoSeriesDetails(
         trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
     return trend_series_dets
@@ -389,6 +392,7 @@ def get_dojo_smooth_series_dets(overall_charting_dets: OverallLineChartingDets,
 def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_chart_dets: ChartDetails,
         *,  chart_counter: int) -> str:
     context = todict(overall_charting_dets, shallow=True)
+    single_series = len(indiv_chart_dets.series_dets) == 1
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
     indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if overall_charting_dets.multi_chart else ''
@@ -411,7 +415,6 @@ def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_c
             f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
     ## trend and smooth series (if appropriate)
-    single_series = len(indiv_chart_dets.series_dets) == 1
     first_series_details = indiv_chart_dets.series_dets[0]
     if overall_charting_dets.show_trend_line:
         if not single_series:
