@@ -165,7 +165,7 @@ chart_details_cars = ChartDetails(
 chart_details_billing = ChartDetails(
     n_records=1024,
     lbl=None,  ## e.g. "Gender: Male" or None if only one chart
-    series_dets=[series_dets_billing],
+    series_dets=[series_dets_billing],  ## TODO - spec(s)
 )
 
 generic_charting_dets_cars = GenericChartingDetails(
@@ -188,28 +188,32 @@ generic_charting_dets_billing = GenericChartingDetails(
 )
 
 line_charting_spec_cars = LineChartingSpec(
-    x_title='Car',
-    y_title='Frequency',
-    rotate_x_lbls=True,
-    show_n=True,
-    x_font_size=12,
     dp=4,
+    generic_charting_dets=generic_charting_dets_cars,
     is_time_series=False,
     major_ticks=False,
+    rotate_x_lbls=True,
+    show_markers=True,
+    show_n=True,
+    show_smooth_line=True,
     show_trend_line=True,
-    generic_charting_dets=generic_charting_dets_cars,
+    x_title='Car',
+    x_font_size=12,
+    y_title='Frequency',
 )
 line_charting_spec_billing = LineChartingSpec(
-    x_title='Billing Date',
-    y_title='Frequency',
-    rotate_x_lbls=True,
-    show_n=True,
-    x_font_size=12,
     dp=4,
+    generic_charting_dets=generic_charting_dets_billing,
     is_time_series=True,
     major_ticks=False,
+    rotate_x_lbls=True,
+    show_markers=True,
+    show_n=True,
+    show_smooth_line=True,
     show_trend_line=True,
-    generic_charting_dets=generic_charting_dets_billing,
+    x_font_size=12,
+    x_title='Billing Date',
+    y_title='Frequency',
 )
 
 def run_line_chart_cars():
@@ -220,7 +224,7 @@ def run_line_chart_cars():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 def run_line_chart_billing():
-    style_dets = get_style_dets(style='prestige_screen')
+    style_dets = get_style_dets(style='default')  ## prestige_screen
     html = line.get_html(line_charting_spec_billing, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_billing.html'
     with open(fpath, 'w') as f:
@@ -229,5 +233,5 @@ def run_line_chart_billing():
 
 # run_anova()
 # run_bar_chart()
-# run_line_chart_cars()
+run_line_chart_cars()
 run_line_chart_billing()

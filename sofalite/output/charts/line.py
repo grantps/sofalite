@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import logging
+from statistics import median
 from typing import Literal, Sequence
 import uuid
 
@@ -7,7 +8,8 @@ import jinja2
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
-    ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails, XAxisSpec)
+    ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails,
+    PlotStyle, SeriesDetails, XAxisSpec)
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top
@@ -22,6 +24,8 @@ from sofalite.utils.misc import todict
 DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 8
 DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM = 100
 
+DUMMY_TOOL_TIPS = ['', ]  ## no labels or markers on trend line so dummy tool tips OK
+
 left_margin_offset_dets = LeftMarginOffsetDetails(
     initial_offset=15, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
 
@@ -33,16 +37,17 @@ class LineChartingSpec:
     Only single-series line charts can have a trend line (or the smoothed option).
     """
     ## specific details for line charting
-    x_title: str
-    y_title: str
-    rotate_x_lbls: bool = False
-    show_n: bool = False
-    x_font_size: int = 12
     dp: int
     is_time_series: bool = False
     major_ticks: bool = False
-    show_trend_line: bool = False
+    rotate_x_lbls: bool = False
+    show_markers: bool = True
+    show_n: bool = False
     show_smooth_line: bool = False
+    show_trend_line: bool = False
+    x_font_size: int = 12
+    x_title: str
+    y_title: str
     ## generic charting details
     generic_charting_dets: GenericChartingDetails
 
@@ -79,6 +84,8 @@ class OverallLineChartingDets:
     plot_bg_colour: str
     plot_font_colour: str
     plot_font_colour_filled: str
+    show_markers: bool
+    show_smooth_line: bool
     show_trend_line: bool
     tooltip_border_colour: str
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
@@ -142,6 +149,22 @@ def get_trend_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
     for x in range(1, n + 1):
         trend_y_vals.append(a + b * x)
     return trend_y_vals
+
+def get_smooth_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
+    """
+    Returns values to plot a smoothed line which fits the y_vals provided.
+    """
+    smooth_y_vals = []
+    for i, y_val in enumerate(y_vals):
+        if 1 < i < len(y_vals) - 2:
+            smooth_y_vals.append(median(y_vals[i - 2: i + 3]))
+        elif i in (1, len(y_vals) - 2):
+            smooth_y_vals.append(median(y_vals[i - 1: i + 2]))
+        elif i == 0:
+            smooth_y_vals.append((2 * y_val + y_vals[i + 1]) / 3)
+        elif i == len(y_vals) - 1:
+            smooth_y_vals.append((2 * y_val + y_vals[i - 1]) / 3)
+    return smooth_y_vals
 
 def get_time_series_vals(x_axis_specs: Sequence[XAxisSpec], y_vals: Sequence[float], x_title: str) -> str:
     xs = []
@@ -292,6 +315,8 @@ def get_overall_charting_dets(
         plot_bg_colour=style_dets.chart.plot_bg_colour,
         plot_font_colour=style_dets.chart.plot_font_colour,
         plot_font_colour_filled=style_dets.chart.plot_font_colour_filled,
+        show_markers=charting_spec.show_markers,
+        show_smooth_line=charting_spec.show_smooth_line,
         show_trend_line=charting_spec.show_trend_line,
         tooltip_border_colour=style_dets.chart.tooltip_border_colour,
         width=width,
@@ -304,17 +329,28 @@ def get_overall_charting_dets(
         y_title_offset=y_title_offset,
     )
 
-def get_dojo_trend_series_dets(
-        overall_charting_dets: OverallLineChartingDets, indiv_chart_dets: ChartDetails) -> DojoSeriesDetails:
-    only_series = indiv_chart_dets.series_dets[0]
-    orig_y_vals = only_series.y_vals
+def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
+        single_series_dets: SeriesDetails) -> DojoSeriesDetails:
+    """
+    We're using coordinates so can just have the end points
+    e.g. [all[0], all[-1]]
+    The non-time series approach is only linear
+    when it has regular x gaps between the y values.
+
+    id is 01 because only a single other series and that will be 00
+    smooth will be 02
+    OK if we have one or the other of smooth and trend (or neither)
+    as long as they are distinct
+    """
+    orig_y_vals = single_series_dets.y_vals
     trend_y_vals = get_trend_y_vals(orig_y_vals)
     trend_series_id = '01'
     trend_series_lbl = 'Trend line'
-    trend_line_colour = overall_charting_dets.colours[1]
-    trend_options = f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, yLbls: [''], plot: 'default'}}"""
+    trend_line_colour = overall_charting_dets.colours[1]  ## obviously don't conflict with main series colour or possible smooth line colour
+    marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
+    trend_options = (f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, """
+        f"""yLbls: {DUMMY_TOOL_TIPS}, plot: "{marker_plot_style}"}}""")
     if overall_charting_dets.is_time_series:
-        ## can just use ends given linear gaps in time series
         trend_series_x_axis_specs = [
             overall_charting_dets.x_axis_specs[0], overall_charting_dets.x_axis_specs[-1]]
         trend_series_y_vals = [trend_y_vals[0], trend_y_vals[-1]]
@@ -322,9 +358,33 @@ def get_dojo_trend_series_dets(
             trend_series_x_axis_specs, trend_series_y_vals, overall_charting_dets.x_title)
     else:
         trend_series_vals = trend_y_vals
-    trand_series_dets = DojoSeriesDetails(
+    trend_series_dets = DojoSeriesDetails(
         trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
-    return trand_series_dets
+    return trend_series_dets
+
+def get_dojo_smooth_series_dets(overall_charting_dets: OverallLineChartingDets,
+        single_series_dets: SeriesDetails) -> DojoSeriesDetails:
+    """
+    id is 02 because only a single other series and that will be 00
+    trend will be 01
+    OK if we have one or the other of smooth and trend (or neither)
+    as long as they are distinct
+    """
+    orig_y_vals = single_series_dets.y_vals
+    smooth_y_vals = get_smooth_y_vals(orig_y_vals)
+    smooth_series_id = '02'
+    smooth_series_lbl = 'Smooth line'
+    smooth_line_colour = overall_charting_dets.colours[2]  ## obviously don't conflict with main series colour or possible trend line colour
+    smooth_options = (f"""{{stroke: {{color: "{smooth_line_colour}", width: "6px"}}, """
+        f"""yLbls: {DUMMY_TOOL_TIPS}, plot: "{PlotStyle.CURVED}"}}""")
+    if overall_charting_dets.is_time_series:
+        smooth_series_vals = get_time_series_vals(
+            overall_charting_dets.x_axis_specs, smooth_y_vals, overall_charting_dets.x_title)
+    else:
+        smooth_series_vals = smooth_y_vals
+    smooth_series_dets = DojoSeriesDetails(
+        smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
+    return smooth_series_dets
 
 def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_chart_dets: ChartDetails,
         *,  chart_counter: int) -> str:
@@ -332,7 +392,9 @@ def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_c
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
     indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if overall_charting_dets.multi_chart else ''
+    ## each standard series
     dojo_series_dets = []
+    marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
     for i, series in enumerate(indiv_chart_dets.series_dets):
         series_id = f"{i:>02}"
         series_lbl = series.legend_lbl
@@ -345,14 +407,25 @@ def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_c
         ## e.g. {stroke: {color: '#e95f29', width: '6px'}, yLbls: ['x-val: 2016-01-01<br>y-val: 12<br>0.8%', ... ], plot: 'default'};
         line_colour = overall_charting_dets.colours[i]
         y_lbls_str = str(series.tool_tips)
-        options = f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, yLbls: {y_lbls_str}, plot: 'default'}}"""
+        options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
+            f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
+    ## trend and smooth series (if appropriate)
     single_series = len(indiv_chart_dets.series_dets) == 1
+    first_series_details = indiv_chart_dets.series_dets[0]
     if overall_charting_dets.show_trend_line:
         if not single_series:
             raise Exception("Can only show trend lines if one series of results.")
-        trend_series_dets = get_dojo_trend_series_dets(overall_charting_dets, indiv_chart_dets)
+        trend_series_dets = get_dojo_trend_series_dets(
+            overall_charting_dets, single_series_dets=first_series_details)
         dojo_series_dets.append(trend_series_dets)  ## seems that the later you add something the lower it is
+    if overall_charting_dets.show_smooth_line:
+        if not single_series:
+            raise Exception("Can only show trend lines if one series of results.")
+        smooth_series_dets = get_dojo_smooth_series_dets(
+            overall_charting_dets, single_series_dets=first_series_details
+        )
+        dojo_series_dets.append(smooth_series_dets)
     indiv_context = {
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,
