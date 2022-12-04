@@ -3,19 +3,21 @@ from typing import Sequence
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_TITLE_OFFSET_0, MAX_SAFE_X_LBL_LEN_PIXELS,
-    ChartDetails, XAxisDetails)
+    ChartDetails, LeftMarginOffsetDetails, XAxisSpec)
 
-def get_left_margin_offset(*,
-        width_after_left_margin: float, y_title_offset: float, rotated_x_lbls: bool) -> int:
-    initial_offset = 35 if width_after_left_margin > 1_200 else 25  ## otherwise gets squeezed out e.g. in percent
+def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
+        multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:
+    wide = width_after_left_margin > 1_200
+    initial_offset = offsets.wide_offset if wide else offsets.initial_offset  ## otherwise gets squeezed out e.g. in pct
     offset = initial_offset + y_title_offset - DOJO_Y_TITLE_OFFSET_0
-    offset = offset + 15 if rotated_x_lbls else offset
+    offset = offset + offsets.rotate_offset if rotated_x_lbls else offset
+    offset = offset + offsets.multi_chart_offset if multi_chart else offset
     return offset
 
-def get_x_font_size(*, n_clusters: int, multi_chart: bool) -> float:
-    if n_clusters <= 5:
+def get_x_font_size(*, n_x_items: int, multi_chart: bool) -> float:
+    if n_x_items <= 5:
         x_font_size = 10
-    elif n_clusters > 10:
+    elif n_x_items > 10:
         x_font_size = 8
     else:
         x_font_size = 9
@@ -45,7 +47,8 @@ def get_y_title_offset(*, max_y_lbl_length: int, x_lbl_len: int, rotated_x_lbls=
     ## 45 is a good total offset with label width of 20
     y_title_offset = DOJO_Y_TITLE_OFFSET_0 - 20
     ## x-axis adjustment
-    if not rotated_x_lbls:
+    horiz_x_lbls = not rotated_x_lbls
+    if horiz_x_lbls:
         if x_lbl_len * AVG_CHAR_WIDTH_PIXELS > MAX_SAFE_X_LBL_LEN_PIXELS:
             lbl_width_shifting = (x_lbl_len * AVG_CHAR_WIDTH_PIXELS) - MAX_SAFE_X_LBL_LEN_PIXELS
             lbl_shift = lbl_width_shifting / 2  ## half of label goes to the right
@@ -67,13 +70,13 @@ def get_y_max(charts_dets: Sequence[ChartDetails]):
     y_max = max_all_y_vals * 1.1  ## slightly over just to be safe
     return y_max
 
-def get_x_axis_lbl_dets(x_axis_dets: Sequence[XAxisDetails]) -> list[str]:
+def get_x_axis_lbl_dets(x_axis_specs: Sequence[XAxisSpec]) -> list[str]:
     """
     Note - can be a risk that a split label for the middle x value
     will overlap with x-axis label below
     """
     lbl_dets = []
-    for n, x_axis_det in enumerate(x_axis_dets, 1):
-        val_lbl = x_axis_det.lbl_split_into_lines
+    for n, x_axis_spec in enumerate(x_axis_specs, 1):
+        val_lbl = x_axis_spec.lbl_split_into_lines
         lbl_dets.append(f'{{value: {n}, text: "{val_lbl}"}}')
     return lbl_dets

@@ -11068,7 +11068,7 @@ dojox.charting.__Chart2DCtorArgs = function(margins, stroke, fill, delayInMs){
 		    var elemAttribution = this.surface.createText({
 			    x: xLoc,
 			    y: yLoc,
-			    text: "sofastatistics.com",
+			    text: "sofalite",
 			    align: 'middle'
 		    });
 		    elemAttribution.setFont(

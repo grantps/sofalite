@@ -25,10 +25,24 @@ MAX_SAFE_X_LBL_LEN_PIXELS = 180
 JS_BOOL = Literal['true', 'false']
 
 @dataclass(frozen=True)
-class XAxisDetails:
+class XAxisSpec:
     val: Any
     lbl: str  ## e.g. Ubuntu Linux
     lbl_split_into_lines: str  ## e.g. "Ubuntu\nLinux" - ready for display in chart
+
+@dataclass(frozen=True)
+class LeftMarginOffsetDetails:
+    initial_offset: int
+    wide_offset: int
+    rotate_offset: int
+    multi_chart_offset: int
+
+@dataclass(frozen=True)
+class DojoSeriesDetails:
+    series_id: str  ## e.g. 01
+    lbl: str
+    vals: Sequence[float]
+    options: str
 
 @dataclass(frozen=True)
 class SeriesDetails:
@@ -40,7 +54,7 @@ class SeriesDetails:
     Pie charts only ever have one series per chart.
     """
     legend_lbl: str | None  ## e.g. "Italy", or None if only one series
-    x_axis_dets: Sequence[XAxisDetails]
+    x_axis_specs: Sequence[XAxisSpec]
     y_vals: Sequence[float]
     tool_tips: Sequence[str]  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
 
@@ -56,7 +70,7 @@ class ChartDetails:
     series_dets: Sequence[SeriesDetails]  ## one or multiple series
 
 @dataclass(frozen=True, kw_only=True)
-class OverallChartsDetails:  ## Chart(s)Details ;-)
+class GenericChartingDetails:  ## Chart(s)Details ;-)
     """
     Overall details - whether for an individual chart only or for a set of charts
     (perhaps one per country).
@@ -77,69 +91,3 @@ class OverallChartsDetails:  ## Chart(s)Details ;-)
     max_lbl_lines: int  ## used to set axis lbl drop
     ## the chart / charts details
     charts_details: Sequence[ChartDetails]  ## might be a sequence of one chart or of multiple charts
-
-@dataclass(frozen=True, kw_only=True)
-class BarChartDetails:
-    ## specific details for bar charts
-    x_title: str
-    y_title: str
-    rotate_x_lbls: bool = False
-    show_n: bool = False
-    show_borders: bool = False  ## show border lines around coloured bars?
-    x_font_size: int = 12
-    dp: int
-    ## generic chart details
-    overall_details: OverallChartsDetails
-
-@dataclass(frozen=True, kw_only=True)
-class LineChartDetails:
-    """
-    C.f. bar lacks show_borders
-    """
-    ## specific details for bar charts
-    x_title: str
-    y_title: str
-    rotate_x_lbls: bool = False
-    show_n: bool = False
-    x_font_size: int = 12
-    width: float  ## inches
-    height: float
-    dp: int
-    ## generic chart details
-    overall_details: OverallChartsDetails
-
-@dataclass(frozen=True)
-class OverallBarChartDets:
-    """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
-    """
-    multi_chart: bool
-    legend: str
-    axis_font_colour: str
-    axis_lbl_drop: int
-    axis_lbl_rotate: int
-    chart_bg_colour: str
-    connector_style: str
-    grid_line_width: int
-    major_grid_line_colour: str
-    left_margin_offset: int
-    minor_ticks: JS_BOOL
-    n_records: int
-    plot_bg_colour: str
-    plot_font_colour: str
-    plot_font_colour_filled: str
-    tooltip_border_colour: str
-    x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
-    x_font_size: float
-    x_gap: int
-    x_title: str
-    y_max: int
-    y_title_offset: int
-    y_title: str
-    colour_mappings: Sequence[ColourWithHighlight]
-    stroke_width: int
-    show_borders: bool
-    dp: int
-    width: float  ## pixels
-    height: float

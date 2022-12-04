@@ -11,8 +11,8 @@ tpl_html_top = """\
 
 <link rel='stylesheet' type='text/css' href="{{sofalite_web_resources_root}}/tundra.css" />
 <script src="{{sofalite_web_resources_root}}/dojo.xd.js"></script>
-<script src="{{sofalite_web_resources_root}}/sofastatsdojo_minified.js"></script>
-<script src="{{sofalite_web_resources_root}}/sofastats_charts.js"></script>
+<script src="{{sofalite_web_resources_root}}/sofalitedojo_minified.js"></script>
+<script src="{{sofalite_web_resources_root}}/sofalite_charts.js"></script>
 
 <style type="text/css">
 <!--
@@ -52,7 +52,7 @@ function getAllFunctions(){
     for (var i in window) {
       if((typeof window[i]).toString()=="function"){
         fn_name = window[i].name;
-        if (fn_name.startsWith('make_bar_chart')) {
+        if (fn_name.startsWith('make_chart')) {
             allFunctions.push(fn_name);
         }
       }
