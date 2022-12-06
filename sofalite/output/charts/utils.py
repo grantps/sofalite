@@ -6,22 +6,22 @@ from sofalite.conf.chart import (
     ChartDetails, LeftMarginOffsetDetails, XAxisSpec)
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
-        multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:
+        is_multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:
     wide = width_after_left_margin > 1_200
     initial_offset = offsets.wide_offset if wide else offsets.initial_offset  ## otherwise gets squeezed out e.g. in pct
     offset = initial_offset + y_title_offset - DOJO_Y_TITLE_OFFSET_0
     offset = offset + offsets.rotate_offset if rotated_x_lbls else offset
-    offset = offset + offsets.multi_chart_offset if multi_chart else offset
+    offset = offset + offsets.multi_chart_offset if is_multi_chart else offset
     return offset
 
-def get_x_font_size(*, n_x_items: int, multi_chart: bool) -> float:
+def get_x_font_size(*, n_x_items: int, is_multi_chart: bool) -> float:
     if n_x_items <= 5:
         x_font_size = 10
     elif n_x_items > 10:
         x_font_size = 8
     else:
         x_font_size = 9
-    x_font_size = x_font_size * 0.75 if multi_chart else x_font_size
+    x_font_size = x_font_size * 0.75 if is_multi_chart else x_font_size
     return x_font_size
 
 def get_height(*, axis_lbl_drop: float, rotated_x_lbls=False, max_x_lbl_length: float) -> float:
@@ -31,8 +31,8 @@ def get_height(*, axis_lbl_drop: float, rotated_x_lbls=False, max_x_lbl_length: 
     height += axis_lbl_drop  ## compensate for loss of bar display height
     return height
 
-def get_axis_lbl_drop(*, multi_chart: bool, rotated_x_lbls: bool, max_lbl_lines: int) -> int:
-    axis_lbl_drop = 10 if multi_chart else 15
+def get_axis_lbl_drop(*, is_multi_chart: bool, rotated_x_lbls: bool, max_lbl_lines: int) -> int:
+    axis_lbl_drop = 10 if is_multi_chart else 15
     if not rotated_x_lbls:
         extra_lines = max_lbl_lines - 1
         axis_lbl_drop += AVG_LINE_HEIGHT_PIXELS * extra_lines

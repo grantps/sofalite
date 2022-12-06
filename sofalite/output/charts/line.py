@@ -58,36 +58,38 @@ class LineChartingSpec:
                 "i.e. not split by another variable e.g. one line chart per gender")
 
 @dataclass(frozen=True)
-class OverallLineChartingDets:
-    """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
-    """
-    axis_font_colour: str
-    axis_lbl_drop: int
-    axis_lbl_rotate: int
-    chart_bg_colour: str
+class CommonColourSpec:
+    axis_font: str
+    chart_bg: str
     colours: Sequence[str]
-    connector_style: str
-    dp: int
-    grid_line_width: int
+    major_grid_line: str
+    plot_bg: str
+    plot_font: str
+    plot_font_filled: str
+    tooltip_border: str
+
+@dataclass(frozen=True)
+class CommonOptions:
     has_micro_ticks_js_bool: Literal['true', 'false']
     has_minor_ticks_js_bool: Literal['true', 'false']
-    height: float  ## pixels
+    is_multi_chart: bool
     is_time_series: bool
     is_time_series_js_bool: Literal['true', 'false']
-    left_margin_offset: int
-    legend_lbl: str
-    major_grid_line_colour: str
-    multi_chart: bool
-    n_records: int
-    plot_bg_colour: str
-    plot_font_colour: str
-    plot_font_colour_filled: str
     show_markers: bool
     show_smooth_line: bool
     show_trend_line: bool
-    tooltip_border_colour: str
+
+@dataclass(frozen=True)
+class CommonMiscSpec:
+    axis_lbl_drop: int
+    axis_lbl_rotate: int
+    connector_style: str
+    dp: int
+    grid_line_width: int
+    height: float  ## pixels
+    left_margin_offset: int
+    legend_lbl: str
+    n_records: int
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
     x_axis_specs: Sequence[XAxisSpec] | None
     x_font_size: float
@@ -97,9 +99,19 @@ class OverallLineChartingDets:
     y_title_offset: int
     width: float  ## pixels
 
+@dataclass(frozen=True)
+class CommonChartingSpec:
+    """
+    Ready to combine with individual chart specs
+    and feed into the Dojo JS engine.
+    """
+    colour_spec: CommonColourSpec
+    misc_spec: CommonMiscSpec
+    options: CommonOptions
+
 MIN_PIXELS_PER_X_ITEM = 10
 
-def get_width_after_left_margin(*, multi_chart: bool, n_x_items: int, n_series: int,
+def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_series: int,
         max_x_lbl_width: int, is_time_series: bool, major_ticks: bool, x_title: str) -> float:
     """
     Get initial width (will make a final adjustment based on left margin offset).
@@ -119,7 +131,7 @@ def get_width_after_left_margin(*, multi_chart: bool, n_x_items: int, n_series: 
     width = max([n_x_items * width_per_x_item, width_x_title, min_chart_width])
     if major_ticks:
         width = max(width * 0.4, min_chart_width)
-    if multi_chart:
+    if is_multi_chart:
         width = width * 0.9
     return width
 
@@ -240,10 +252,10 @@ make_chart_{{chart_uuid}} = function(){
 """
 
 def get_overall_charting_dets(
-        charting_spec: LineChartingSpec, style_dets: StyleDets) -> OverallLineChartingDets:
+        charting_spec: LineChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## convenience pre-calcs
     rotated_x_lbls = charting_spec.rotate_x_lbls
-    multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
+    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
     first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
     n_series = len(first_chart_dets.series_dets)
     single_series = n_series == 1
@@ -279,48 +291,43 @@ def get_overall_charting_dets(
     y_title_offset = get_y_title_offset(
         max_y_lbl_length=charting_spec.generic_charting_dets.max_y_lbl_length,
         x_lbl_len=x_lbl_len, rotated_x_lbls=rotated_x_lbls)
-    axis_lbl_drop = get_axis_lbl_drop(multi_chart=multi_chart, rotated_x_lbls=rotated_x_lbls,
+    axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=is_multi_chart, rotated_x_lbls=rotated_x_lbls,
         max_lbl_lines=charting_spec.generic_charting_dets.max_lbl_lines)
     axis_lbl_rotate = -90 if rotated_x_lbls else 0
     horiz_x_lbls = not rotated_x_lbls
     major_ticks = False if charting_spec.is_time_series and horiz_x_lbls else charting_spec.major_ticks  ## override
     width_after_left_margin = get_width_after_left_margin(
-        multi_chart=multi_chart, n_x_items=n_x_items, n_series=n_series,
+        is_multi_chart=is_multi_chart, n_x_items=n_x_items, n_series=n_series,
         max_x_lbl_width=max_x_lbl_width, is_time_series=charting_spec.is_time_series,
         major_ticks=major_ticks, x_title=charting_spec.x_title)
-    x_font_size = get_x_font_size(n_x_items=n_x_items, multi_chart=multi_chart)
+    x_font_size = get_x_font_size(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, multi_chart=multi_chart,
+        offsets=left_margin_offset_dets, is_multi_chart=is_multi_chart,
         y_title_offset=y_title_offset, rotated_x_lbls=rotated_x_lbls)
     width = width_after_left_margin + left_margin_offset
     height = get_height(axis_lbl_drop=axis_lbl_drop,
         rotated_x_lbls=rotated_x_lbls, max_x_lbl_length=max_x_lbl_length)
-    return OverallLineChartingDets(
-        axis_font_colour=style_dets.chart.axis_font_colour,
+
+    colour_spec = CommonColourSpec(
+        axis_font=style_dets.chart.axis_font_colour,
+        chart_bg=style_dets.chart.chart_bg_colour,
+        colours=colours,
+        major_grid_line=style_dets.chart.major_grid_line_colour,
+        plot_bg=style_dets.chart.plot_bg_colour,
+        plot_font=style_dets.chart.plot_font_colour,
+        plot_font_filled=style_dets.chart.plot_font_colour_filled,
+        tooltip_border=style_dets.chart.tooltip_border_colour,
+    )
+    misc_spec = CommonMiscSpec(
         axis_lbl_drop=axis_lbl_drop,
         axis_lbl_rotate=axis_lbl_rotate,
-        chart_bg_colour=style_dets.chart.chart_bg_colour,
-        colours=colours,
         connector_style=style_dets.dojo.connector_style,
         dp=charting_spec.dp,
         grid_line_width=style_dets.chart.grid_line_width,
-        has_micro_ticks_js_bool=has_micro_ticks_js_bool,
-        has_minor_ticks_js_bool=has_minor_ticks_js_bool,
         height=height,
-        is_time_series=charting_spec.is_time_series,
-        is_time_series_js_bool=is_time_series_js_bool,
         left_margin_offset=left_margin_offset,
         legend_lbl=legend_lbl,
-        major_grid_line_colour=style_dets.chart.major_grid_line_colour,
-        multi_chart=multi_chart,
         n_records=n_records,
-        plot_bg_colour=style_dets.chart.plot_bg_colour,
-        plot_font_colour=style_dets.chart.plot_font_colour,
-        plot_font_colour_filled=style_dets.chart.plot_font_colour_filled,
-        show_markers=charting_spec.show_markers,
-        show_smooth_line=charting_spec.show_smooth_line,
-        show_trend_line=charting_spec.show_trend_line,
-        tooltip_border_colour=style_dets.chart.tooltip_border_colour,
         width=width,
         x_axis_lbls=x_axis_lbls,
         x_axis_specs=x_axis_specs,
@@ -330,8 +337,23 @@ def get_overall_charting_dets(
         y_title=charting_spec.y_title,
         y_title_offset=y_title_offset,
     )
+    options = CommonOptions(
+        has_micro_ticks_js_bool=has_micro_ticks_js_bool,
+        has_minor_ticks_js_bool=has_minor_ticks_js_bool,
+        is_multi_chart=is_multi_chart,
+        is_time_series=charting_spec.is_time_series,
+        is_time_series_js_bool=is_time_series_js_bool,
+        show_smooth_line=charting_spec.show_smooth_line,
+        show_trend_line=charting_spec.show_trend_line,
+        show_markers=charting_spec.show_markers,
+    )
+    return CommonChartingSpec(
+        colour_spec=colour_spec,
+        misc_spec=misc_spec,
+        options=options,
+    )
 
-def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
+def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
         single_series_dets: SeriesDetails) -> DojoSeriesDetails:
     """
     For time-series lines we're using coordinates so can just have the end points
@@ -348,14 +370,14 @@ def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
     trend_y_vals = get_trend_y_vals(orig_y_vals)
     trend_series_id = '01'
     trend_series_lbl = 'Trend line'
-    trend_line_colour = overall_charting_dets.colours[1]  ## obviously don't conflict with main series colour or possible smooth line colour
-    if overall_charting_dets.is_time_series:
+    trend_line_colour = common_charting_spec.colour_spec.colours[1]  ## obviously don't conflict with main series colour or possible smooth line colour
+    if common_charting_spec.options.is_time_series:
         trend_series_x_axis_specs = [
-            overall_charting_dets.x_axis_specs[0], overall_charting_dets.x_axis_specs[-1]]
+            common_charting_spec.misc_spec.x_axis_specs[0], common_charting_spec.misc_spec.x_axis_specs[-1]]
         trend_series_y_vals = [trend_y_vals[0], trend_y_vals[-1]]
         trend_series_vals = get_time_series_vals(
-            trend_series_x_axis_specs, trend_series_y_vals, overall_charting_dets.x_title)
-        marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
+            trend_series_x_axis_specs, trend_series_y_vals, common_charting_spec.misc_spec.x_title)
+        marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
     else:
         trend_series_vals = trend_y_vals  ## need
         marker_plot_style = PlotStyle.UNMARKED
@@ -365,7 +387,7 @@ def get_dojo_trend_series_dets(overall_charting_dets: OverallLineChartingDets,
         trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
     return trend_series_dets
 
-def get_dojo_smooth_series_dets(overall_charting_dets: OverallLineChartingDets,
+def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
         single_series_dets: SeriesDetails) -> DojoSeriesDetails:
     """
     id is 02 because only a single other series and that will be 00
@@ -377,56 +399,59 @@ def get_dojo_smooth_series_dets(overall_charting_dets: OverallLineChartingDets,
     smooth_y_vals = get_smooth_y_vals(orig_y_vals)
     smooth_series_id = '02'
     smooth_series_lbl = 'Smooth line'
-    smooth_line_colour = overall_charting_dets.colours[2]  ## obviously don't conflict with main series colour or possible trend line colour
+    smooth_line_colour = common_charting_spec.colour_spec.colours[2]  ## obviously don't conflict with main series colour or possible trend line colour
     smooth_options = (f"""{{stroke: {{color: "{smooth_line_colour}", width: "6px"}}, """
         f"""yLbls: {DUMMY_TOOL_TIPS}, plot: "{PlotStyle.CURVED}"}}""")
-    if overall_charting_dets.is_time_series:
+    if common_charting_spec.options.is_time_series:
         smooth_series_vals = get_time_series_vals(
-            overall_charting_dets.x_axis_specs, smooth_y_vals, overall_charting_dets.x_title)
+            common_charting_spec.misc_spec.x_axis_specs,
+            smooth_y_vals, common_charting_spec.misc_spec.x_title)
     else:
         smooth_series_vals = smooth_y_vals
     smooth_series_dets = DojoSeriesDetails(
         smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
     return smooth_series_dets
 
-def get_indiv_chart_html(overall_charting_dets: OverallLineChartingDets, indiv_chart_dets: ChartDetails,
+def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
         *,  chart_counter: int) -> str:
-    context = todict(overall_charting_dets, shallow=True)
+    context = todict(common_charting_spec.colour_spec, shallow=True)
+    context.update(todict(common_charting_spec.misc_spec, shallow=True))
+    context.update(todict(common_charting_spec.options, shallow=True))
     single_series = len(indiv_chart_dets.series_dets) == 1
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
-    indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if overall_charting_dets.multi_chart else ''
+    indiv_title_html = (f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
     ## each standard series
     dojo_series_dets = []
-    marker_plot_style = PlotStyle.DEFAULT if overall_charting_dets.show_markers else PlotStyle.UNMARKED
+    marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
     for i, series in enumerate(indiv_chart_dets.series_dets):
         series_id = f"{i:>02}"
         series_lbl = series.legend_lbl
-        if overall_charting_dets.is_time_series:
+        if common_charting_spec.options.is_time_series:
             series_vals = get_time_series_vals(
-                overall_charting_dets.x_axis_specs, series.y_vals, overall_charting_dets.x_title)
+                common_charting_spec.misc_spec.x_axis_specs, series.y_vals, common_charting_spec.misc_spec.x_title)
         else:
             series_vals = str(series.y_vals)
         ## options
         ## e.g. {stroke: {color: '#e95f29', width: '6px'}, yLbls: ['x-val: 2016-01-01<br>y-val: 12<br>0.8%', ... ], plot: 'default'};
-        line_colour = overall_charting_dets.colours[i]
+        line_colour = common_charting_spec.colour_spec.colours[i]
         y_lbls_str = str(series.tool_tips)
         options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
             f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
     ## trend and smooth series (if appropriate)
     first_series_details = indiv_chart_dets.series_dets[0]
-    if overall_charting_dets.show_trend_line:
+    if common_charting_spec.options.show_trend_line:
         if not single_series:
             raise Exception("Can only show trend lines if one series of results.")
         trend_series_dets = get_dojo_trend_series_dets(
-            overall_charting_dets, single_series_dets=first_series_details)
+            common_charting_spec, single_series_dets=first_series_details)
         dojo_series_dets.append(trend_series_dets)  ## seems that the later you add something the lower it is
-    if overall_charting_dets.show_smooth_line:
+    if common_charting_spec.options.show_smooth_line:
         if not single_series:
             raise Exception("Can only show trend lines if one series of results.")
         smooth_series_dets = get_dojo_smooth_series_dets(
-            overall_charting_dets, single_series_dets=first_series_details
+            common_charting_spec, single_series_dets=first_series_details
         )
         dojo_series_dets.append(smooth_series_dets)
     indiv_context = {

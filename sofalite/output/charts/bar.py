@@ -39,33 +39,35 @@ class BarChartingSpec:
     generic_charting_dets: GenericChartingDetails
 
 @dataclass(frozen=True)
-class OverallBarChartingDets:
-    """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
-    """
-    axis_font_colour: str
-    axis_lbl_drop: int
-    axis_lbl_rotate: int
-    chart_bg_colour: str
+class CommonColourSpec:
+    axis_font: str
+    chart_bg: str
     colour_cases: Sequence[str]
     colours: Sequence[str]
+    major_grid_line: str
+    plot_bg: str
+    plot_font: str
+    plot_font_filled: str
+    tooltip_border: str
+
+@dataclass(frozen=True)
+class CommonOptions:
+    has_minor_ticks_js_bool: Literal['true', 'false']
+    is_multi_chart: bool
+    show_borders: bool
+
+@dataclass(frozen=True)
+class CommonMiscSpec:
+    axis_lbl_drop: int
+    axis_lbl_rotate: int
     connector_style: str
     dp: int
     grid_line_width: int
     height: float  ## pixels
     left_margin_offset: int
     legend_lbl: str
-    major_grid_line_colour: str
-    minor_ticks: Literal['true', 'false']
-    multi_chart: bool
     n_records: int
-    plot_bg_colour: str
-    plot_font_colour: str
-    plot_font_colour_filled: str
-    show_borders: bool
     stroke_width: int
-    tooltip_border_colour: str
     width: float  ## pixels
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
     x_font_size: float
@@ -74,6 +76,16 @@ class OverallBarChartingDets:
     y_max: int
     y_title: str
     y_title_offset: int
+
+@dataclass(frozen=True)
+class CommonChartingSpec:
+    """
+    Ready to combine with individual chart dets
+    and feed into the Dojo JS engine.
+    """
+    colour_spec: CommonColourSpec
+    misc_spec: CommonMiscSpec
+    options: CommonOptions
 
 tpl_chart = """
 <script type="text/javascript">
@@ -108,9 +120,9 @@ make_chart_{{chart_uuid}} = function(){
         conf["chart_bg_colour"] = "{{chart_bg_colour}}";
         conf["connector_style"] = "{{connector_style}}";
         conf["grid_line_width"] = {{grid_line_width}};
+        conf["has_minor_ticks"] = {{has_minor_ticks_js_bool}};
         conf["left_margin_offset"] = {{left_margin_offset}};
         conf["major_grid_line_colour"] = "{{major_grid_line_colour}}";
-        conf["minor_ticks"] = {{minor_ticks}};
         conf["n_records"] = "{{n_records}}";
         conf["plot_bg_colour"] = "{{plot_bg_colour}}";
         conf["plot_font_colour"] = "{{plot_font_colour}}";
@@ -145,7 +157,7 @@ make_chart_{{chart_uuid}} = function(){
 </div>
 """
 
-def get_x_gap(*, n_x_items: int, multi_chart: bool) -> int:
+def get_x_gap(*, n_x_items: int, is_multi_chart: bool) -> int:
     if n_x_items <= 2:
         x_gap = 20
     elif n_x_items <= 5:
@@ -158,10 +170,10 @@ def get_x_gap(*, n_x_items: int, multi_chart: bool) -> int:
         x_gap = 5
     else:
         x_gap = 4
-    x_gap = x_gap * 0.8 if multi_chart else x_gap
+    x_gap = x_gap * 0.8 if is_multi_chart else x_gap
     return x_gap
 
-def get_width_after_left_margin(*, multi_chart: bool, n_x_items: int, n_series: int,
+def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_series: int,
         max_x_lbl_width: int, x_title: str) -> float:
     """
     Get initial width (will make a final adjustment based on left margin offset).
@@ -177,11 +189,11 @@ def get_width_after_left_margin(*, multi_chart: bool, n_x_items: int, n_series: 
     width_x_title_pixels = len(x_title) * AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
     width_cluster_pixels = n_series * width_per_cluster_pixels
     width = max([width_cluster_pixels, width_x_title_pixels, MIN_CHART_WIDTH_PIXELS])
-    width = width * 0.9 if multi_chart else width
+    width = width * 0.9 if is_multi_chart else width
     return width
 
 def get_overall_charting_dets(
-        charting_spec: BarChartingSpec, style_dets: StyleDets) -> OverallBarChartingDets:
+        charting_spec: BarChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     """
     Get details that apply to all charts in bar chart set
     (often just one bar chart in set)
@@ -199,7 +211,7 @@ def get_overall_charting_dets(
     """
     ## convenience pre-calcs
     rotated_x_lbls = charting_spec.rotate_x_lbls
-    multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
+    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
     first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
     first_series = first_chart_dets.series_dets[0]
     n_series = len(first_chart_dets.series_dets)
@@ -223,68 +235,80 @@ def get_overall_charting_dets(
     x_axis_lbl_dets = get_x_axis_lbl_dets(first_series.x_axis_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
     y_max = get_y_max(charting_spec.generic_charting_dets.charts_details)
-    minor_ticks = 'true' if n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
+    has_minor_ticks_js_bool = 'true' if n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     legend_lbl = ('' if single_series
         else charting_spec.generic_charting_dets.overall_legend_lbl)
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
     max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if rotated_x_lbls else max_x_lbl_length)
     width_after_left_margin = get_width_after_left_margin(
-        multi_chart=multi_chart, n_x_items=n_x_items, n_series=n_series,
+        is_multi_chart=is_multi_chart, n_x_items=n_x_items, n_series=n_series,
         max_x_lbl_width=max_x_lbl_width, x_title=charting_spec.x_title)
-    x_font_size = get_x_font_size(n_x_items=n_x_items, multi_chart=multi_chart)
-    x_gap = get_x_gap(n_x_items=n_x_items, multi_chart=multi_chart)
+    x_font_size = get_x_font_size(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
+    x_gap = get_x_gap(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
     y_title_offset = get_y_title_offset(
         max_y_lbl_length=charting_spec.generic_charting_dets.max_y_lbl_length,
         x_lbl_len=x_lbl_len, rotated_x_lbls=rotated_x_lbls)
-    axis_lbl_drop = get_axis_lbl_drop(multi_chart=multi_chart, rotated_x_lbls=rotated_x_lbls,
+    axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=is_multi_chart, rotated_x_lbls=rotated_x_lbls,
         max_lbl_lines=charting_spec.generic_charting_dets.max_lbl_lines)
     axis_lbl_rotate = -90 if rotated_x_lbls else 0
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, multi_chart=multi_chart,
+        offsets=left_margin_offset_dets, is_multi_chart=is_multi_chart,
         y_title_offset=y_title_offset, rotated_x_lbls=rotated_x_lbls)
     width = width_after_left_margin + left_margin_offset
     height = get_height(axis_lbl_drop=axis_lbl_drop,
         rotated_x_lbls=rotated_x_lbls, max_x_lbl_length=max_x_lbl_length)
-    return OverallBarChartingDets(
-        axis_font_colour=style_dets.chart.axis_font_colour,
-        axis_lbl_drop=axis_lbl_drop,
-        axis_lbl_rotate=axis_lbl_rotate,
-        chart_bg_colour=style_dets.chart.chart_bg_colour,
+
+    colour_spec = CommonColourSpec(
+        axis_font=style_dets.chart.axis_font_colour,
+        chart_bg=style_dets.chart.chart_bg_colour,
         colour_cases=colour_cases,
         colours=colours,
+        major_grid_line=style_dets.chart.major_grid_line_colour,
+        plot_bg=style_dets.chart.plot_bg_colour,
+        plot_font=style_dets.chart.plot_font_colour,
+        plot_font_filled=style_dets.chart.plot_font_colour_filled,
+        tooltip_border=style_dets.chart.tooltip_border_colour,
+    )
+    misc_spec = CommonMiscSpec(
+        axis_lbl_drop=axis_lbl_drop,
+        axis_lbl_rotate=axis_lbl_rotate,
         connector_style=style_dets.dojo.connector_style,
         dp=charting_spec.dp,
         grid_line_width=style_dets.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
         legend_lbl=legend_lbl,
-        major_grid_line_colour=style_dets.chart.major_grid_line_colour,
-        minor_ticks=minor_ticks,
-        multi_chart=multi_chart,
         n_records=n_records,
-        plot_bg_colour=style_dets.chart.plot_bg_colour,
-        plot_font_colour=style_dets.chart.plot_font_colour,
-        plot_font_colour_filled=style_dets.chart.plot_font_colour_filled,
-        show_borders=charting_spec.show_borders,
         stroke_width=stroke_width,
-        tooltip_border_colour=style_dets.chart.tooltip_border_colour,
-        x_axis_lbls=x_axis_lbls,  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
+        width=width,
+        x_axis_lbls=x_axis_lbls,
         x_font_size=x_font_size,
         x_gap=x_gap,
         x_title=charting_spec.x_title,
         y_max=y_max,
         y_title=charting_spec.y_title,
         y_title_offset=y_title_offset,
-        width=width,
+    )
+    options = CommonOptions(
+        has_minor_ticks_js_bool=has_minor_ticks_js_bool,
+        is_multi_chart=is_multi_chart,
+        show_borders=charting_spec.show_borders,
+    )
+    return CommonChartingSpec(
+        colour_spec=colour_spec,
+        misc_spec=misc_spec,
+        options=options,
     )
 
-def get_indiv_chart_html(overall_charting_dets: OverallBarChartingDets, indiv_chart_dets: ChartDetails,
+def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
         *,  chart_counter: int) -> str:
-    context = todict(overall_charting_dets, shallow=True)
+    context = todict(common_charting_spec.colour_spec, shallow=True)
+    context.update(todict(common_charting_spec.misc_spec, shallow=True))
+    context.update(todict(common_charting_spec.options, shallow=True))
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
-    indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if overall_charting_dets.multi_chart else ''
+    indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else ''
     dojo_series_dets = []
     for i, series in enumerate(indiv_chart_dets.series_dets):
         series_id = f"{i:>02}"
@@ -292,9 +316,9 @@ def get_indiv_chart_html(overall_charting_dets: OverallBarChartingDets, indiv_ch
         series_vals = str(series.y_vals)
         ## options
         ## e.g. {stroke: {color: "white", width: "0px"}, fill: "#e95f29", yLbls: ['66.38', ...]}
-        fill_colour = overall_charting_dets.colours[i]
+        fill_colour = common_charting_spec.colour_spec.colours[i]
         y_lbls_str = str(series.tool_tips)
-        options = (f"""{{stroke: {{color: "white", width: "{overall_charting_dets.stroke_width}px"}}, """
+        options = (f"""{{stroke: {{color: "white", width: "{common_charting_spec.misc_spec.stroke_width}px"}}, """
             f"""fill: "{fill_colour}", yLbls: {y_lbls_str}}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
     indiv_context = {

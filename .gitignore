@@ -104,3 +104,4 @@ ENV/
 # IDE conf
 .vscode/
 .idea/
+sofalite/output/js/sofalitedojo_minified.js

@@ -256,7 +256,7 @@ def run_line_chart_os():
     open_new_tab(url=f"file://{fpath}")
 
 # run_anova()
-# run_bar_chart()
-# run_line_chart_cars()
-# run_line_chart_billing()
+run_bar_chart()
+run_line_chart_cars()
+run_line_chart_billing()
 run_line_chart_os()
