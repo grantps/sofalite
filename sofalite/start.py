@@ -298,4 +298,4 @@ def run_area_chart():
 # run_line_chart_cars()
 # run_line_chart_billing()
 # run_line_chart_os()
-run_area_chart()
+# run_area_chart()
