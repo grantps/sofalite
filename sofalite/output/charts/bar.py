@@ -8,12 +8,10 @@ from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
     ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails
 )
-from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import ColourWithHighlight, StyleDets
+from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_font_size, get_y_max, get_y_title_offset)
-from sofalite.output.charts.html import html_bottom, tpl_html_top
-from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -26,7 +24,7 @@ left_margin_offset_dets = LeftMarginOffsetDetails(
     initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
 
 @dataclass(frozen=True, kw_only=True)
-class BarChartingSpec:
+class ChartingSpec(CommonChartingSpec):
     ## specific details for bar charting
     x_title: str
     y_title: str
@@ -87,7 +85,7 @@ class CommonChartingSpec:
     misc_spec: CommonMiscSpec
     options: CommonOptions
 
-tpl_chart = """
+tpl_chart = """\
 <script type="text/javascript">
 
 var highlight_{{chart_uuid}} = function(colour){
@@ -114,20 +112,20 @@ make_chart_{{chart_uuid}} = function(){
     {% endfor %}
 
     var conf = new Array();
-        conf["axis_font_colour"] = "{{axis_font_colour}}";
+        conf["axis_font_colour"] = "{{axis_font}}";
         conf["axis_lbl_drop"] = {{axis_lbl_drop}};
         conf["axis_lbl_rotate"] = {{axis_lbl_rotate}};
-        conf["chart_bg_colour"] = "{{chart_bg_colour}}";
+        conf["chart_bg_colour"] = "{{chart_bg}}";
         conf["connector_style"] = "{{connector_style}}";
         conf["grid_line_width"] = {{grid_line_width}};
         conf["has_minor_ticks"] = {{has_minor_ticks_js_bool}};
         conf["left_margin_offset"] = {{left_margin_offset}};
-        conf["major_grid_line_colour"] = "{{major_grid_line_colour}}";
+        conf["major_grid_line_colour"] = "{{major_grid_line}}";
         conf["n_records"] = "{{n_records}}";
-        conf["plot_bg_colour"] = "{{plot_bg_colour}}";
-        conf["plot_font_colour"] = "{{plot_font_colour}}";
-        conf["plot_font_colour_filled"] = "{{plot_font_colour_filled}}";
-        conf["tooltip_border_colour"] = "{{tooltip_border_colour}}";
+        conf["plot_bg_colour"] = "{{plot_bg}}";
+        conf["plot_font_colour"] = "{{plot_font}}";
+        conf["plot_font_colour_filled"] = "{{plot_font_filled}}";
+        conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_lbls"] = {{x_axis_lbls}};
         conf["x_font_size"] = {{x_font_size}};
         conf["x_title"] = "{{x_title}}";
@@ -192,8 +190,7 @@ def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_serie
     width = width * 0.9 if is_multi_chart else width
     return width
 
-def get_overall_charting_dets(
-        charting_spec: BarChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     """
     Get details that apply to all charts in bar chart set
     (often just one bar chart in set)
@@ -332,23 +329,3 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_d
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
-
-def get_html(charting_spec: BarChartingSpec, style_dets: StyleDets) -> str:
-    styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
-    styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
-    context = {
-        'common_css': common_css,
-        'sofalite_web_resources_root': SOFALITE_WEB_RESOURCES_ROOT,
-        'styled_dojo_css': styled_dojo_css,
-        'styled_misc_css': styled_misc_css,
-    }
-    environment = jinja2.Environment()
-    template = environment.from_string(tpl_html_top)
-    html_top = template.render(context)
-    html_result = [html_top, ]
-    overall_chart_dets = get_overall_charting_dets(charting_spec, style_dets)
-    for n, chart_dets in enumerate(charting_spec.generic_charting_dets.charts_details, 1):
-        chart_html = get_indiv_chart_html(overall_chart_dets, chart_dets, chart_counter=n)
-        html_result.append(chart_html)
-    html_result.append(html_bottom)
-    return '\n\n'.join(html_result)

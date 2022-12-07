@@ -3,13 +3,12 @@ Will point at GUI later but good for running functions in the meanwhile.
 """
 from webbrowser import open_new_tab
 
-from sofalite.output.charts import bar, line
+from sofalite.output.charts import area, bar, line
+from sofalite.output.charts.common import get_html
 from sofalite.conf.chart import (
     ChartDetails, GenericChartingDetails, SeriesDetails, XAxisSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
-from sofalite.output.charts.bar import BarChartingSpec
-from sofalite.output.charts.line import LineChartingSpec
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova
 from sofalite.sql_extraction.db import Sqlite
@@ -82,24 +81,6 @@ generic_charting_dets = GenericChartingDetails(
     charts_details=[chart_details],
 )
 
-def run_bar_chart():
-    bar_charting_spec = BarChartingSpec(
-        x_title='Operating System',
-        y_title='Technical Excellence',
-        rotate_x_lbls=False,
-        show_n=True,
-        show_borders=False,
-        x_font_size=12,
-        dp=4,
-        generic_charting_dets=generic_charting_dets,
-    )
-    style_dets = get_style_dets(style='two_degrees')
-    html = bar.get_html(bar_charting_spec, style_dets)
-    fpath = '/home/g/Documents/sofalite/reports/test_bar_chart.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
-    open_new_tab(url=f"file://{fpath}")
-
 x_axis_specs_cars = [
     XAxisSpec(val=1, lbl='BMW', lbl_split_into_lines='BMW'),
     XAxisSpec(val=2, lbl='PORSCHE', lbl_split_into_lines='PORSCHE'),
@@ -158,6 +139,20 @@ series_dets_billing = SeriesDetails(
     ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
 )
 
+area_chart_details = ChartDetails(
+    n_records=1024,
+    lbl='Countries',  ## e.g. "Gender: Male" or None if only one chart
+    series_dets=[series_dets_cars, ],
+)
+area_charting_dets = GenericChartingDetails(
+    overall_title='overall title',
+    overall_subtitle='overall subtitle',
+    overall_legend_lbl='Country',
+    max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
+    max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
+    max_lbl_lines=1,  ## used to set axis lbl drop
+    charts_details=[area_chart_details],
+)
 chart_details_cars = ChartDetails(
     n_records=1024,
     lbl=None,  ## e.g. "Gender: Male" or None if only one chart
@@ -188,75 +183,119 @@ generic_charting_dets_billing = GenericChartingDetails(
     charts_details=[chart_details_billing],
 )
 
-line_charting_spec_cars = LineChartingSpec(
-    dp=4,
-    generic_charting_dets=generic_charting_dets_cars,
-    is_time_series=False,
-    major_ticks=False,
-    rotate_x_lbls=True,
-    show_markers=True,
-    show_n=True,
-    show_smooth_line=True,
-    show_trend_line=True,
-    x_title='Car',
-    x_font_size=12,
-    y_title='Frequency',
-)
-line_charting_spec_billing = LineChartingSpec(
-    dp=4,
-    generic_charting_dets=generic_charting_dets_billing,
-    is_time_series=True,
-    major_ticks=False,
-    rotate_x_lbls=True,
-    show_markers=True,
-    show_n=True,
-    show_smooth_line=True,
-    show_trend_line=True,
-    x_font_size=12,
-    x_title='Billing Date',
-    y_title='Frequency',
-)
-line_charting_spec_os = LineChartingSpec(
-    dp=4,
-    generic_charting_dets=generic_charting_dets,
-    is_time_series=False,
-    major_ticks=False,
-    rotate_x_lbls=True,
-    show_markers=True,
-    show_n=True,
-    show_smooth_line=False,
-    show_trend_line=False,
-    x_font_size=12,
-    x_title='Operating System',
-    y_title='Technical Quality',
-)
+def run_bar_chart():
+    charting_spec = bar.ChartingSpec(
+        x_title='Operating System',
+        y_title='Technical Excellence',
+        rotate_x_lbls=False,
+        show_n=True,
+        show_borders=False,
+        x_font_size=12,
+        dp=4,
+        generic_charting_dets=generic_charting_dets,
+    )
+    style_dets = get_style_dets(style='two_degrees')
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=bar.get_common_charting_spec, indiv_chart_html_fn=bar.get_indiv_chart_html)
+    fpath = '/home/g/Documents/sofalite/reports/test_bar_chart.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
 
 def run_line_chart_cars():
+    charting_spec = line.ChartingSpec(
+        dp=4,
+        generic_charting_dets=generic_charting_dets_cars,
+        is_time_series=False,
+        major_ticks=False,
+        rotate_x_lbls=True,
+        show_markers=True,
+        show_n=True,
+        show_smooth_line=True,
+        show_trend_line=True,
+        x_title='Car',
+        x_font_size=12,
+        y_title='Frequency',
+    )
     style_dets = get_style_dets(style='default')
-    html = line.get_html(line_charting_spec_cars, style_dets)
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=line.get_common_charting_spec, indiv_chart_html_fn=line.get_indiv_chart_html)
     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_cars.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_line_chart_billing():
+    charting_spec = line.ChartingSpec(
+        dp=4,
+        generic_charting_dets=generic_charting_dets_billing,
+        is_time_series=True,
+        major_ticks=False,
+        rotate_x_lbls=True,
+        show_markers=True,
+        show_n=True,
+        show_smooth_line=True,
+        show_trend_line=True,
+        x_font_size=12,
+        x_title='Billing Date',
+        y_title='Frequency',
+    )
     style_dets = get_style_dets(style='default')  ## prestige_screen
-    html = line.get_html(line_charting_spec_billing, style_dets)
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=line.get_common_charting_spec, indiv_chart_html_fn=line.get_indiv_chart_html)
     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_billing.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_line_chart_os():
+    charting_spec = line.ChartingSpec(
+        dp=4,
+        generic_charting_dets=generic_charting_dets,
+        is_time_series=False,
+        major_ticks=False,
+        rotate_x_lbls=True,
+        show_markers=True,
+        show_n=True,
+        show_smooth_line=False,
+        show_trend_line=False,
+        x_font_size=12,
+        x_title='Operating System',
+        y_title='Technical Quality',
+    )
     style_dets = get_style_dets(style='default')  ## prestige_screen
-    html = line.get_html(line_charting_spec_os, style_dets)
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=line.get_common_charting_spec, indiv_chart_html_fn=line.get_indiv_chart_html)
     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_os.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+
+def run_area_chart():
+    charting_spec = area.ChartingSpec(
+        dp=4,
+        generic_charting_dets=area_charting_dets,
+        is_time_series=False,
+        major_ticks=False,
+        rotate_x_lbls=True,
+        show_markers=True,
+        show_n=True,
+        x_title='Car',
+        x_font_size=12,
+        y_title='Frequency',
+    )
+    style_dets = get_style_dets(style='prestige_screen')
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=area.get_common_charting_spec, indiv_chart_html_fn=area.get_indiv_chart_html)
+    fpath = '/home/g/Documents/sofalite/reports/test_area_chart_cars.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
 # run_anova()
-run_bar_chart()
-run_line_chart_cars()
-run_line_chart_billing()
-run_line_chart_os()
+# run_bar_chart()
+# run_line_chart_cars()
+# run_line_chart_billing()
+# run_line_chart_os()
+run_area_chart()

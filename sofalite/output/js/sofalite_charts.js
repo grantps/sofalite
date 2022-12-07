@@ -265,7 +265,7 @@ makeLineChart = function(chartname, series, conf){
 // AREA ***************************************************************************************
 makeAreaChart = function(chartname, series, conf){
     nChartFontColour = conf["plot_font_colour"]
-    nChart = conf["n_chart"];
+    nChart = conf["n_records"];
     var getTooltip = function(val){
         var tip = val.run.yLbls[val.index];
         return tip;
@@ -273,7 +273,7 @@ makeAreaChart = function(chartname, series, conf){
     var dc = dojox.charting;
     var mychart = new dc.Chart2D(chartname,
         {margins: {
-            l: conf['margin_offset_l'],
+            l: conf['left_margin_offset'],
             t: 10,
             r: 10,
             b: 10+conf['axis_lbl_drop']},
@@ -286,7 +286,7 @@ makeAreaChart = function(chartname, series, conf){
 	    },
 	    plotarea:{
 	        stroke: null,
-	        fill: conf["plot_bg"]
+	        fill: conf["plot_bg_colour"]
 	    },
 	    axis:{
 	        stroke:	{ // the axis itself
@@ -301,12 +301,12 @@ makeAreaChart = function(chartname, series, conf){
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf['gridline_width'],
 	            length: 6, 
-                color: conf["major_gridline_colour"]
+                color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
 	            width:  2,
 	            length: 4,
-                color: conf["major_gridline_colour"]
+                color: conf["major_grid_line_colour"]
 	        },
 	        microTick:	{ // minor ticks on axis, and used for minor gridlines
 	            width:  1.7,
@@ -319,7 +319,7 @@ makeAreaChart = function(chartname, series, conf){
     // x-axis
     var xaxis_conf = {
         title: conf['x_title'],
-        font: "normal normal normal " + conf["xfontsize"] + "pt Arial",
+        font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
         rotation: conf['axis_lbl_rotate'],
         minorTicks: conf['has_minor_ticks'],
         microTicks: conf['has_micro_ticks'],
@@ -328,13 +328,13 @@ makeAreaChart = function(chartname, series, conf){
     if (conf['time_series']) {
         xaxis_conf.labelFunc = labelfTime;
     } else {
-        xaxis_conf.labels = conf["xaxis_lbls"];
+        xaxis_conf.labels = conf["x_axis_lbls"];
     };
     mychart.addAxis("x", xaxis_conf);
     // y-axis
     mychart.addAxis("y", {title: conf['y_title'],  // normal normal bold
                     vertical: true, includeZero: true, 
-                    max: conf["ymax"], 
+                    max: conf["y_max"], 
                     font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("default", {type: "Areas", lines: true, areas: true, markers: true});

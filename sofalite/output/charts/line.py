@@ -10,13 +10,11 @@ from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
     ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails,
     PlotStyle, SeriesDetails, XAxisSpec)
-from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import StyleDets
-from sofalite.output.charts.html import html_bottom, tpl_html_top
+from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset,
     get_x_axis_lbl_dets, get_x_font_size, get_y_max, get_y_title_offset)
-from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -27,10 +25,10 @@ DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM = 100
 DUMMY_TOOL_TIPS = ['', ]  ## no labels or markers on trend line so dummy tool tips OK
 
 left_margin_offset_dets = LeftMarginOffsetDetails(
-    initial_offset=18, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
+    initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
 
 @dataclass(frozen=True, kw_only=True)
-class LineChartingSpec:
+class ChartingSpec(CommonChartingSpec):
     """
     Compared with bar lacks show_borders.
 
@@ -208,20 +206,20 @@ make_chart_{{chart_uuid}} = function(){
     {% endfor %}
 
     var conf = new Array();
-        conf["axis_font_colour"] = "{{axis_font_colour}}";
+        conf["axis_font_colour"] = "{{axis_font}}";
         conf["axis_lbl_drop"] = {{axis_lbl_drop}};
         conf["axis_lbl_rotate"] = {{axis_lbl_rotate}};
-        conf["chart_bg_colour"] = "{{chart_bg_colour}}";
+        conf["chart_bg_colour"] = "{{chart_bg}}";
         conf["connector_style"] = "{{connector_style}}";
         conf["grid_line_width"] = {{grid_line_width}};
         conf["left_margin_offset"] = {{left_margin_offset}};
-        conf["major_grid_line_colour"] = "{{major_grid_line_colour}}";
+        conf["major_grid_line_colour"] = "{{major_grid_line}}";
         conf["has_minor_ticks"] = {{has_minor_ticks_js_bool}};
         conf["n_records"] = "{{n_records}}";
-        conf["plot_bg_colour"] = "{{plot_bg_colour}}";
-        conf["plot_font_colour"] = "{{plot_font_colour}}";
-        conf["plot_font_colour_filled"] = "{{plot_font_colour_filled}}";
-        conf["tooltip_border_colour"] = "{{tooltip_border_colour}}";
+        conf["plot_bg_colour"] = "{{plot_bg}}";
+        conf["plot_font_colour"] = "{{plot_font}}";
+        conf["plot_font_colour_filled"] = "{{plot_font_filled}}";
+        conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_lbls"] = {{x_axis_lbls}};
         conf["x_font_size"] = {{x_font_size}};
         conf["x_title"] = "{{x_title}}";
@@ -251,8 +249,7 @@ make_chart_{{chart_uuid}} = function(){
 </div>
 """
 
-def get_overall_charting_dets(
-        charting_spec: LineChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## convenience pre-calcs
     rotated_x_lbls = charting_spec.rotate_x_lbls
     is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
@@ -465,23 +462,3 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_d
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
-
-def get_html(charting_spec: LineChartingSpec, style_dets: StyleDets) -> str:
-    styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
-    styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
-    context = {
-        'sofalite_web_resources_root': SOFALITE_WEB_RESOURCES_ROOT,
-        'common_css': common_css,
-        'styled_dojo_css': styled_dojo_css,
-        'styled_misc_css': styled_misc_css,
-    }
-    environment = jinja2.Environment()
-    template = environment.from_string(tpl_html_top)
-    html_top = template.render(context)
-    html_result = [html_top, ]
-    overall_charting_dets = get_overall_charting_dets(charting_spec, style_dets)
-    for n, chart_dets in enumerate(charting_spec.generic_charting_dets.charts_details, 1):
-        chart_html = get_indiv_chart_html(overall_charting_dets, chart_dets, chart_counter=n)
-        html_result.append(chart_html)
-    html_result.append(html_bottom)
-    return '\n\n'.join(html_result)
