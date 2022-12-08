@@ -100,20 +100,20 @@ class LineArea:
             conf["has_micro_ticks"] = {{has_micro_ticks_js_bool}};
             conf["is_time_series"] = {{is_time_series_js_bool}};
 
-        {{chart_js_fn_name}}("line_chart_{{chart_uuid}}", series, conf);
+        {{chart_js_fn_name}}("line_area_chart_{{chart_uuid}}", series, conf);
     }
     </script>
 
     <div class="screen-float-only" style="margin-right: 10px; {{page_break}}">
     {{indiv_title_html}}
-        <div id="line_chart_{{chart_uuid}}"
+        <div id="line_area_chart_{{chart_uuid}}"
             style="width: {{width}}px; height: {{height}}px;">
         </div>
         {% if legend_lbl %}
             <p style="float: left; font-weight: bold; margin-right: 12px; margin-top: 9px;">
                 {{legend_lbl}}:
             </p>
-            <div id="legend_for_line_chart_{{chart_uuid}}">
+            <div id="legend_for_line_area_chart_{{chart_uuid}}">
             </div>
         {% endif %}
     </div>
@@ -149,7 +149,6 @@ class LineArea:
         axis_lbl_drop: int
         axis_lbl_rotate: int
         connector_style: str
-        dp: int
         grid_line_width: int
         height: float  ## pixels
         left_margin_offset: int
@@ -255,7 +254,6 @@ class LineArea:
             axis_lbl_drop=axis_lbl_drop,
             axis_lbl_rotate=axis_lbl_rotate,
             connector_style=style_dets.dojo.connector_style,
-            dp=charting_spec.dp,
             grid_line_width=style_dets.chart.grid_line_width,
             height=height,
             left_margin_offset=left_margin_offset,

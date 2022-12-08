@@ -21,7 +21,6 @@ class ChartingSpec(CommonChartingSpec):
     Only single-series line charts can have a trend line (or the smoothed option).
     """
     ## specific details for line charting
-    dp: int
     is_time_series: bool = False
     major_ticks: bool = False
     rotate_x_lbls: bool = False
@@ -103,56 +102,6 @@ def get_smooth_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
             smooth_y_vals.append((2 * y_val + y_vals[i - 1]) / 3)
     return smooth_y_vals
 
-def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
-    ## convenience pre-calcs
-    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
-    first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
-    n_series = len(first_chart_dets.series_dets)
-    single_series = n_series == 1
-    first_series = first_chart_dets.series_dets[0]
-    n_x_items = len(first_series.x_axis_specs)
-    ## colours
-    colour_mappings = style_dets.chart.colour_mappings
-    if single_series:
-        colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
-    colours = [colour_mapping.main for colour_mapping in colour_mappings]
-    ## misc
-    has_minor_ticks_js_bool = 'true' if n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
-    has_micro_ticks_js_bool = 'true' if n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM else 'false'
-    is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
-    if single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
-        legend_lbl = ''
-    else:
-        legend_lbl = charting_spec.generic_charting_dets.overall_legend_lbl
-    left_margin_offset_dets = LeftMarginOffsetDetails(
-        initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
-    colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
-        colours=colours,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
-    )
-    misc_spec = LineArea.get_misc_spec(charting_spec, style_dets, legend_lbl, left_margin_offset_dets)
-    options = CommonOptions(
-        has_micro_ticks_js_bool=has_micro_ticks_js_bool,
-        has_minor_ticks_js_bool=has_minor_ticks_js_bool,
-        is_multi_chart=is_multi_chart,
-        is_time_series=charting_spec.is_time_series,
-        is_time_series_js_bool=is_time_series_js_bool,
-        show_smooth_line=charting_spec.show_smooth_line,
-        show_trend_line=charting_spec.show_trend_line,
-        show_markers=charting_spec.show_markers,
-    )
-    return CommonChartingSpec(
-        colour_spec=colour_spec,
-        misc_spec=misc_spec,
-        options=options,
-    )
-
 def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
         single_series_dets: SeriesDetails) -> DojoSeriesDetails:
     """
@@ -211,6 +160,56 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
     smooth_series_dets = DojoSeriesDetails(
         smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
     return smooth_series_dets
+
+def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+    ## convenience pre-calcs
+    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
+    first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
+    n_series = len(first_chart_dets.series_dets)
+    single_series = n_series == 1
+    first_series = first_chart_dets.series_dets[0]
+    n_x_items = len(first_series.x_axis_specs)
+    ## colours
+    colour_mappings = style_dets.chart.colour_mappings
+    if single_series:
+        colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
+    colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    ## misc
+    has_minor_ticks_js_bool = 'true' if n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
+    has_micro_ticks_js_bool = 'true' if n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM else 'false'
+    is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
+    if single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
+        legend_lbl = ''
+    else:
+        legend_lbl = charting_spec.generic_charting_dets.overall_legend_lbl
+    left_margin_offset_dets = LeftMarginOffsetDetails(
+        initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
+    colour_spec = CommonColourSpec(
+        axis_font=style_dets.chart.axis_font_colour,
+        chart_bg=style_dets.chart.chart_bg_colour,
+        colours=colours,
+        major_grid_line=style_dets.chart.major_grid_line_colour,
+        plot_bg=style_dets.chart.plot_bg_colour,
+        plot_font=style_dets.chart.plot_font_colour,
+        plot_font_filled=style_dets.chart.plot_font_colour_filled,
+        tooltip_border=style_dets.chart.tooltip_border_colour,
+    )
+    misc_spec = LineArea.get_misc_spec(charting_spec, style_dets, legend_lbl, left_margin_offset_dets)
+    options = CommonOptions(
+        has_micro_ticks_js_bool=has_micro_ticks_js_bool,
+        has_minor_ticks_js_bool=has_minor_ticks_js_bool,
+        is_multi_chart=is_multi_chart,
+        is_time_series=charting_spec.is_time_series,
+        is_time_series_js_bool=is_time_series_js_bool,
+        show_smooth_line=charting_spec.show_smooth_line,
+        show_trend_line=charting_spec.show_trend_line,
+        show_markers=charting_spec.show_markers,
+    )
+    return CommonChartingSpec(
+        colour_spec=colour_spec,
+        misc_spec=misc_spec,
+        options=options,
+    )
 
 def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
         *,  chart_counter: int) -> str:

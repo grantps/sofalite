@@ -106,7 +106,7 @@ makeBarChart = function(chartname, series, conf){
 // PIE ***************************************************************************************
 makePieChart = function(chartname, slices, conf){
     nChartFontColour = conf["plot_font_colour_filled"]
-    nChart = conf["n_chart"];
+    nChart = conf["n_records"];
     var pieStroke = "#8b9b98";
     var dc = dojox.charting;
     var mychart = new dc.Chart2D(chartname);
@@ -118,13 +118,19 @@ makePieChart = function(chartname, slices, conf){
 	        pageStyle: null // suggested page style as an object suitable for dojo.style()
 	    },
 		plotarea: {
-			fill: conf["plot_bg_filled"]
-		}
-	});
+			fill: conf["plot_bg_colour_filled"]
+		},
+	    axis:{
+	        stroke:	{ // the axis itself
+	            color: null,
+	            width: null
+	        }
+	    }
+    });
     mychart.setTheme(sofa_theme);
     mychart.addPlot("default", {
             type: "Pie",
-            font: "normal normal " + conf["slice_fontsize"] + "px Tahoma",
+            font: "normal normal " + conf["slice_font_size"] + "px Arial",
             fontColor: conf["plot_font_colour_filled"],
             labelOffset: conf['lbl_offset'],
             radius: conf['radius']
@@ -135,8 +141,8 @@ makePieChart = function(chartname, slices, conf){
     for (i in slices){
         pieSeries[i] = 
         {
-            y: slices[i]["y"],
-            text: slices[i]["text"],
+            y: slices[i]["val"],
+            text: slices[i]["lbl"],
             stroke: pieStroke,
             tooltip: slices[i]["tooltip"]
         }

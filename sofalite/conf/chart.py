@@ -34,10 +34,18 @@ class PlotStyle(StrConst):
     CURVED = 'curved'
 
 @dataclass(frozen=True)
-class XAxisSpec:
+class ValSpec:
     val: Any
     lbl: str  ## e.g. Ubuntu Linux
     lbl_split_into_lines: str  ## e.g. "Ubuntu\nLinux" - ready for display in chart
+
+@dataclass(frozen=True)
+class XAxisSpec(ValSpec):
+    ...
+
+@dataclass(frozen=True)
+class SliceSpec(ValSpec):
+    ...
 
 @dataclass(frozen=True)
 class LeftMarginOffsetDetails:
@@ -53,7 +61,7 @@ class DojoSeriesDetails:
     vals: Sequence[float]
     options: str
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SeriesDetails:
     """
     A single chart might have multiple series
@@ -65,10 +73,20 @@ class SeriesDetails:
     legend_lbl: Needed if multiple lines being displayed (and thus a legend displayed) e.g. "Italy".
     So needed if either multiple series or a single series with a smooth or trend line also displayed.
     """
-    legend_lbl: str | None  ##
-    x_axis_specs: Sequence[XAxisSpec]
-    y_vals: Sequence[float]
+    legend_lbl: str | None
+    x_axis_specs: Sequence[XAxisSpec] | None = None
+    slice_category_specs: Sequence[SliceSpec] | None = None
+    y_vals: Sequence[float] | None = None
+    slice_vals: Sequence[float] | None = None
     tool_tips: Sequence[str]  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
+
+    def __post_init__(self):
+        specs = [spec for spec in [self.x_axis_specs, self.slice_category_specs] if spec is not None]
+        if len(specs) != 1:
+            raise Exception("Must have either x_axis_specs or slice_category_specs")
+        vals = [vals_list for vals_list in [self.y_vals, self.slice_vals] if vals_list is not None]
+        if len(specs) != 1:
+            raise Exception("Must have either y_vals or slice_vals")
 
 @dataclass(frozen=True)
 class ChartDetails:
@@ -101,5 +119,14 @@ class GenericChartingDetails:  ## Chart(s)Details ;-)
     max_x_lbl_length: int  ## may be needed to set chart height if labels are rotated
     max_y_lbl_length: int  ## used to set left axis shift of chart(s) - so there is room for the y labels
     max_lbl_lines: int  ## used to set axis lbl drop
+    ## the chart / charts details
+    charts_details: Sequence[ChartDetails]  ## might be a sequence of one chart or of multiple charts
+
+@dataclass(frozen=True, kw_only=True)
+class GenericChartingDetailsPie:
+    ## titles / labels
+    overall_title: str | None = None  ## e.g. Age Group vs Gender - used to label output items
+    overall_subtitle: str | None = None
+    overall_legend_lbl: str | None = None  ## e.g. "Age Group", or None if only one chart in chart set
     ## the chart / charts details
     charts_details: Sequence[ChartDetails]  ## might be a sequence of one chart or of multiple charts

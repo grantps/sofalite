@@ -32,7 +32,6 @@ class ChartingSpec(CommonChartingSpec):
     show_n: bool = False
     show_borders: bool = False  ## show border lines around coloured bars?
     x_font_size: int = 12
-    dp: int
     ## generic charting details
     generic_charting_dets: GenericChartingDetails
 
@@ -59,7 +58,6 @@ class CommonMiscSpec:
     axis_lbl_drop: int
     axis_lbl_rotate: int
     connector_style: str
-    dp: int
     grid_line_width: int
     height: float  ## pixels
     left_margin_offset: int
@@ -271,7 +269,6 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         axis_lbl_drop=axis_lbl_drop,
         axis_lbl_rotate=axis_lbl_rotate,
         connector_style=style_dets.dojo.connector_style,
-        dp=charting_spec.dp,
         grid_line_width=style_dets.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,

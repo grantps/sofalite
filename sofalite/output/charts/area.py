@@ -17,7 +17,6 @@ class ChartingSpec(CommonChartingSpec):
     Only single-series line charts can have a trend line (or the smoothed option).
     """
     ## specific details for line charting
-    dp: int
     is_time_series: bool = False
     major_ticks: bool = False
     rotate_x_lbls: bool = False
@@ -98,29 +97,31 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_d
     context.update(todict(common_charting_spec.misc_spec, shallow=True))
     context.update(todict(common_charting_spec.options, shallow=True))
     single_series = len(indiv_chart_dets.series_dets) == 1
+    if not single_series:
+        raise Exception("Area charts must be single series charts")
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
     indiv_title_html = (f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
-    ## each standard series
+    ## the standard series
     dojo_series_dets = []
     marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
-    for i, series in enumerate(indiv_chart_dets.series_dets):
-        series_id = f"{i:>02}"
-        series_lbl = series.legend_lbl
-        if common_charting_spec.options.is_time_series:
-            series_vals = LineArea.get_time_series_vals(
-                common_charting_spec.misc_spec.x_axis_specs, series.y_vals, common_charting_spec.misc_spec.x_title)
-        else:
-            series_vals = str(series.y_vals)
-        ## options
-        ## e.g. {stroke: {color: '#e95f29', width: '6px'}, yLbls: ['x-val: 2016-01-01<br>y-val: 12<br>0.8%', ... ], plot: 'default'};
-        line_colour = common_charting_spec.colour_spec.line
-        fill_colour = common_charting_spec.colour_spec.fill
-        y_lbls_str = str(series.tool_tips)
-        options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
-            f"""fill: "{fill_colour}", """
-            f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
-        dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
+    only_series = indiv_chart_dets.series_dets[0]
+    series_id = '00'
+    series_lbl = only_series.legend_lbl
+    if common_charting_spec.options.is_time_series:
+        series_vals = LineArea.get_time_series_vals(
+            common_charting_spec.misc_spec.x_axis_specs, only_series.y_vals, common_charting_spec.misc_spec.x_title)
+    else:
+        series_vals = str(only_series.y_vals)
+    ## options
+    ## e.g. {stroke: {color: '#e95f29', width: '6px'}, yLbls: ['x-val: 2016-01-01<br>y-val: 12<br>0.8%', ... ], plot: 'default'};
+    line_colour = common_charting_spec.colour_spec.line
+    fill_colour = common_charting_spec.colour_spec.fill
+    y_lbls_str = str(only_series.tool_tips)
+    options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
+        f"""fill: "{fill_colour}", """
+        f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
+    dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
     indiv_context = {
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,

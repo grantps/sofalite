@@ -54,7 +54,7 @@ def get_style_dets() -> StyleDets:
         chart_font_colour=BLACK_BLUE,
         plot_bg_colour=BLACK_BLUE,
         plot_font_colour=WHITE,
-        plot_bg_filled=BLACK_BLUE,
+        plot_bg_colour_filled=BLACK_BLUE,
         plot_font_colour_filled=WHITE,
         axis_font_colour=BLACK_BLUE,
         major_grid_line_colour=WHITE,
