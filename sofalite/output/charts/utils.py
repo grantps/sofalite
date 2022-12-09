@@ -3,7 +3,7 @@ from typing import Sequence
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_TITLE_OFFSET_0, MAX_SAFE_X_LBL_LEN_PIXELS,
-    ChartDetails, LeftMarginOffsetDetails, XAxisSpec)
+    CategorySpec, IndivChartSpec, LeftMarginOffsetDetails)
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
         is_multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:
@@ -31,15 +31,15 @@ def get_height(*, axis_lbl_drop: float, rotated_x_lbls=False, max_x_lbl_length: 
     height += axis_lbl_drop  ## compensate for loss of bar display height
     return height
 
-def get_axis_lbl_drop(*, is_multi_chart: bool, rotated_x_lbls: bool, max_lbl_lines: int) -> int:
+def get_axis_lbl_drop(*, is_multi_chart: bool, rotated_x_lbls: bool, max_x_lbl_lines: int) -> int:
     axis_lbl_drop = 10 if is_multi_chart else 15
     if not rotated_x_lbls:
-        extra_lines = max_lbl_lines - 1
+        extra_lines = max_x_lbl_lines - 1
         axis_lbl_drop += AVG_LINE_HEIGHT_PIXELS * extra_lines
     logging.debug(axis_lbl_drop)
     return axis_lbl_drop
 
-def get_y_title_offset(*, max_y_lbl_length: int, x_lbl_len: int, rotated_x_lbls=False) -> int:
+def get_y_title_offset(*, max_y_lbl_length: int, x_axis_title_len: int, rotated_x_lbls=False) -> int:
     """
     Need to shift y-axis title left
     if wide y-axis label or first x-axis label is wide.
@@ -49,8 +49,8 @@ def get_y_title_offset(*, max_y_lbl_length: int, x_lbl_len: int, rotated_x_lbls=
     ## x-axis adjustment
     horiz_x_lbls = not rotated_x_lbls
     if horiz_x_lbls:
-        if x_lbl_len * AVG_CHAR_WIDTH_PIXELS > MAX_SAFE_X_LBL_LEN_PIXELS:
-            lbl_width_shifting = (x_lbl_len * AVG_CHAR_WIDTH_PIXELS) - MAX_SAFE_X_LBL_LEN_PIXELS
+        if x_axis_title_len * AVG_CHAR_WIDTH_PIXELS > MAX_SAFE_X_LBL_LEN_PIXELS:
+            lbl_width_shifting = (x_axis_title_len * AVG_CHAR_WIDTH_PIXELS) - MAX_SAFE_X_LBL_LEN_PIXELS
             lbl_shift = lbl_width_shifting / 2  ## half of label goes to the right
             y_title_offset += lbl_shift
     ## y-axis adjustment
@@ -61,22 +61,12 @@ def get_y_title_offset(*, max_y_lbl_length: int, x_lbl_len: int, rotated_x_lbls=
     y_title_offset = max([y_title_offset, DOJO_Y_TITLE_OFFSET_0])
     return y_title_offset
 
-def get_y_max(charts_dets: Sequence[ChartDetails]):
-    all_y_vals = []
-    for chart_dets in charts_dets:
-        for series_det in chart_dets.series_dets:
-            all_y_vals += series_det.y_vals
-    max_all_y_vals = max(all_y_vals)
-    y_max = max_all_y_vals * 1.1  ## slightly over just to be safe
-    return y_max
-
-def get_x_axis_lbl_dets(x_axis_specs: Sequence[XAxisSpec]) -> list[str]:
+def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
     """
     Note - can be a risk that a split label for the middle x value
     will overlap with x-axis label below
     """
     lbl_dets = []
     for n, x_axis_spec in enumerate(x_axis_specs, 1):
-        val_lbl = x_axis_spec.lbl_split_into_lines
-        lbl_dets.append(f'{{value: {n}, text: "{val_lbl}"}}')
+        lbl_dets.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
     return lbl_dets

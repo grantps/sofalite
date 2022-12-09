@@ -6,12 +6,12 @@ import jinja2
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
-    ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails
+    BarChartingSpec, IndivChartSpec, DojoSeriesDetails, LeftMarginOffsetDetails
 )
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
-    get_x_axis_lbl_dets, get_x_font_size, get_y_max, get_y_title_offset)
+    get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -22,18 +22,6 @@ DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 10  ## whatever works. Tested on cluster of
 
 left_margin_offset_dets = LeftMarginOffsetDetails(
     initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
-
-@dataclass(frozen=True, kw_only=True)
-class ChartingSpec(CommonChartingSpec):
-    ## specific details for bar charting
-    x_title: str
-    y_title: str
-    rotate_x_lbls: bool = False
-    show_n: bool = False
-    show_borders: bool = False  ## show border lines around coloured bars?
-    x_font_size: int = 12
-    ## generic charting details
-    generic_charting_dets: GenericChartingDetails
 
 @dataclass(frozen=True)
 class CommonColourSpec:
@@ -52,6 +40,7 @@ class CommonOptions:
     has_minor_ticks_js_bool: Literal['true', 'false']
     is_multi_chart: bool
     show_borders: bool
+    show_n_records: bool
 
 @dataclass(frozen=True)
 class CommonMiscSpec:
@@ -62,13 +51,12 @@ class CommonMiscSpec:
     height: float  ## pixels
     left_margin_offset: int
     legend_lbl: str
-    n_records: int
     stroke_width: int
     width: float  ## pixels
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
     x_font_size: float
     x_gap: int
-    x_title: str
+    x_axis_title: str
     y_max: int
     y_title: str
     y_title_offset: int
@@ -126,7 +114,7 @@ make_chart_{{chart_uuid}} = function(){
         conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_lbls"] = {{x_axis_lbls}};
         conf["x_font_size"] = {{x_font_size}};
-        conf["x_title"] = "{{x_title}}";
+        conf["x_title"] = "{{x_axis_title}}";
         conf["y_max"] = {{y_max}};
         conf["y_title"] = "{{y_title}}";
         conf["y_title_offset"] = {{y_title_offset}};
@@ -170,7 +158,7 @@ def get_x_gap(*, n_x_items: int, is_multi_chart: bool) -> int:
     return x_gap
 
 def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_series: int,
-        max_x_lbl_width: int, x_title: str) -> float:
+        max_x_lbl_width: int, x_axis_title: str) -> float:
     """
     Get initial width (will make a final adjustment based on left margin offset).
     If wide labels, may not display almost any if one is too wide.
@@ -182,13 +170,13 @@ def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_serie
         [min_width_per_cluster_pixels, MIN_CLUSTER_WIDTH_PIXELS, max_x_lbl_width_pixels]
     )
     width_per_cluster_pixels = widest_pixels + PADDING_PIXELS
-    width_x_title_pixels = len(x_title) * AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
+    width_x_axis_title_pixels = len(x_axis_title) * AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
     width_cluster_pixels = n_series * width_per_cluster_pixels
-    width = max([width_cluster_pixels, width_x_title_pixels, MIN_CHART_WIDTH_PIXELS])
+    width = max([width_cluster_pixels, width_x_axis_title_pixels, MIN_CHART_WIDTH_PIXELS])
     width = width * 0.9 if is_multi_chart else width
     return width
 
-def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     """
     Get details that apply to all charts in bar chart set
     (often just one bar chart in set)
@@ -204,20 +192,9 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
     we get no ticks at all.
     Probably a dojo bug I can't fix, so I have to work around it.
     """
-    ## convenience pre-calcs
-    rotated_x_lbls = charting_spec.rotate_x_lbls
-    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
-    first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
-    first_series = first_chart_dets.series_dets[0]
-    n_series = len(first_chart_dets.series_dets)
-    single_series = n_series == 1
-    first_x_axis_dets = first_series.x_axis_specs[0]
-    x_lbl_len = len(first_x_axis_dets.lbl)
-    n_x_items = len(first_series.x_axis_specs)
-    max_x_lbl_length = charting_spec.generic_charting_dets.max_x_lbl_length
     ## colours
     colour_mappings = style_dets.chart.colour_mappings
-    if single_series:
+    if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:1]  ## only need the first
         ## This is an important special case because it affects the bar charts using the default style
         if colour_mappings[0].main == '#e95f29':  ## BURNT_ORANGE
@@ -226,33 +203,34 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]  ## actually only need first one for simple bar charts
     ## misc
-    n_records = 'N = ' + format_num(first_chart_dets.n_records) if charting_spec.show_n else ''
-    x_axis_lbl_dets = get_x_axis_lbl_dets(first_series.x_axis_specs)
+    x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
-    y_max = get_y_max(charting_spec.generic_charting_dets.charts_details)
-    has_minor_ticks_js_bool = 'true' if n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
-    legend_lbl = ('' if single_series
-        else charting_spec.generic_charting_dets.overall_legend_lbl)
+    y_max = charting_spec.max_y_val * 1.1
+    has_minor_ticks_js_bool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
+    legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
-    max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if rotated_x_lbls else max_x_lbl_length)
+    max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_lbl_length)
     width_after_left_margin = get_width_after_left_margin(
-        is_multi_chart=is_multi_chart, n_x_items=n_x_items, n_series=n_series,
-        max_x_lbl_width=max_x_lbl_width, x_title=charting_spec.x_title)
-    x_font_size = get_x_font_size(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
-    x_gap = get_x_gap(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
+        is_multi_chart=charting_spec.is_multi_chart,
+        n_x_items=charting_spec.n_x_items, n_series=charting_spec.n_series,
+        max_x_lbl_width=max_x_lbl_width, x_axis_title=charting_spec.x_axis_title)
+    x_font_size = get_x_font_size(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
+    x_gap = get_x_gap(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
+    x_axis_title_len = len(charting_spec.x_axis_title)
     y_title_offset = get_y_title_offset(
-        max_y_lbl_length=charting_spec.generic_charting_dets.max_y_lbl_length,
-        x_lbl_len=x_lbl_len, rotated_x_lbls=rotated_x_lbls)
-    axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=is_multi_chart, rotated_x_lbls=rotated_x_lbls,
-        max_lbl_lines=charting_spec.generic_charting_dets.max_lbl_lines)
-    axis_lbl_rotate = -90 if rotated_x_lbls else 0
+        max_y_lbl_length=charting_spec.max_y_lbl_length,
+        x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
+    axis_lbl_drop = get_axis_lbl_drop(
+        is_multi_chart=charting_spec.is_multi_chart, rotated_x_lbls=charting_spec.rotate_x_lbls,
+        max_x_lbl_lines=charting_spec.max_x_lbl_lines)
+    axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, is_multi_chart=is_multi_chart,
-        y_title_offset=y_title_offset, rotated_x_lbls=rotated_x_lbls)
+        offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
+        y_title_offset=y_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
     width = width_after_left_margin + left_margin_offset
     height = get_height(axis_lbl_drop=axis_lbl_drop,
-        rotated_x_lbls=rotated_x_lbls, max_x_lbl_length=max_x_lbl_length)
+        rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_lbl_length=charting_spec.max_x_lbl_length)
 
     colour_spec = CommonColourSpec(
         axis_font=style_dets.chart.axis_font_colour,
@@ -273,21 +251,21 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         height=height,
         left_margin_offset=left_margin_offset,
         legend_lbl=legend_lbl,
-        n_records=n_records,
         stroke_width=stroke_width,
         width=width,
         x_axis_lbls=x_axis_lbls,
         x_font_size=x_font_size,
         x_gap=x_gap,
-        x_title=charting_spec.x_title,
+        x_axis_title=charting_spec.x_axis_title,
         y_max=y_max,
-        y_title=charting_spec.y_title,
+        y_title=charting_spec.y_axis_title,
         y_title_offset=y_title_offset,
     )
     options = CommonOptions(
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,
-        is_multi_chart=is_multi_chart,
+        is_multi_chart=charting_spec.is_multi_chart,
         show_borders=charting_spec.show_borders,
+        show_n_records=charting_spec.show_n_records,
     )
     return CommonChartingSpec(
         colour_spec=colour_spec,
@@ -295,23 +273,23 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         options=options,
     )
 
-def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
+def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     context = todict(common_charting_spec.colour_spec, shallow=True)
     context.update(todict(common_charting_spec.misc_spec, shallow=True))
     context.update(todict(common_charting_spec.options, shallow=True))
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
-    indiv_title_html = f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else ''
+    indiv_title_html = f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else ''
+    n_records = 'N = ' + format_num(indiv_chart_spec.n_records) if common_charting_spec.options.show_n_records else ''
     dojo_series_dets = []
-    for i, series in enumerate(indiv_chart_dets.series_dets):
+    for i, data_series_spec in enumerate(indiv_chart_spec.data_series_specs):
         series_id = f"{i:>02}"
-        series_lbl = series.legend_lbl
-        series_vals = str(series.y_vals)
-        ## options
-        ## e.g. {stroke: {color: "white", width: "0px"}, fill: "#e95f29", yLbls: ['66.38', ...]}
+        series_lbl = data_series_spec.lbl
+        series_vals = str(data_series_spec.amounts)
+        ## options e.g. {stroke: {color: "white", width: "0px"}, fill: "#e95f29", yLbls: ['66.38', ...]}
         fill_colour = common_charting_spec.colour_spec.colours[i]
-        y_lbls_str = str(series.tool_tips)
+        y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "white", width: "{common_charting_spec.misc_spec.stroke_width}px"}}, """
             f"""fill: "{fill_colour}", yLbls: {y_lbls_str}}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
@@ -319,6 +297,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_d
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,
         'indiv_title_html': indiv_title_html,
+        'n_records': n_records,
         'page_break': page_break,
     }
     context.update(indiv_context)

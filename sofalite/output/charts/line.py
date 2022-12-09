@@ -7,38 +7,11 @@ import uuid
 import jinja2
 
 from sofalite.conf.chart import (
-    ChartDetails, DojoSeriesDetails, GenericChartingDetails, LeftMarginOffsetDetails,
-    PlotStyle, SeriesDetails)
+    DataSeriesSpec, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails, LineChartingSpec, PlotStyle)
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec, LineArea
+from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
-
-@dataclass(frozen=True, kw_only=True)
-class ChartingSpec(CommonChartingSpec):
-    """
-    Compared with bar lacks show_borders.
-
-    Only single-series line charts can have a trend line (or the smoothed option).
-    """
-    ## specific details for line charting
-    is_time_series: bool = False
-    major_ticks: bool = False
-    rotate_x_lbls: bool = False
-    show_markers: bool = True
-    show_n: bool = False
-    show_smooth_line: bool = False
-    show_trend_line: bool = False
-    x_font_size: int = 12
-    x_title: str
-    y_title: str
-    ## generic charting details
-    generic_charting_dets: GenericChartingDetails
-
-    def __post_init(self):
-        multi_series = len(self.generic_charting_dets.charts_details[0].series_dets) > 1
-        if multi_series and (self.show_trend_line or self.show_smooth_line):
-            raise Exception("A smoothed line or a trend line can only be show if one series of results "
-                "i.e. not split by another variable e.g. one line chart per gender")
 
 @dataclass(frozen=True)
 class CommonColourSpec(LineArea.CommonColourSpec):
@@ -103,7 +76,7 @@ def get_smooth_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
     return smooth_y_vals
 
 def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
-        single_series_dets: SeriesDetails) -> DojoSeriesDetails:
+        single_data_series_spec: DataSeriesSpec) -> DojoSeriesDetails:
     """
     For time-series lines we're using coordinates so can just have the end points
     e.g. [all[0], all[-1]]
@@ -115,7 +88,7 @@ def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
     OK if we have one or the other of smooth and trend (or neither)
     as long as they are distinct
     """
-    orig_y_vals = single_series_dets.y_vals
+    orig_y_vals = single_data_series_spec.amounts
     trend_y_vals = get_trend_y_vals(orig_y_vals)
     trend_series_id = '01'
     trend_series_lbl = 'Trend line'
@@ -125,7 +98,7 @@ def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
             common_charting_spec.misc_spec.x_axis_specs[0], common_charting_spec.misc_spec.x_axis_specs[-1]]
         trend_series_y_vals = [trend_y_vals[0], trend_y_vals[-1]]
         trend_series_vals = LineArea.get_time_series_vals(
-            trend_series_x_axis_specs, trend_series_y_vals, common_charting_spec.misc_spec.x_title)
+            trend_series_x_axis_specs, trend_series_y_vals, common_charting_spec.misc_spec.x_axis_title)
         marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
     else:
         trend_series_vals = trend_y_vals  ## need
@@ -137,14 +110,14 @@ def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
     return trend_series_dets
 
 def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
-        single_series_dets: SeriesDetails) -> DojoSeriesDetails:
+        single_data_series_spec: DataSeriesSpec) -> DojoSeriesDetails:
     """
     id is 02 because only a single other series and that will be 00
     trend will be 01
     OK if we have one or the other of smooth and trend (or neither)
     as long as they are distinct
     """
-    orig_y_vals = single_series_dets.y_vals
+    orig_y_vals = single_data_series_spec.amounts
     smooth_y_vals = get_smooth_y_vals(orig_y_vals)
     smooth_series_id = '02'
     smooth_series_lbl = 'Smooth line'
@@ -154,34 +127,29 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
     if common_charting_spec.options.is_time_series:
         smooth_series_vals = LineArea.get_time_series_vals(
             common_charting_spec.misc_spec.x_axis_specs,
-            smooth_y_vals, common_charting_spec.misc_spec.x_title)
+            smooth_y_vals, common_charting_spec.misc_spec.x_axis_title)
     else:
         smooth_series_vals = smooth_y_vals
     smooth_series_dets = DojoSeriesDetails(
         smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
     return smooth_series_dets
 
-def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
-    ## convenience pre-calcs
-    is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
-    first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
-    n_series = len(first_chart_dets.series_dets)
-    single_series = n_series == 1
-    first_series = first_chart_dets.series_dets[0]
-    n_x_items = len(first_series.x_axis_specs)
+def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     colour_mappings = style_dets.chart.colour_mappings
-    if single_series:
+    if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
     colours = [colour_mapping.main for colour_mapping in colour_mappings]
     ## misc
-    has_minor_ticks_js_bool = 'true' if n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
-    has_micro_ticks_js_bool = 'true' if n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM else 'false'
+    has_minor_ticks_js_bool = ('true' if charting_spec.n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM
+        else 'false')
+    has_micro_ticks_js_bool = ('true' if charting_spec.n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM
+        else 'false')
     is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
-    if single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
+    if charting_spec.is_single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
         legend_lbl = ''
     else:
-        legend_lbl = charting_spec.generic_charting_dets.overall_legend_lbl
+        legend_lbl = charting_spec.legend_lbl
     left_margin_offset_dets = LeftMarginOffsetDetails(
         initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
@@ -198,9 +166,11 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
     options = CommonOptions(
         has_micro_ticks_js_bool=has_micro_ticks_js_bool,
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,
-        is_multi_chart=is_multi_chart,
+        is_multi_chart=charting_spec.is_multi_chart,
+        is_single_series=charting_spec.is_single_series,
         is_time_series=charting_spec.is_time_series,
         is_time_series_js_bool=is_time_series_js_bool,
+        show_n_records=charting_spec.show_n_records,
         show_smooth_line=charting_spec.show_smooth_line,
         show_trend_line=charting_spec.show_trend_line,
         show_markers=charting_spec.show_markers,
@@ -211,52 +181,54 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         options=options,
     )
 
-def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
+def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     context = todict(common_charting_spec.colour_spec, shallow=True)
     context.update(todict(common_charting_spec.misc_spec, shallow=True))
     context.update(todict(common_charting_spec.options, shallow=True))
-    single_series = len(indiv_chart_dets.series_dets) == 1
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
-    indiv_title_html = (f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
+    indiv_title_html = (f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
+    n_records = 'N = ' + format_num(indiv_chart_spec.n_records) if common_charting_spec.options.show_n_records else ''
     ## each standard series
     dojo_series_dets = []
     marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
-    for i, series in enumerate(indiv_chart_dets.series_dets):
+    for i, data_series_spec in enumerate(indiv_chart_spec.data_series_specs):
         series_id = f"{i:>02}"
-        series_lbl = series.legend_lbl
+        series_lbl = data_series_spec.lbl
         if common_charting_spec.options.is_time_series:
             series_vals = LineArea.get_time_series_vals(
-                common_charting_spec.misc_spec.x_axis_specs, series.y_vals, common_charting_spec.misc_spec.x_title)
+                common_charting_spec.misc_spec.x_axis_specs, data_series_spec.amounts,
+                common_charting_spec.misc_spec.x_axis_title)
         else:
-            series_vals = str(series.y_vals)
+            series_vals = str(data_series_spec.amounts)
         ## options
         ## e.g. {stroke: {color: '#e95f29', width: '6px'}, yLbls: ['x-val: 2016-01-01<br>y-val: 12<br>0.8%', ... ], plot: 'default'};
         line_colour = common_charting_spec.colour_spec.colours[i]
-        y_lbls_str = str(series.tool_tips)
+        y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
             f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
         dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
     ## trend and smooth series (if appropriate)
-    first_series_details = indiv_chart_dets.series_dets[0]
+    single_data_series_spec = indiv_chart_spec.data_series_specs[0]
     if common_charting_spec.options.show_trend_line:
-        if not single_series:
+        if not common_charting_spec.options.is_single_series:
             raise Exception("Can only show trend lines if one series of results.")
         trend_series_dets = get_dojo_trend_series_dets(
-            common_charting_spec, single_series_dets=first_series_details)
+            common_charting_spec, single_data_series_spec=single_data_series_spec)
         dojo_series_dets.append(trend_series_dets)  ## seems that the later you add something the lower it is
     if common_charting_spec.options.show_smooth_line:
-        if not single_series:
+        if not common_charting_spec.options.is_single_series:
             raise Exception("Can only show trend lines if one series of results.")
         smooth_series_dets = get_dojo_smooth_series_dets(
-            common_charting_spec, single_series_dets=first_series_details
+            common_charting_spec, single_data_series_spec=single_data_series_spec
         )
         dojo_series_dets.append(smooth_series_dets)
     indiv_context = {
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,
         'indiv_title_html': indiv_title_html,
+        'n_records': n_records,
         'page_break': page_break,
     }
     context.update(indiv_context)

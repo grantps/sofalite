@@ -5,20 +5,17 @@ from typing import Callable, Literal, Sequence
 import jinja2
 
 from sofalite.conf.chart import (
-    AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, LeftMarginOffsetDetails, XAxisSpec)
+    AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
+    AreaChartingSpec, CategorySpec, ChartingSpec, LeftMarginOffsetDetails, LineChartingSpec)
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset,
-    get_x_axis_lbl_dets, get_x_font_size, get_y_max, get_y_title_offset)
+    get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
 from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 from sofalite.utils.maths import format_num
-
-@dataclass(frozen=True)
-class ChartingSpec(ABC):
-    ...
 
 def get_html(charting_spec: ChartingSpec, style_dets: StyleDets,
         common_spec_fn: Callable, indiv_chart_html_fn: Callable) -> str:
@@ -45,7 +42,7 @@ def get_html(charting_spec: ChartingSpec, style_dets: StyleDets,
     html_top = template.render(context)
     html_result = [html_top, ]
     common_charting_spec = common_spec_fn(charting_spec, style_dets)
-    for n, chart_dets in enumerate(charting_spec.generic_charting_dets.charts_details, 1):
+    for n, chart_dets in enumerate(charting_spec.indiv_chart_specs, 1):
         indiv_chart_html = indiv_chart_html_fn(common_charting_spec, chart_dets, chart_counter=n)
         html_result.append(indiv_chart_html)
     html_result.append(html_bottom)
@@ -92,9 +89,9 @@ class LineArea:
             conf["tooltip_border_colour"] = "{{tooltip_border}}";
             conf["x_axis_lbls"] = {{x_axis_lbls}};
             conf["x_font_size"] = {{x_font_size}};
-            conf["x_title"] = "{{x_title}}";
+            conf["x_title"] = "{{x_axis_title}}";
             conf["y_max"] = {{y_max}};
-            conf["y_title"] = "{{y_title}}";
+            conf["y_title"] = "{{y_axis_title}}";
             conf["y_title_offset"] = {{y_title_offset}};
             // distinct fields for line charts
             conf["has_micro_ticks"] = {{has_micro_ticks_js_bool}};
@@ -137,9 +134,11 @@ class LineArea:
         has_micro_ticks_js_bool: Literal['true', 'false']
         has_minor_ticks_js_bool: Literal['true', 'false']
         is_multi_chart: bool
+        is_single_series: bool
         is_time_series: bool
         is_time_series_js_bool: Literal['true', 'false']
         show_markers: bool
+        show_n_records: bool
         # show_smooth_line: bool  ## line
         # show_trend_line: bool  ## line
 
@@ -153,26 +152,25 @@ class LineArea:
         height: float  ## pixels
         left_margin_offset: int
         legend_lbl: str
-        n_records: int
         x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
-        x_axis_specs: Sequence[XAxisSpec] | None
+        x_axis_specs: Sequence[CategorySpec] | None
+        x_axis_title: str
         x_font_size: float
-        x_title: str
+        y_axis_title: str
         y_max: int
-        y_title: str
         y_title_offset: int
         width: float  ## pixels
 
     @staticmethod
     def get_time_series_vals(
-            x_axis_specs: Sequence[XAxisSpec], y_vals: Sequence[float], x_title: str) -> str:
+            x_axis_specs: Sequence[CategorySpec], y_vals: Sequence[float], x_axis_title: str) -> str:
         xs = []
         try:
             for x_axis_spec in x_axis_specs:
                 val = str(x_axis_spec.val)
                 xs.append(get_epoch_secs_from_datetime_str(val) * 1_000)
         except Exception as e:
-            raise Exception(f"Problem processing x-axis specs for {x_title}. "
+            raise Exception(f"Problem processing x-axis specs for {x_axis_title}. "
                 f"Orig error: {e}")
         ys = y_vals
         xys = zip(xs, ys, strict=True)
@@ -182,11 +180,11 @@ class LineArea:
     @staticmethod
     def get_width_after_left_margin(*,
             is_multi_chart: bool, multi_chart_width_factor: float, n_x_items: int,
-            n_series: int, max_x_lbl_width: int, is_time_series: bool, major_ticks: bool,
-            x_title: str) -> float:
+            n_series: int, max_x_lbl_width: int, is_time_series: bool, show_major_ticks_only: bool,
+            x_axis_title: str) -> float:
         """
         Get initial width (will make a final adjustment based on left margin offset).
-        major_ticks -- e.g. want to only see the main labels and won't need it
+        show_major_ticks_only -- e.g. want to only see the main labels and won't need it
         to be so wide.
         time_series -- can narrow a lot because standard-sized labels and
         usually not many.
@@ -198,59 +196,59 @@ class LineArea:
         else:
             width_per_x_item = (max([LineArea.MIN_PIXELS_PER_X_ITEM,
                 max_x_lbl_width * AVG_CHAR_WIDTH_PIXELS]) + padding_pixels)
-        width_x_title = len(x_title) * AVG_CHAR_WIDTH_PIXELS + padding_pixels
+        width_x_title = len(x_axis_title) * AVG_CHAR_WIDTH_PIXELS + padding_pixels
         width = max([n_x_items * width_per_x_item, width_x_title, min_chart_width])
-        if major_ticks:
+        if show_major_ticks_only:
             width = max(width * 0.4, min_chart_width)
         if is_multi_chart:
             width = width * multi_chart_width_factor
         return width
 
     @staticmethod
-    def get_misc_spec(charting_spec: ChartingSpec, style_dets: StyleDets,
+    def get_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, style_dets: StyleDets,
             legend_lbl: str, left_margin_offset_dets: LeftMarginOffsetDetails) -> CommonMiscSpec:
-        ## convenience pre-calcs
-        rotated_x_lbls = charting_spec.rotate_x_lbls
-        is_multi_chart = (len(charting_spec.generic_charting_dets.charts_details) > 1)
-        first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
-        n_series = len(first_chart_dets.series_dets)
-        first_series = first_chart_dets.series_dets[0]
-        first_x_axis_spec = first_series.x_axis_specs[0]
-        x_lbl_len = len(first_x_axis_spec.lbl)
-        n_x_items = len(first_series.x_axis_specs)
-        max_x_lbl_length = charting_spec.generic_charting_dets.max_x_lbl_length
         ## calculation
-        n_records = 'N = ' + format_num(first_chart_dets.n_records) if charting_spec.show_n else ''
-        x_axis_lbl_dets = get_x_axis_lbl_dets(first_series.x_axis_specs)
-        x_font_size = get_x_font_size(n_x_items=n_x_items, is_multi_chart=is_multi_chart)
+        if isinstance(charting_spec, LineChartingSpec):
+            chart_js_fn_name = 'makeLineChart'
+        elif isinstance(charting_spec, AreaChartingSpec):
+            chart_js_fn_name = 'makeAreaChart'
+        else:
+            raise TypeError(f"Expected either Line or Area charting spec but got {type(charting_spec)}")
+        x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
+        x_font_size = get_x_font_size(
+            n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
         if charting_spec.is_time_series:
-            x_axis_specs = first_series.x_axis_specs
+            x_axis_specs = charting_spec.category_specs
             x_axis_lbls = '[]'
         else:
             x_axis_specs = None
             x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
-        y_max = get_y_max(charting_spec.generic_charting_dets.charts_details)
-        axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=is_multi_chart, rotated_x_lbls=rotated_x_lbls,
-            max_lbl_lines=charting_spec.generic_charting_dets.max_lbl_lines)
-        axis_lbl_rotate = -90 if rotated_x_lbls else 0
-        max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if rotated_x_lbls else max_x_lbl_length)
-        horiz_x_lbls = not rotated_x_lbls
-        major_ticks = False if charting_spec.is_time_series and horiz_x_lbls else charting_spec.major_ticks  ## override
+        y_max = charting_spec.max_y_val * 1.1
+        axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=charting_spec.is_multi_chart,
+            rotated_x_lbls=charting_spec.rotate_x_lbls,
+            max_x_lbl_lines=charting_spec.max_x_lbl_lines)
+        axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
+        max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_lbl_length)
+        horiz_x_lbls = not charting_spec.rotate_x_lbls
+        show_major_ticks_only = (False if charting_spec.is_time_series and horiz_x_lbls
+            else charting_spec.show_major_ticks_only)  ## override
         width_after_left_margin = LineArea.get_width_after_left_margin(
-            is_multi_chart=is_multi_chart, multi_chart_width_factor=0.9, n_x_items=n_x_items, n_series=n_series,
+            is_multi_chart=charting_spec.is_multi_chart, multi_chart_width_factor=0.9,
+            n_x_items=charting_spec.n_x_items, n_series=charting_spec.n_series,
             max_x_lbl_width=max_x_lbl_width, is_time_series=charting_spec.is_time_series,
-            major_ticks=major_ticks, x_title=charting_spec.x_title)
+            show_major_ticks_only=show_major_ticks_only, x_axis_title=charting_spec.x_axis_title)
+        x_axis_title_len = len(charting_spec.x_axis_title)
         y_title_offset = get_y_title_offset(
-            max_y_lbl_length=charting_spec.generic_charting_dets.max_y_lbl_length,
-            x_lbl_len=x_lbl_len, rotated_x_lbls=rotated_x_lbls)
+            max_y_lbl_length=charting_spec.max_y_lbl_length,
+            x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
         left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-            offsets=left_margin_offset_dets, is_multi_chart=is_multi_chart,
-            y_title_offset=y_title_offset, rotated_x_lbls=rotated_x_lbls)
+            offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
+            y_title_offset=y_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
         width = width_after_left_margin + left_margin_offset
         height = get_height(axis_lbl_drop=axis_lbl_drop,
-            rotated_x_lbls=rotated_x_lbls, max_x_lbl_length=max_x_lbl_length)
+            rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_lbl_length=charting_spec.max_x_lbl_length)
         return LineArea.CommonMiscSpec(
-            chart_js_fn_name='makeLineChart',
+            chart_js_fn_name=chart_js_fn_name,
             axis_lbl_drop=axis_lbl_drop,
             axis_lbl_rotate=axis_lbl_rotate,
             connector_style=style_dets.dojo.connector_style,
@@ -258,12 +256,11 @@ class LineArea:
             height=height,
             left_margin_offset=left_margin_offset,
             legend_lbl=legend_lbl,
-            n_records=n_records,
             width=width,
             x_axis_lbls=x_axis_lbls,
             x_axis_specs=x_axis_specs,
             x_font_size=x_font_size,
-            x_title=charting_spec.x_title,
+            x_axis_title=charting_spec.x_axis_title,
+            y_axis_title=charting_spec.y_axis_title,
             y_max=y_max,
-            y_title=charting_spec.y_title,
             y_title_offset=y_title_offset,)
