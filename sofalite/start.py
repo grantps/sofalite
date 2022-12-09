@@ -1,6 +1,7 @@
 """
 Will point at GUI later but good for running functions in the meanwhile.
 """
+from random import randint
 from webbrowser import open_new_tab
 
 from sofalite.output.charts import area, bar, line
@@ -13,181 +14,7 @@ from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova
-#
-# x_axis_specs_os = [
-#     XAxisSpec(val=1, lbl='Linux', lbl_split_into_lines='Linux'),
-#     XAxisSpec(val=2, lbl='Windows', lbl_split_into_lines='Windows'),
-#     XAxisSpec(val=3, lbl='Mac', lbl_split_into_lines='Mac'),
-# ]
-# slice_specs_programming_language = [
-#     SliceSpec(val=1, lbl='Python', lbl_split_into_lines='Python'),
-#     SliceSpec(val=2, lbl='PHP', lbl_split_into_lines='PHP'),
-#     SliceSpec(val=3, lbl='Ruby', lbl_split_into_lines='Ruby'),
-#     SliceSpec(val=4, lbl='Ada', lbl_split_into_lines='Ada'),
-#     SliceSpec(val=5, lbl='Clojure', lbl_split_into_lines='Clojure'),
-# ]
-# series_dets_programming_language = SeriesDetails(
-#     legend_lbl=None,  ## e.g. "Italy", or None if only one series
-#     slice_category_specs=slice_specs_programming_language,
-#     slice_vals=[126, 45, 12, 0, 5],
-#     tool_tips=['126', '45', '12', 'Bugger all!', '5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
-# )
-# series_dets_nz = SeriesDetails(
-#     legend_lbl='NZ',  ## e.g. "Italy", or None if only one series
-#     x_axis_specs=x_axis_specs_os,
-#     y_vals=[10.123456789, 6, 7.501],
-#     tool_tips=['10', '6', '7.5'],  ## HTML tooltips ready to display e.g. ["46<br>23%", "32<br>16%", "94<br>47%"]
-# )
-# series_dets_aus = SeriesDetails(
-#     legend_lbl='Australia',
-#     x_axis_specs=x_axis_specs_os,
-#     y_vals=[12.88, 4, 10.6574],
-#     tool_tips=['13', '4', '11'],
-# )
-# series_dets_japan = SeriesDetails(
-#     legend_lbl='Japan',
-#     x_axis_specs=x_axis_specs_os,
-#     y_vals=[7.99, 5.8, 12.12],
-#     tool_tips=['8', '6', '12'],
-# )
-# series_dets_taiwan = SeriesDetails(
-#     legend_lbl='Taiwan',
-#     x_axis_specs=x_axis_specs_os,
-#     y_vals=[26, 4, 17.1],
-#     tool_tips=['26', '4', '17'],
-# )
-# series_dets_usa = SeriesDetails(
-#     legend_lbl='USA',
-#     x_axis_specs=x_axis_specs_os,
-#     y_vals=[14, 15, 11],
-#     tool_tips=['14', '15', '11'],
-# )
-# chart_details = ChartDetails(
-#     n_records=1024,
-#     lbl='Countries',  ## e.g. "Gender: Male" or None if only one chart
-#     series_dets=[series_dets_nz, series_dets_aus, series_dets_japan,
-#         series_dets_taiwan, series_dets_usa],
-# )
-# chart_details_programming_language = ChartDetails(
-#     n_records=224,
-#     lbl=None,
-#     series_dets=[series_dets_programming_language, ],
-# )
-# generic_charting_dets_programming_language = GenericChartingDetailsPie(
-#     overall_title='overall title',
-#     overall_subtitle='overall subtitle',
-#     overall_legend_lbl='Country',
-#     charts_details=[chart_details_programming_language, ],
-# )
-# generic_charting_dets = GenericChartingDetails(
-#     overall_title='overall title',
-#     overall_subtitle='overall subtitle',
-#     overall_legend_lbl='Country',
-#     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
-#     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
-#     max_lbl_lines=1,  ## used to set axis lbl drop
-#     charts_details=[chart_details],
-# )
-#
-# x_axis_specs_cars = [
-#     XAxisSpec(val=1, lbl='BMW', lbl_split_into_lines='BMW'),
-#     XAxisSpec(val=2, lbl='PORSCHE', lbl_split_into_lines='PORSCHE'),
-#     XAxisSpec(val=3, lbl='AUDI', lbl_split_into_lines='AUDI'),
-#     XAxisSpec(val=4, lbl='MERCEDES', lbl_split_into_lines='MERCEDES'),
-#     XAxisSpec(val=5, lbl='VOLKSWAGEN', lbl_split_into_lines='VOLKSWAGEN'),
-#     XAxisSpec(val=6, lbl='FERRARI', lbl_split_into_lines='FERRARI'),
-#     XAxisSpec(val=7, lbl='FIAT', lbl_split_into_lines='FIAT'),
-#     XAxisSpec(val=8, lbl='LAMBORGHINI', lbl_split_into_lines='LAMBORGHINI'),
-#     XAxisSpec(val=9, lbl='MASERATI', lbl_split_into_lines='MASERATI'),
-#     XAxisSpec(val=10, lbl='HONDA', lbl_split_into_lines='HONDA'),
-#     XAxisSpec(val=11, lbl='TOYOTA', lbl_split_into_lines='TOYOTA'),
-#     XAxisSpec(val=12, lbl='MITSUBISHI', lbl_split_into_lines='MITSUBISHI'),
-#     XAxisSpec(val=13, lbl='NISSAN', lbl_split_into_lines='NISSAN'),
-#     XAxisSpec(val=14, lbl='MAZDA', lbl_split_into_lines='MAZDA'),
-#     XAxisSpec(val=15, lbl='SUZUKI', lbl_split_into_lines='SUZUKI'),
-#     XAxisSpec(val=16, lbl='DAIHATSU', lbl_split_into_lines='DAIHATSU'),
-#     XAxisSpec(val=17, lbl='ISUZU', lbl_split_into_lines='ISUZU'),
-# ]
-# x_axis_specs_billing = [
-#     XAxisSpec(val='2022-01-01', lbl='2022-01-01', lbl_split_into_lines='2022-01-01'),
-#     XAxisSpec(val='2022-02-01', lbl='2022-02-01', lbl_split_into_lines='2022-02-01'),
-#     XAxisSpec(val='2022-03-01', lbl='2022-03-01', lbl_split_into_lines='2022-03-01'),
-#     XAxisSpec(val='2022-04-01', lbl='2022-04-01', lbl_split_into_lines='2022-04-01'),
-#     XAxisSpec(val='2022-05-01', lbl='2022-05-01', lbl_split_into_lines='2022-05-01'),
-#     XAxisSpec(val='2022-06-01', lbl='2022-06-01', lbl_split_into_lines='2022-06-01'),
-#     XAxisSpec(val='2022-07-01', lbl='2022-07-01', lbl_split_into_lines='2022-07-01'),
-#     XAxisSpec(val='2022-08-01', lbl='2022-08-01', lbl_split_into_lines='2022-08-01'),
-#     XAxisSpec(val='2022-09-01', lbl='2022-09-01', lbl_split_into_lines='2022-09-01'),
-#     XAxisSpec(val='2022-10-01', lbl='2022-10-01', lbl_split_into_lines='2022-10-01'),
-#     XAxisSpec(val='2022-11-01', lbl='2022-11-01', lbl_split_into_lines='2022-11-01'),
-#     XAxisSpec(val='2022-12-01', lbl='2022-12-01', lbl_split_into_lines='2022-12-01'),
-#     XAxisSpec(val='2023-01-01', lbl='2023-01-01', lbl_split_into_lines='2023-01-01'),
-#     XAxisSpec(val='2023-02-01', lbl='2023-02-01', lbl_split_into_lines='2023-02-01'),
-#     XAxisSpec(val='2023-03-01', lbl='2023-03-01', lbl_split_into_lines='2023-03-01'),
-#     XAxisSpec(val='2023-04-01', lbl='2023-04-01', lbl_split_into_lines='2023-04-01'),
-#     XAxisSpec(val='2023-05-01', lbl='2023-05-01', lbl_split_into_lines='2023-05-01'),
-# ]
-#
-# series_dets_cars = SeriesDetails(
-#     legend_lbl='Cars',  ## e.g. "Italy", or None if only one series
-#     x_axis_specs=x_axis_specs_cars,
-#     y_vals=[135, 62, 116, 75, 158, 80, 160, 59, 59, 98, 171, 94, 96, 92, 24, 14, 7],
-#     tool_tips=['135<br>9.0%', '62<br>4.1%', '116<br>7.7%', '75<br>5.0%', '158<br>10.5%', '80<br>5.3%', '160<br>10.7%',
-#        '59<br>3.9%', '59<br>3.9%', '98<br>6.5%', '171<br>11.4%', '94<br>6.3%', '96<br>6.4%', '92<br>6.1%',
-#        '24<br>1.6%', '14<br>0.9%', '7<br>0.5%'],
-# )
-# series_dets_billing = SeriesDetails(
-#     legend_lbl='Billing',
-#     x_axis_specs=x_axis_specs_billing,
-#     y_vals=[135, 62, 116, 75, 158, 80, 160, 59, 59, 98, 171, 94, 96, 92, 24, 14, 7],
-#     tool_tips=['135<br>9.0%', '62<br>4.1%', '116<br>7.7%', '75<br>5.0%', '158<br>10.5%', '80<br>5.3%', '160<br>10.7%',
-#        '59<br>3.9%', '59<br>3.9%', '98<br>6.5%', '171<br>11.4%', '94<br>6.3%', '96<br>6.4%', '92<br>6.1%',
-#        '24<br>1.6%', '14<br>0.9%', '7<br>0.5%'],
-# )
-#
-# single_series_chart_details = ChartDetails(
-#     n_records=1024,
-#     lbl='Countries',  ## e.g. "Gender: Male" or None if only one chart
-#     series_dets=[series_dets_cars, ],
-# )
-# single_series_charting_dets = GenericChartingDetails(
-#     overall_title='overall title',
-#     overall_subtitle='overall subtitle',
-#     overall_legend_lbl='Country',
-#     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
-#     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
-#     max_lbl_lines=1,  ## used to set axis lbl drop
-#     charts_details=[single_series_chart_details, ],
-# )
-# chart_details_cars = ChartDetails(
-#     n_records=1024,
-#     lbl=None,  ## e.g. "Gender: Male" or None if only one chart
-#     series_dets=[series_dets_cars, ],
-# )
-# chart_details_billing = ChartDetails(
-#     n_records=1024,
-#     lbl=None,  ## e.g. "Gender: Male" or None if only one chart
-#     series_dets=[series_dets_billing, ],  ## TODO - spec(s)
-# )
-#
-# generic_charting_dets_cars = GenericChartingDetails(
-#     overall_title='overall title',
-#     overall_subtitle='overall subtitle',
-#     overall_legend_lbl='Lines',
-#     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
-#     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
-#     max_lbl_lines=1,  ## used to set axis lbl drop
-#     charts_details=[chart_details_cars, ],
-# )
-# generic_charting_dets_billing = GenericChartingDetails(
-#     overall_title='overall title',
-#     overall_subtitle='overall subtitle',
-#     overall_legend_lbl='Lines',
-#     max_x_lbl_length=10,  ## may be needed to set chart height if labels are rotated
-#     max_y_lbl_length=2,  ## used to set left axis shift of chart(s) - so there is room for the y labels
-#     max_lbl_lines=1,  ## used to set axis lbl drop
-#     charts_details=[chart_details_billing, ],
-# )
+
 def run_anova():
     with Sqlite(DATABASE_FPATH) as (_con, cur):
         grouping_fld_vals_dets = [
@@ -203,90 +30,6 @@ def run_anova():
         with open(fpath, 'w') as f:
             f.write(html)
         open_new_tab(url=f"file://{fpath}")
-
-# def run_line_chart_cars():
-#     charting_spec = line.ChartingSpec(
-#         generic_charting_dets=generic_charting_dets_cars,
-#         is_time_series=False,
-#         major_ticks=False,
-#         rotate_x_lbls=True,
-#         show_markers=True,
-#         show_n=True,
-#         show_smooth_line=True,
-#         show_trend_line=True,
-#         x_title='Car',
-#         x_font_size=12,
-#         y_title='Frequency',
-#     )
-#     style_dets = get_style_dets(style='default')
-#     html = get_html(charting_spec, style_dets,
-#         common_spec_fn=line.get_common_charting_spec, indiv_chart_html_fn=line.get_indiv_chart_html)
-#     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_cars.html'
-#     with open(fpath, 'w') as f:
-#         f.write(html)
-#     open_new_tab(url=f"file://{fpath}")
-#
-# def run_line_chart_billing():
-#     charting_spec = line.ChartingSpec(
-#         generic_charting_dets=generic_charting_dets_billing,
-#         is_time_series=True,
-#         major_ticks=False,
-#         rotate_x_lbls=True,
-#         show_markers=True,
-#         show_n=True,
-#         show_smooth_line=True,
-#         show_trend_line=True,
-#         x_font_size=12,
-#         x_title='Billing Date',
-#         y_title='Frequency',
-#     )
-#     style_dets = get_style_dets(style='default')  ## prestige_screen
-#     html = get_html(charting_spec, style_dets,
-#         common_spec_fn=line.get_common_charting_spec, indiv_chart_html_fn=line.get_indiv_chart_html)
-#     fpath = '/home/g/Documents/sofalite/reports/test_line_chart_billing.html'
-#     with open(fpath, 'w') as f:
-#         f.write(html)
-#     open_new_tab(url=f"file://{fpath}")
-#
-# def run_area_chart():
-#     charting_spec = area.ChartingSpec(
-#         generic_charting_dets=single_series_charting_dets,
-#         is_time_series=False,
-#         major_ticks=False,
-#         rotate_x_lbls=True,
-#         show_markers=True,
-#         show_n=True,
-#         x_title='Car',
-#         x_font_size=12,
-#         y_title='Frequency',
-#     )
-#     style_dets = get_style_dets(style='prestige_screen')
-#     html = get_html(charting_spec, style_dets,
-#         common_spec_fn=area.get_common_charting_spec, indiv_chart_html_fn=area.get_indiv_chart_html)
-#     fpath = '/home/g/Documents/sofalite/reports/test_area_chart_cars.html'
-#     with open(fpath, 'w') as f:
-#         f.write(html)
-#     open_new_tab(url=f"file://{fpath}")
-#
-# def run_pie_chart():
-#     charting_spec = pie.ChartingSpec(
-#         show_n=True,
-#         generic_charting_dets=generic_charting_dets_programming_language,
-#     )
-#     style_dets = get_style_dets(style='default')
-#     html = get_html(charting_spec, style_dets, pie.get_common_charting_spec, pie.get_indiv_chart_html)
-#     fpath = '/home/g/Documents/sofalite/reports/test_pie_chart.html'
-#     with open(fpath, 'w') as f:
-#         f.write(html)
-#     open_new_tab(url=f"file://{fpath}")
-
-# run_anova()
-# run_bar_chart()
-# run_line_chart_cars()
-# run_line_chart_billing()
-# run_line_chart_os()
-# run_area_chart()
-# run_pie_chart()
 
 def run_clustered_bar_chart():
     style_dets = get_style_dets(style='default')
@@ -316,6 +59,7 @@ def run_clustered_bar_chart():
     indiv_chart_spec = IndivChartSpec(
         lbl=None,
         data_series_specs=[data_series_spec_0, data_series_spec_1],
+        n_records=1_024,
     )
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
@@ -364,6 +108,7 @@ def run_multi_line_chart():
     indiv_chart_spec = IndivChartSpec(
         lbl=None,
         data_series_specs=[data_series_spec_0, data_series_spec_1],
+        n_records=1_024,
     )
     charting_spec = LineChartingSpec(
         category_specs=category_specs,
@@ -407,6 +152,7 @@ def run_area_chart():
     indiv_chart_spec = IndivChartSpec(
         lbl=None,
         data_series_specs=[data_series_spec_0, ],
+        n_records=1_024,
     )
     charting_spec = AreaChartingSpec(
         category_specs=category_specs,
@@ -430,9 +176,73 @@ def run_area_chart():
     open_new_tab(url=f"file://{fpath}")
 
 def run_time_series_chart_with_trend_and_smooth():
-    ...
+    style_dets = get_style_dets(style='default')
+    category_specs = [
+        CategorySpec(val='2022-01-01', lbl='2022-01-01'),
+        CategorySpec(val='2022-02-01', lbl='2022-02-01'),
+        CategorySpec(val='2022-03-01', lbl='2022-03-01'),
+        CategorySpec(val='2022-04-01', lbl='2022-04-01'),
+        CategorySpec(val='2022-05-01', lbl='2022-05-01'),
+        CategorySpec(val='2022-06-01', lbl='2022-06-01'),
+        CategorySpec(val='2022-07-01', lbl='2022-07-01'),
+        CategorySpec(val='2022-08-01', lbl='2022-08-01'),
+        CategorySpec(val='2022-09-01', lbl='2022-09-01'),
+        CategorySpec(val='2022-10-01', lbl='2022-10-01'),
+        CategorySpec(val='2022-11-01', lbl='2022-11-01'),
+        CategorySpec(val='2022-12-01', lbl='2022-12-01'),
+        CategorySpec(val='2023-01-01', lbl='2023-01-01'),
+        CategorySpec(val='2023-02-01', lbl='2023-02-01'),
+        CategorySpec(val='2023-03-01', lbl='2023-03-01'),
+        CategorySpec(val='2023-04-01', lbl='2023-04-01'),
+        CategorySpec(val='2023-05-01', lbl='2023-05-01'),
+        CategorySpec(val='2023-06-01', lbl='2023-06-01'),
+        CategorySpec(val='2023-07-01', lbl='2023-07-01'),
+        CategorySpec(val='2023-08-01', lbl='2023-08-01'),
+        CategorySpec(val='2023-09-01', lbl='2023-09-01'),
+        CategorySpec(val='2023-10-01', lbl='2023-10-01'),
+        CategorySpec(val='2023-11-01', lbl='2023-11-01'),
+        CategorySpec(val='2023-12-01', lbl='2023-12-01'),
+    ]
+    series_data_items_0 = []
+    for i in range(len(category_specs)):
+        amount = randint(100, 200)
+        boost = i / 1_000
+        amount *= (1 + boost)
+        series_data_items_0.append(DataItem(amount=amount, lbl=str(amount), tooltip=str(amount)))
+    data_series_spec_0 = DataSeriesSpec(
+        lbl='NZ',
+        data_items=series_data_items_0,
+    )
+    indiv_chart_spec = IndivChartSpec(
+        lbl=None,
+        data_series_specs=[data_series_spec_0, ],
+        n_records=1_024,
+    )
+    charting_spec = LineChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
+        is_time_series=True,
+        legend_lbl='Country',
+        rotate_x_lbls=False,
+        show_major_ticks_only=True,
+        show_markers=True,
+        show_smooth_line=True,
+        show_trend_line=True,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title='Operating System',
+        y_axis_title='Extreme Technical Excellence',
+    )
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=line.get_common_charting_spec,
+        indiv_chart_html_fn=line.get_indiv_chart_html)
+    fpath = '/home/g/Documents/sofalite/reports/test_time_series_chart_with_trend_and_smooth.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
 
-# run_clustered_bar_chart()
+run_clustered_bar_chart()
 # run_multi_line_chart()
 run_time_series_chart_with_trend_and_smooth()
 # run_area_chart()
+# run_pie_chart()

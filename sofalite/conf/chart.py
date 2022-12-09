@@ -37,7 +37,7 @@ from sofalite.conf.misc import StrConst
 
 AVG_LINE_HEIGHT_PIXELS = 12
 AVG_CHAR_WIDTH_PIXELS = 6.5
-DOJO_Y_TITLE_OFFSET_0 = 45
+DOJO_Y_TITLE_OFFSET = 45
 TEXT_WIDTH_WHEN_ROTATED = 4
 MIN_CHART_WIDTH_PIXELS = 450
 MAX_SAFE_X_LBL_LEN_PIXELS = 180
@@ -76,12 +76,7 @@ class DataSeriesSpec:
 class IndivChartSpec:
     lbl: str | None
     data_series_specs: Sequence[DataSeriesSpec]
-
-    def __post_init__(self):
-        self.n_records = 0
-        for data_series_spec in self.data_series_specs:
-            for data_item in data_series_spec.data_items:
-                self.n_records += data_item.amount
+    n_records: int
 
 @dataclass
 class ChartingSpec:
@@ -121,31 +116,29 @@ class ChartingSpecAxes(ChartingSpec):
         ## derived attributes
         self.n_x_items = len(self.category_specs)
 
-        max_x_lbl_length = 0
-        max_x_lbl_lines = 0
+        max_x_axis_lbl_len = 0
+        max_x_axis_lbl_lines = 0
         for category_spec in self.category_specs:
-            x_lbl_length = len(category_spec.lbl)
-            if x_lbl_length > max_x_lbl_length:
-                max_x_lbl_length = x_lbl_length
+            x_axis_lbl_len = len(category_spec.lbl)
+            if x_axis_lbl_len > max_x_axis_lbl_len:
+                max_x_axis_lbl_len = x_axis_lbl_len
             x_lbl_lines = len(category_spec.lbl.split('<br>'))
-            if x_lbl_lines > max_x_lbl_lines:
-                max_x_lbl_lines = x_lbl_lines
+            if x_lbl_lines > max_x_axis_lbl_lines:
+                max_x_axis_lbl_lines = x_lbl_lines
 
-        max_y_lbl_length = 0
         max_y_val = 0
         for indiv_chart_spec in self.indiv_chart_specs:
             for data_series_spec in indiv_chart_spec.data_series_specs:
                 for data_item in data_series_spec.data_items:
-                    y_lbl_length = len(data_item.lbl)
-                    if y_lbl_length > max_y_lbl_length:
-                        max_y_lbl_length = y_lbl_length
                     y_val = data_item.amount
                     if y_val > max_y_val:
                         max_y_val = y_val
 
-        self.max_x_lbl_length = max_x_lbl_length ## may be needed to set chart height if labels are rotated
-        self.max_y_lbl_length = max_y_lbl_length  ## used to set left axis shift of chart(s) - so there is room for the y labels
-        self.max_x_lbl_lines = max_x_lbl_lines  ## used to set axis lbl drop
+        y_axis_lbl_lines_n = len(self.y_axis_title.split('\n'))
+
+        self.max_x_axis_lbl_len = max_x_axis_lbl_len ## may be needed to set chart height if labels are rotated
+        self.y_axis_lbl_lines_n = y_axis_lbl_lines_n  ## used to set left axis shift of chart(s) - so there is room for the y labels
+        self.max_x_axis_lbl_lines = max_x_axis_lbl_lines  ## used to set axis lbl drop
         self.max_y_val = max_y_val
 
 @dataclass
@@ -166,7 +159,7 @@ class LineChartingSpec(ChartingSpecAxes):
 
     def __post_init__(self):
         super().__post_init__()
-        if (self.show_smooth_line or self.show_trend_line) and not self.single_series:
+        if (self.show_smooth_line or self.show_trend_line) and not self.is_single_series:
             raise Exception("Only single-series line charts can have a trend line or the smoothed option.")
 
 @dataclass

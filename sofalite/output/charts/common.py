@@ -226,9 +226,9 @@ class LineArea:
         y_max = charting_spec.max_y_val * 1.1
         axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=charting_spec.is_multi_chart,
             rotated_x_lbls=charting_spec.rotate_x_lbls,
-            max_x_lbl_lines=charting_spec.max_x_lbl_lines)
+            max_x_axis_lbl_lines=charting_spec.max_x_axis_lbl_lines)
         axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
-        max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_lbl_length)
+        max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_axis_lbl_len)
         horiz_x_lbls = not charting_spec.rotate_x_lbls
         show_major_ticks_only = (False if charting_spec.is_time_series and horiz_x_lbls
             else charting_spec.show_major_ticks_only)  ## override
@@ -239,14 +239,14 @@ class LineArea:
             show_major_ticks_only=show_major_ticks_only, x_axis_title=charting_spec.x_axis_title)
         x_axis_title_len = len(charting_spec.x_axis_title)
         y_title_offset = get_y_title_offset(
-            max_y_lbl_length=charting_spec.max_y_lbl_length,
+            y_axis_lbl_lines_n=charting_spec.y_axis_lbl_lines_n,
             x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
         left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
             offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
             y_title_offset=y_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
         width = width_after_left_margin + left_margin_offset
         height = get_height(axis_lbl_drop=axis_lbl_drop,
-            rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_lbl_length=charting_spec.max_x_lbl_length)
+            rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
         return LineArea.CommonMiscSpec(
             chart_js_fn_name=chart_js_fn_name,
             axis_lbl_drop=axis_lbl_drop,

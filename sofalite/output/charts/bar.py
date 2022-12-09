@@ -210,7 +210,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
-    max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_lbl_length)
+    max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_axis_lbl_len)
     width_after_left_margin = get_width_after_left_margin(
         is_multi_chart=charting_spec.is_multi_chart,
         n_x_items=charting_spec.n_x_items, n_series=charting_spec.n_series,
@@ -219,18 +219,18 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     x_gap = get_x_gap(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     x_axis_title_len = len(charting_spec.x_axis_title)
     y_title_offset = get_y_title_offset(
-        max_y_lbl_length=charting_spec.max_y_lbl_length,
+        y_axis_lbl_lines_n=charting_spec.y_axis_lbl_lines_n,
         x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
     axis_lbl_drop = get_axis_lbl_drop(
         is_multi_chart=charting_spec.is_multi_chart, rotated_x_lbls=charting_spec.rotate_x_lbls,
-        max_x_lbl_lines=charting_spec.max_x_lbl_lines)
+        max_x_axis_lbl_lines=charting_spec.max_x_axis_lbl_lines)
     axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
         offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
         y_title_offset=y_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
     width = width_after_left_margin + left_margin_offset
     height = get_height(axis_lbl_drop=axis_lbl_drop,
-        rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_lbl_length=charting_spec.max_x_lbl_length)
+        rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
 
     colour_spec = CommonColourSpec(
         axis_font=style_dets.chart.axis_font_colour,
