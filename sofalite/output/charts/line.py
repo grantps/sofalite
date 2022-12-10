@@ -9,7 +9,8 @@ import jinja2
 from sofalite.conf.chart import (
     DataSeriesSpec, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails, LineChartingSpec, PlotStyle)
 from sofalite.conf.style import StyleDets
-from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec, LineArea
+from sofalite.output.charts.common import (
+    ChartingSpec as CommonChartingSpec, LineArea, get_common_charting_spec, get_indiv_chart_html)
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -135,6 +136,7 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
         smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
     return smooth_series_dets
 
+@get_common_charting_spec.register
 def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     colour_mappings = style_dets.chart.colour_mappings
@@ -182,6 +184,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleD
         options=options,
     )
 
+@get_indiv_chart_html.register
 def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     context = todict(common_charting_spec.colour_spec, shallow=True)

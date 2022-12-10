@@ -6,7 +6,8 @@ import jinja2
 
 from sofalite.conf.chart import IndivChartSpec, PieChartingSpec
 from sofalite.conf.style import StyleDets
-from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
+from sofalite.output.charts.common import (
+    ChartingSpec as CommonChartingSpec, get_common_charting_spec, get_indiv_chart_html)
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.misc import todict
 
@@ -97,7 +98,8 @@ var highlight_{{chart_uuid}} = function(colour){
  </div>
  """
 
-def get_common_charting_spec(charting_spec: PieChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+@get_common_charting_spec.register
+def get_common_pie_charting_spec(charting_spec: PieChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     colour_mappings = style_dets.chart.colour_mappings
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
@@ -140,6 +142,7 @@ def get_common_charting_spec(charting_spec: PieChartingSpec, style_dets: StyleDe
         options=options,
     )
 
+@get_indiv_chart_html.register
 def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     """

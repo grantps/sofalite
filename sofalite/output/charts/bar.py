@@ -9,7 +9,8 @@ from sofalite.conf.chart import (
     BarChartingSpec, IndivChartSpec, DojoSeriesDetails, LeftMarginOffsetDetails
 )
 from sofalite.conf.style import ColourWithHighlight, StyleDets
-from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
+from sofalite.output.charts.common import (
+    ChartingSpec as CommonChartingSpec, get_common_charting_spec, get_indiv_chart_html)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
 from sofalite.output.styles.misc import get_long_colour_list
@@ -177,6 +178,7 @@ def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_serie
     width = width * 0.9 if is_multi_chart else width
     return width
 
+@get_common_charting_spec.register
 def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     """
     Get details that apply to all charts in bar chart set
@@ -273,6 +275,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
         options=options,
     )
 
+@get_indiv_chart_html.register
 def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     context = todict(common_charting_spec.colour_spec, shallow=True)

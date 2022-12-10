@@ -1,12 +1,12 @@
-from abc import ABC
 from dataclasses import dataclass
+from functools import singledispatch
 from typing import Callable, Literal, Sequence
 
 import jinja2
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
-    AreaChartingSpec, CategorySpec, ChartingSpec, LeftMarginOffsetDetails, LineChartingSpec)
+    AreaChartingSpec, CategorySpec, ChartingSpec, IndivChartSpec, LeftMarginOffsetDetails, LineChartingSpec)
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top
@@ -15,20 +15,8 @@ from sofalite.output.charts.utils import (
     get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
 from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
-from sofalite.utils.maths import format_num
 
-def get_html(charting_spec: ChartingSpec, style_dets: StyleDets,
-        common_spec_fn: Callable, indiv_chart_html_fn: Callable) -> str:
-    """
-    May be one chart, or, if charting by another variable, multiple charts.
-    But each individual chart has standalone HTML str content
-    that can be appended into the main HTML body between html_top and html_bottom.
-
-    The common charting spec data object is required by each chart in the collection.
-
-    We then need to translate that (alongside the individual chart spec) into HTML,
-    so we can build the overall HTML.
-    """
+def get_html_styling_top(style_dets: StyleDets) -> str:
     styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
     styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
     context = {
@@ -39,14 +27,32 @@ def get_html(charting_spec: ChartingSpec, style_dets: StyleDets,
     }
     environment = jinja2.Environment()
     template = environment.from_string(tpl_html_top)
-    html_top = template.render(context)
-    html_result = [html_top, ]
-    common_charting_spec = common_spec_fn(charting_spec, style_dets)
+    html_styling_top = template.render(context)
+    return html_styling_top
+
+## https://towardsdatascience.com/simplify-your-functions-with-functools-partial-and-singledispatch-b7071f7543bb
+@singledispatch
+def get_common_charting_spec(charting_spec, style_dets):
+    raise NotImplementedError("Unable to find registered get_common_charting_spec function "
+        f"for {type(charting_spec)}")
+
+@singledispatch
+def get_indiv_chart_html(common_charting_spec, chart_dets, chart_counter):
+    raise NotImplementedError("Unable to find registered get_indiv_chart_html function "
+        f"for {type(common_charting_spec)}")
+
+def get_html(charting_spec, style_dets: StyleDets) -> str:
+    html_styling_top = get_html_styling_top(style_dets)
+    common_charting_spec = get_common_charting_spec(
+        charting_spec, style_dets)  ## correct version e.g. from pie module, depending on charting_spec type
+    chart_html_strs = []
     for n, chart_dets in enumerate(charting_spec.indiv_chart_specs, 1):
-        indiv_chart_html = indiv_chart_html_fn(common_charting_spec, chart_dets, chart_counter=n)
-        html_result.append(indiv_chart_html)
-    html_result.append(html_bottom)
-    return '\n\n'.join(html_result)
+        indiv_chart_html = get_indiv_chart_html(
+            common_charting_spec, chart_dets, chart_counter=n)  ## as above through power of functools.singledispatch
+        chart_html_strs.append(indiv_chart_html)
+    html_indiv_charts = '\n\n'.join(chart_html_strs)
+    html = '\n\n'.join([html_styling_top, html_indiv_charts, html_bottom])
+    return html
 
 
 class LineArea:

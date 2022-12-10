@@ -4,13 +4,13 @@ Will point at GUI later but good for running functions in the meanwhile.
 from random import randint
 from webbrowser import open_new_tab
 
-from sofalite.output.charts import area, bar, line, pie
-from sofalite.output.charts.common import get_html
 from sofalite.conf.chart import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
     IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
+from sofalite.output.charts import area, bar, line, pie
+from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova
 from sofalite.sql_extraction.db import Sqlite
@@ -73,9 +73,7 @@ def run_clustered_bar_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets,
-        common_spec_fn=bar.get_common_charting_spec,
-        indiv_chart_html_fn=bar.get_indiv_chart_html)
+    html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_clustered_bar_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -126,9 +124,7 @@ def run_multi_line_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets,
-        common_spec_fn=line.get_common_charting_spec,
-        indiv_chart_html_fn=line.get_indiv_chart_html)
+    html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -168,9 +164,7 @@ def run_area_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets,
-        common_spec_fn=area.get_common_charting_spec,
-        indiv_chart_html_fn=area.get_indiv_chart_html)
+    html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_area_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -234,9 +228,7 @@ def run_time_series_chart_with_trend_and_smooth():
         x_axis_title='Operating System',
         y_axis_title='Extreme Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets,
-        common_spec_fn=line.get_common_charting_spec,
-        indiv_chart_html_fn=line.get_indiv_chart_html)
+    html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_time_series_chart_with_trend_and_smooth.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -275,16 +267,14 @@ def run_pie_chart():
         indiv_chart_specs=[indiv_chart_spec, ],
         show_n_records=True,
     )
-    html = get_html(charting_spec, style_dets,
-        common_spec_fn=pie.get_common_charting_spec,
-        indiv_chart_html_fn=pie.get_indiv_chart_html)
+    html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_pie_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-# run_clustered_bar_chart()
-# run_multi_line_chart()
-# run_time_series_chart_with_trend_and_smooth()
-# run_area_chart()
-# run_pie_chart()
+run_clustered_bar_chart()
+run_multi_line_chart()
+run_time_series_chart_with_trend_and_smooth()
+run_area_chart()
+run_pie_chart()

@@ -6,7 +6,8 @@ import jinja2
 from sofalite.conf.chart import (
     AreaChartingSpec, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails, PlotStyle)
 from sofalite.conf.style import StyleDets
-from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec, LineArea
+from sofalite.output.charts.common import (
+    ChartingSpec as CommonChartingSpec, LineArea, get_common_charting_spec, get_indiv_chart_html)
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -25,6 +26,7 @@ class CommonChartingSpec:
     misc_spec: LineArea.CommonMiscSpec
     options: LineArea.CommonOptions
 
+@get_common_charting_spec.register
 def get_common_charting_spec(charting_spec: AreaChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     first_colour_mapping = style_dets.chart.colour_mappings[0]
@@ -66,6 +68,7 @@ def get_common_charting_spec(charting_spec: AreaChartingSpec, style_dets: StyleD
         options=options,
     )
 
+@get_indiv_chart_html.register
 def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     context = todict(common_charting_spec.colour_spec, shallow=True)
