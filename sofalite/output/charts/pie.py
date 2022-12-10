@@ -4,18 +4,11 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.chart import ChartDetails, GenericChartingDetails
+from sofalite.conf.chart import IndivChartSpec, PieChartingSpec
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
-from sofalite.utils.maths import format_num
+from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.misc import todict
-
-@dataclass(frozen=True, kw_only=True)
-class ChartingSpec(CommonChartingSpec):
-    ## specific details for pie charting
-    show_n: bool = False
-    ## generic charting details
-    generic_charting_dets: GenericChartingDetails
 
 @dataclass(frozen=True)
 class CommonColourSpec:
@@ -36,9 +29,9 @@ class CommonMiscSpec:
     connector_style: str
     height: float  ## pixels
     lbl_offset: int
-    n_records: int
     radius: float
     slice_font_size: int
+    slice_lbls: Sequence[str]
     slice_vals: Sequence[float]
     width: float  ## pixels
 
@@ -104,25 +97,20 @@ var highlight_{{chart_uuid}} = function(colour){
  </div>
  """
 
-def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
-    ## convenience pre-calcs
-    n_charts = len(charting_spec.generic_charting_dets.charts_details)
-    is_multi_chart = (n_charts > 1)
-    first_chart_dets = charting_spec.generic_charting_dets.charts_details[0]
-    first_series = first_chart_dets.series_dets[0]
+def get_common_charting_spec(charting_spec: PieChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     colour_mappings = style_dets.chart.colour_mappings
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]
-    slice_colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    slice_colours = get_long_colour_list(colour_mappings)
     ## misc
-    n_records = 'N = ' + format_num(first_chart_dets.n_records) if charting_spec.show_n else ''
-    height = 370 if is_multi_chart else 420
-    lbl_offset = -20 if is_multi_chart else -30
-    radius = 120 if is_multi_chart else 140
-    slice_font_size = 14 if n_charts < 10 else 10
-    slice_vals = first_series.slice_vals
-    if is_multi_chart:
+    height = 370 if charting_spec.is_multi_chart else 420
+    lbl_offset = -20 if charting_spec.is_multi_chart else -30
+    radius = 120 if charting_spec.is_multi_chart else 140
+    slice_font_size = 14 if charting_spec.n_charts < 10 else 10
+    slice_vals = charting_spec.indiv_chart_specs[0].data_series_specs[0].amounts
+    slice_lbls = [spec.lbl for spec in charting_spec.category_specs]
+    if charting_spec.is_multi_chart:
         slice_font_size *= 0.8
     colour_spec = CommonColourSpec(
         colour_cases=colour_cases,
@@ -137,14 +125,14 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         connector_style=style_dets.dojo.connector_style,
         height=height,
         lbl_offset=lbl_offset,
-        n_records=n_records,
         radius=radius,
         slice_font_size=slice_font_size,
-        width=450,
+        slice_lbls=slice_lbls,
         slice_vals=slice_vals,
+        width=450,
     )
     options = CommonOptions(
-        is_multi_chart=is_multi_chart,
+        is_multi_chart=charting_spec.is_multi_chart,
     )
     return CommonChartingSpec(
         colour_spec=colour_spec,
@@ -152,7 +140,7 @@ def get_common_charting_spec(charting_spec: ChartingSpec, style_dets: StyleDets)
         options=options,
     )
 
-def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_dets: ChartDetails,
+def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_spec: IndivChartSpec,
         *,  chart_counter: int) -> str:
     """
     Note - to keep the same colours for the same slice categories
@@ -162,26 +150,25 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_d
     context = todict(common_charting_spec.colour_spec, shallow=True)
     context.update(todict(common_charting_spec.misc_spec, shallow=True))
     context.update(todict(common_charting_spec.options, shallow=True))
-    single_series = len(indiv_chart_dets.series_dets) == 1
-    if not single_series:
-        raise Exception("Pie charts must be single series charts")
     chart_uuid = str(uuid.uuid4()).replace('-', '_')  ## needs to work in JS variable names
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
-    indiv_title_html = (f"<p><b>{indiv_chart_dets.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
+    indiv_title_html = (f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
     ## slices
-    only_series = indiv_chart_dets.series_dets[0]
+    only_series = indiv_chart_spec.data_series_specs[0]
+    slice_lbls = common_charting_spec.misc_spec.slice_lbls
+    slice_colours = common_charting_spec.colour_spec.slice_colours
+    slice_colours = slice_colours[:len(slice_lbls)]
     slice_details = zip(
-        only_series.slice_category_specs,  ## the category value, lbl etc e.g. 1 for New Zealand
-        only_series.slice_vals,  ## the actual frequencies e.g. 120 for avg NZ IQ
-        common_charting_spec.colour_spec.slice_colours,
-        only_series.tool_tips,
+        slice_lbls,
+        only_series.amounts,  ## the actual frequencies e.g. 120 for avg NZ IQ
+        slice_colours,
+        only_series.tooltips,
         strict=True)
     slice_strs = []
     slice_colours_as_displayed = []
-    for slice_category_spec, slice_val, colour, tool_tip in slice_details:
+    for slice_lbl, slice_val, colour, tool_tip in slice_details:
         if slice_val == 0:
             continue
-        slice_lbl = slice_category_spec.lbl_split_into_lines
         slice_str = f"""{{"val": {slice_val}, "lbl": "{slice_lbl}", "tooltip": "{tool_tip}"}},"""
         slice_strs.append(slice_str)
         slice_colours_as_displayed.append(colour)

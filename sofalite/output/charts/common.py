@@ -239,7 +239,6 @@ class LineArea:
             show_major_ticks_only=show_major_ticks_only, x_axis_title=charting_spec.x_axis_title)
         x_axis_title_len = len(charting_spec.x_axis_title)
         y_title_offset = get_y_title_offset(
-            y_axis_lbl_lines_n=charting_spec.y_axis_lbl_lines_n,
             x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
         left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
             offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,

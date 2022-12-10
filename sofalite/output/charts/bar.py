@@ -12,6 +12,7 @@ from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
+from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -199,7 +200,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
         ## This is an important special case because it affects the bar charts using the default style
         if colour_mappings[0].main == '#e95f29':  ## BURNT_ORANGE
             colour_mappings = [ColourWithHighlight('#e95f29', '#736354'), ]
-    colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    colours = get_long_colour_list(colour_mappings)
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]  ## actually only need first one for simple bar charts
     ## misc
@@ -219,7 +220,6 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     x_gap = get_x_gap(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     x_axis_title_len = len(charting_spec.x_axis_title)
     y_title_offset = get_y_title_offset(
-        y_axis_lbl_lines_n=charting_spec.y_axis_lbl_lines_n,
         x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
     axis_lbl_drop = get_axis_lbl_drop(
         is_multi_chart=charting_spec.is_multi_chart, rotated_x_lbls=charting_spec.rotate_x_lbls,

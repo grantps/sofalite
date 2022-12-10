@@ -69,8 +69,13 @@ class DataSeriesSpec:
     data_items: Sequence[DataItem]
 
     def __post_init__(self):
-        self.amounts = [data_item.amount for data_item in self.data_items]
-        self.tooltips = [data_item.tooltip for data_item in self.data_items]
+        self.amounts = []
+        self.lbls = []
+        self.tooltips = []
+        for data_item in self.data_items:
+            self.amounts.append(data_item.amount)
+            self.lbls.append(data_item.lbl)
+            self.tooltips.append(data_item.tooltip)
 
 @dataclass
 class IndivChartSpec:
@@ -96,12 +101,14 @@ class ChartingSpec:
                         "as data items in every series in every individual chart "
                         f"but {n_categories=} while {n_data_items=}")
         ## Derived attributes
-        self.is_multi_chart = len(self.indiv_chart_specs) > 1
+        self.n_charts = len(self.indiv_chart_specs)
+        self.is_multi_chart = self.n_charts > 1
         self.n_series = len(self.indiv_chart_specs[0].data_series_specs)
         self.is_single_series = (self.n_series == 1)
 
 @dataclass
 class ChartingSpecAxes(ChartingSpec):
+
     legend_lbl: str
     rotate_x_lbls: bool
     x_axis_font_size: int
@@ -134,16 +141,14 @@ class ChartingSpecAxes(ChartingSpec):
                     if y_val > max_y_val:
                         max_y_val = y_val
 
-        y_axis_lbl_lines_n = len(self.y_axis_title.split('\n'))
-
-        self.max_x_axis_lbl_len = max_x_axis_lbl_len ## may be needed to set chart height if labels are rotated
-        self.y_axis_lbl_lines_n = y_axis_lbl_lines_n  ## used to set left axis shift of chart(s) - so there is room for the y labels
+        self.max_x_axis_lbl_len = max_x_axis_lbl_len  ## may be needed to set chart height if labels are rotated
         self.max_x_axis_lbl_lines = max_x_axis_lbl_lines  ## used to set axis lbl drop
         self.max_y_val = max_y_val
 
 @dataclass
 class ChartingSpecNoAxes(ChartingSpec):
-    ...
+    def __post_init__(self):
+        super().__post_init__()
 
 @dataclass
 class BarChartingSpec(ChartingSpecAxes):
@@ -170,7 +175,10 @@ class AreaChartingSpec(ChartingSpecAxes):
 
 @dataclass
 class PieChartingSpec(ChartingSpecNoAxes):
-    ...
+    def __post_init__(self):
+        super().__post_init__()
+        if not self.is_single_series:
+            raise TypeError("Pie Charts have to have only one data series per chart")
 
 class PlotStyle(StrConst):
     """

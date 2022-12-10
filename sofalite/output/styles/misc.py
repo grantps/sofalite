@@ -1,13 +1,20 @@
 import importlib
+from typing import Sequence
 
 import jinja2
 
-from sofalite.conf.style import ChartStyleDets, DojoStyleDets, StyleDets, TableStyleDets
+from sofalite.conf.style import (
+    DOJO_COLOURS, ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
 from sofalite.utils.misc import todict
 
 def get_style_dets(style: str) -> StyleDets:
     style_module = importlib.import_module(f"sofalite.output.styles.{style}")
     return style_module.get_style_dets()
+
+def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list[str]:
+    defined_colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    long_colour_list = defined_colours + DOJO_COLOURS
+    return long_colour_list
 
 common_css = """\
     body{

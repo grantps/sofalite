@@ -4,10 +4,11 @@ Will point at GUI later but good for running functions in the meanwhile.
 from random import randint
 from webbrowser import open_new_tab
 
-from sofalite.output.charts import area, bar, line
+from sofalite.output.charts import area, bar, line, pie
 from sofalite.output.charts.common import get_html
 from sofalite.conf.chart import (
-    AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec, LineChartingSpec)
+    AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
+    IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
 from sofalite.output.styles.misc import get_style_dets
@@ -241,8 +242,49 @@ def run_time_series_chart_with_trend_and_smooth():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-run_clustered_bar_chart()
+def run_pie_chart():
+    style_dets = get_style_dets(style='default')
+    ## https://en.wikipedia.org/wiki/List_of_operating_systems
+    category_specs = [
+        CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
+        CategorySpec(val=2, lbl='Microsoft<br>Windows'),
+        CategorySpec(val=3, lbl='Mac OSX'),
+        CategorySpec(val=4, lbl='AmigaOS'),
+        CategorySpec(val=5, lbl='MINIX'),
+        # CategorySpec(val=6, lbl='BSD'),  ## starts using DOJO colours because exhausts defined colours
+    ]
+    series_data_items_0 = [
+        DataItem(amount=125, lbl='125', tooltip='125'),
+        DataItem(amount=40, lbl='40', tooltip='40'),
+        DataItem(amount=50, lbl='50', tooltip='50'),
+        DataItem(amount=13, lbl='13', tooltip='31'),
+        DataItem(amount=15, lbl='15', tooltip='15'),
+        # DataItem(amount=12, lbl='12', tooltip='12'),
+    ]
+    data_series_spec_0 = DataSeriesSpec(
+        lbl=None,
+        data_items=series_data_items_0,
+    )
+    indiv_chart_spec = IndivChartSpec(
+        lbl=None,
+        data_series_specs=[data_series_spec_0, ],
+        n_records=1_024,
+    )
+    charting_spec = PieChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
+        show_n_records=True,
+    )
+    html = get_html(charting_spec, style_dets,
+        common_spec_fn=pie.get_common_charting_spec,
+        indiv_chart_html_fn=pie.get_indiv_chart_html)
+    fpath = '/home/g/Documents/sofalite/reports/test_pie_chart.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+# run_clustered_bar_chart()
 # run_multi_line_chart()
-run_time_series_chart_with_trend_and_smooth()
+# run_time_series_chart_with_trend_and_smooth()
 # run_area_chart()
 # run_pie_chart()

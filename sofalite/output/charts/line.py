@@ -10,6 +10,7 @@ from sofalite.conf.chart import (
     DataSeriesSpec, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails, LineChartingSpec, PlotStyle)
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.common import ChartingSpec as CommonChartingSpec, LineArea
+from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -139,7 +140,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleD
     colour_mappings = style_dets.chart.colour_mappings
     if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
-    colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    colours = get_long_colour_list(colour_mappings)
     ## misc
     has_minor_ticks_js_bool = ('true' if charting_spec.n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM
         else 'false')

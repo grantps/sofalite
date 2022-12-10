@@ -3,7 +3,7 @@ from typing import Sequence
 
 from sofalite.conf.chart import (
     AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_TITLE_OFFSET, MAX_SAFE_X_LBL_LEN_PIXELS,
-    CategorySpec, IndivChartSpec, LeftMarginOffsetDetails)
+    CategorySpec, LeftMarginOffsetDetails)
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
         is_multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:
@@ -39,10 +39,9 @@ def get_axis_lbl_drop(*, is_multi_chart: bool, rotated_x_lbls: bool, max_x_axis_
     logging.debug(axis_lbl_drop)
     return axis_lbl_drop
 
-def get_y_title_offset(*, y_axis_lbl_lines_n: int, x_axis_title_len: int, rotated_x_lbls=False) -> int:
+def get_y_title_offset(*, x_axis_title_len: int, rotated_x_lbls=False) -> int:
     """
-    Need to shift y-axis title left by y_title_offset
-    if wide y-axis label is wide (multiple lines) or first x-axis label is wide.
+    Need to shift y-axis title left by y_title_offset if first x-axis label is wide.
     """
     ## 45 is a good total offset with label width of 20
     y_title_offset = DOJO_Y_TITLE_OFFSET - 20  ## e.g. 20
@@ -53,9 +52,6 @@ def get_y_title_offset(*, y_axis_lbl_lines_n: int, x_axis_title_len: int, rotate
             lbl_width_shifting = (x_axis_title_len * AVG_CHAR_WIDTH_PIXELS) - MAX_SAFE_X_LBL_LEN_PIXELS
             lbl_shift = lbl_width_shifting / 2  ## half of label goes to the right
             y_title_offset += lbl_shift
-    ## y-axis width (lines) label adjustment
-    y_axis_lbl_width = (y_axis_lbl_lines_n * AVG_CHAR_WIDTH_PIXELS)
-    y_title_offset += y_axis_lbl_width
     y_title_offset = max([y_title_offset, DOJO_Y_TITLE_OFFSET])
     return y_title_offset
 
