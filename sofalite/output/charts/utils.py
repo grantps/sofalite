@@ -1,9 +1,10 @@
 import logging
 from typing import Sequence
 
-from sofalite.conf.chart import (
+from sofalite.conf.charting.misc import (
     AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_TITLE_OFFSET, MAX_SAFE_X_LBL_LEN_PIXELS,
-    CategorySpec, LeftMarginOffsetDetails)
+    LeftMarginOffsetDetails)
+from sofalite.conf.charting.std_specs import CategorySpec
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
         is_multi_chart: bool, y_title_offset: float, rotated_x_lbls: bool) -> int:

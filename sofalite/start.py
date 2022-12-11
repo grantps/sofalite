@@ -4,9 +4,10 @@ Will point at GUI later but good for running functions in the meanwhile.
 from random import randint
 from webbrowser import open_new_tab
 
-from sofalite.conf.chart import (
+from sofalite.conf.charting.other_specs import HistoChartingSpec, HistoIndivChartSpec
+from sofalite.conf.charting.std_specs import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
-    HistoChartingSpec, HistoIndivChartSpec, IndivChartSpec, LineChartingSpec, PieChartingSpec)
+    IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
 from sofalite.output.charts import area, bar, histo, line, pie  ## needed so singledispatch registration can occur
@@ -323,4 +324,4 @@ def run_histo():
 # run_time_series_chart_with_trend_and_smooth()
 # run_area_chart()
 # run_pie_chart()
-run_histo()
+# run_histo()
