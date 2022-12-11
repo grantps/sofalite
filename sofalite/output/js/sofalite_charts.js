@@ -359,17 +359,17 @@ makeAreaChart = function(chartname, series, conf){
 }
 
 // HISTOGRAM ***************************************************************************************
-makeHistogram = function(chartname, datadets, conf){
+makeHistogram = function(chartname, data_spec, conf){
     nChartFontColour = conf["plot_font_colour"]
-    nChart = conf["n_chart"];
+    nChart = conf["n_records"];
     // chartwide function setting - have access to val.element (Column), val.index (0), val.run.data (y_vals)
     var getTooltip = function(val){
-        return "Values: " + datadets["binLabels"][val.index] + "<br>" + conf['y_title'] + ": " + val.y;
+        return "Values: " + data_spec["bin_lbls"][val.index] + "<br>" + conf['y_title'] + ": " + val.y;
     };
     var dc = dojox.charting;
     var mychart = new dc.Chart2D(chartname,
        {margins: {
-            l: conf['margin_offset_l'],
+            l: conf['left_margin_offset'],
             t: 10,
             r: 10,
             b: 10},
@@ -378,12 +378,12 @@ makeHistogram = function(chartname, datadets, conf){
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
-        	fill: null, //conf["chart_bg"],
+            fill: null,  //conf["chart_bg"],
 	        pageStyle: null // suggested page style as an object suitable for dojo.style()
 	    },
 	    plotarea:{
 	        stroke: null,
-	        fill: conf["plot_bg"]
+	        fill: conf["plot_bg_colour"]
 	    },
 	    axis:{
 	        stroke:	{ // the axis itself
@@ -396,9 +396,9 @@ makeHistogram = function(chartname, datadets, conf){
 	            fontColor: conf["axis_font_colour"]
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
-	            width:  conf['gridline_width'],
+	            width:  conf['grid_line_width'],
 	            length: 6, 
-                color: conf["major_gridline_colour"]
+                color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
 	            width:  0.8,
@@ -411,15 +411,15 @@ makeHistogram = function(chartname, datadets, conf){
 	    }
     });
     mychart.setTheme(sofa_theme);
-    mychart.addAxis("x", {title: datadets["seriesLabel"],
-                    labels: conf["xaxis_lbls"], minorTicks: false, microTicks: false,
-                    font: "normal normal normal " + conf["xfontsize"] + "pt Arial"
+    mychart.addAxis("x", {title: data_spec["series_lbl"],
+                    labels: conf["blank_x_axis_lbls"], minorTicks: false, microTicks: false,
+                    font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
     mychart.addAxis("x2", {
-        min: conf["minval"],
-        max: conf["maxval"],
+        min: conf["min_x_val"],
+        max: conf["max_x_val"],
         minorTicks: conf['has_minor_ticks'], 
-        font: "normal normal normal " + conf["xfontsize"] + "pt Arial"
+        font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
     mychart.addAxis("y", {title: conf['y_title'],  // normal normal bold
                     vertical: true, includeZero: true, font: "normal normal normal 10pt Arial", fontWeight: 12
@@ -428,10 +428,10 @@ makeHistogram = function(chartname, datadets, conf){
     mychart.addPlot("default", {type: "Columns", gap: 0, shadows: {dx: 12, dy: 12}});
     mychart.addPlot("grid", {type: "Grid", vMajorLines: false});
     mychart.addPlot("othergrid", {type: "Areas", hAxis: "x2", vAxis: "y"});
-    mychart.addSeries(datadets["lbl"], datadets["vals"], datadets["style"]);
-    if(conf['inc_normal'] == true){
+    mychart.addSeries(data_spec["series_lbl"], data_spec["y_vals"], data_spec["style"]);
+    if(conf['show_normal_curve'] == true){
         mychart.addPlot("normal", {type: "Lines", markers: false, shadows: {dx: 2, dy: 2, dw: 2}});
-        mychart.addSeries("Normal Dist Curve", datadets["normYs"], datadets["normStyle"]); 
+        mychart.addSeries("Normal Dist Curve", data_spec["norm_y_vals"], data_spec["norm_style"]);
     }
     var anim_a = new dc.action2d.Highlight(mychart, "default", {
         highlight: conf["highlight"],

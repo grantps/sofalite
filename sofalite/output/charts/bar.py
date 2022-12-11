@@ -107,6 +107,7 @@ make_chart_{{chart_uuid}} = function(){
         conf["connector_style"] = "{{connector_style}}";
         conf["grid_line_width"] = {{grid_line_width}};
         conf["has_minor_ticks"] = {{has_minor_ticks_js_bool}};
+        conf["highlight"] = highlight_{{chart_uuid}};
         conf["left_margin_offset"] = {{left_margin_offset}};
         conf["major_grid_line_colour"] = "{{major_grid_line}}";
         conf["n_records"] = "{{n_records}}";
@@ -116,13 +117,11 @@ make_chart_{{chart_uuid}} = function(){
         conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_lbls"] = {{x_axis_lbls}};
         conf["x_font_size"] = {{x_font_size}};
+        conf["x_gap"] = {{x_gap}};
         conf["x_title"] = "{{x_axis_title}}";
         conf["y_max"] = {{y_max}};
         conf["y_title"] = "{{y_title}}";
         conf["y_title_offset"] = {{y_title_offset}};
-        // distinct fields for bar charts
-        conf["highlight"] = highlight_{{chart_uuid}};
-        conf["x_gap"] = {{x_gap}};
 
     makeBarChart("bar_chart_{{chart_uuid}}", series, conf);
 }

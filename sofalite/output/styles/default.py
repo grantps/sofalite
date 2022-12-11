@@ -55,7 +55,7 @@ def get_style_dets() -> StyleDets:
         axis_font_colour=BLACK_BROWN,
         major_grid_line_colour=MID_GREY_BROWN,
         grid_line_width=1,
-        stroke_width=1,
+        stroke_width=3,
         tooltip_border_colour=CHARCOAL_BROWN,
         normal_curve_colour=BLACK_BROWN,
         colour_mappings=[

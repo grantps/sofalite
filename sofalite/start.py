@@ -6,10 +6,10 @@ from webbrowser import open_new_tab
 
 from sofalite.conf.chart import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
-    IndivChartSpec, LineChartingSpec, PieChartingSpec)
+    HistoChartingSpec, HistoIndivChartSpec, IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
-from sofalite.output.charts import area, bar, line, pie
+from sofalite.output.charts import area, bar, histo, line, pie  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova
@@ -273,8 +273,54 @@ def run_pie_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-run_clustered_bar_chart()
-run_multi_line_chart()
-run_time_series_chart_with_trend_and_smooth()
-run_area_chart()
-run_pie_chart()
+def run_histo():
+    style_dets = get_style_dets(style='default')
+    indiv_chart_spec = HistoIndivChartSpec(
+        lbl=None,
+        n_records=1_500,
+        norm_y_vals=[29.70628062839127, 40.091038388577154, 52.206878325617396, 65.59784034576569, 79.53032413643564, 93.03735574497506, 105.01790732409468, 114.38017491702925, 120.2041738545691, 121.89046524097957, 119.2617881350466, 112.59375254968397, 102.56723921258526, 90.15388223299749, 76.46128556756369, 62.57201681216676, 49.408322163592004, 37.64449314484708, 27.67478127508274],
+        y_vals=[98, 62, 88, 81, 88, 97, 103, 72, 78, 89, 70, 80, 69, 78, 83, 81, 89, 55, 39],
+    )
+    charting_spec = HistoChartingSpec(
+        bin_lbls=[
+            "1 to < 6.0",
+            "6.0 to < 11.0",
+            "11.0 to < 16.0",
+            "16.0 to < 21.0",
+            "21.0 to < 26.0",
+            "26.0 to < 31.0",
+            "31.0 to < 36.0",
+            "36.0 to < 41.0",
+            "41.0 to < 46.0",
+            "46.0 to < 51.0",
+            "51.0 to < 56.0",
+            "56.0 to < 61.0",
+            "61.0 to < 66.0",
+            "66.0 to < 71.0",
+            "71.0 to < 76.0",
+            "76.0 to < 81.0",
+            "81.0 to < 86.0",
+            "86.0 to < 91.0",
+            "91.0 to <= 96.0",
+        ],
+        indiv_chart_specs=[indiv_chart_spec, ],
+        max_x_val=96,
+        min_x_val=1,
+        show_borders=True,
+        show_n_records=True,
+        show_normal_curve=True,
+        var_lbl='Age',
+        x_axis_font_size=10,
+    )
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_histo.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+# run_clustered_bar_chart()
+# run_multi_line_chart()
+# run_time_series_chart_with_trend_and_smooth()
+# run_area_chart()
+# run_pie_chart()
+run_histo()
