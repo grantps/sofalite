@@ -57,7 +57,7 @@ class ChartingSpec:
                     raise Exception("Must be same number of categories "
                         "as data items in every series in every individual chart "
                         f"but {n_categories=} while {n_data_items=}")
-        ## Derived attributes
+        ## Derived attributes (could make actual fields using = fields(init=False) but OK as mere attributes)
         self.n_charts = len(self.indiv_chart_specs)
         self.is_multi_chart = self.n_charts > 1
         self.n_series = len(self.indiv_chart_specs[0].data_series_specs)

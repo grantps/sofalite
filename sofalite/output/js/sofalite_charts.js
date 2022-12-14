@@ -21,7 +21,7 @@ makeBarChart = function(chartname, series, conf){
              t: 10,
              r: 10,
              b: 10+conf["axis_lbl_drop"]},
-        yTitleOffset: conf["y_title_offset"]});
+        yTitleOffset: conf["y_axis_title_offset"]});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
@@ -44,7 +44,7 @@ makeBarChart = function(chartname, series, conf){
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf["grid_line_width"],
-	            length: 6, 
+	            length: 6,
                 color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
@@ -60,16 +60,16 @@ makeBarChart = function(chartname, series, conf){
 
     mychart.setTheme(sofa_theme);
     mychart.addAxis("x",
-        {title: conf["x_title"],
+        {title: conf["x_axis_title"],
          labels: conf["x_axis_lbls"],
-         minorTicks: conf["has_minor_ticks"], 
+         minorTicks: conf["has_minor_ticks"],
          font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
          rotation: conf["axis_lbl_rotate"]
     });
     mychart.addAxis("y",
-       {title: conf["y_title"],
+       {title: conf["y_axis_title"],
         vertical: true,
-        includeZero: true, 
+        includeZero: true,
         max: conf["y_max"],
         font: "normal normal normal 10pt Arial",
         fontWeight: 12
@@ -96,7 +96,7 @@ makeBarChart = function(chartname, series, conf){
         easing:   dojo.fx.easing.sineOut
     });
     var anim_b = new dc.action2d.Shake(mychart, "default");
-    var anim_c = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip, 
+    var anim_c = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip,
         tooltipBorderColour: conf["tooltip_border_colour"],
         connectorStyle: conf["connector_style"]});
     mychart.render();
@@ -139,7 +139,7 @@ makePieChart = function(chartname, slices, conf){
     var pieSeries = Array();
     var i;
     for (i in slices){
-        pieSeries[i] = 
+        pieSeries[i] =
         {
             y: slices[i]["val"],
             text: slices[i]["lbl"],
@@ -154,7 +154,7 @@ makePieChart = function(chartname, slices, conf){
         duration: 450,
         easing:   dojo.fx.easing.sineOut
     });
-    var anim_c = new dc.action2d.Tooltip(mychart, "default", 
+    var anim_c = new dc.action2d.Tooltip(mychart, "default",
         {tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
@@ -165,7 +165,7 @@ function zeropad_date(num){
         return "0" + num
     } else {
         return num
-    }   
+    }
 }
 
 // A single parameter function to get labels from epoch milliseconds
@@ -193,7 +193,7 @@ makeLineChart = function(chartname, series, conf){
             t: 10,
             r: 10,
             b: 10+conf['axis_lbl_drop']},
-            yTitleOffset: conf['y_title_offset']});
+            yTitleOffset: conf['y_axis_title_offset']});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
@@ -216,7 +216,7 @@ makeLineChart = function(chartname, series, conf){
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf['grid_line_width'],
-	            length: 6, 
+	            length: 6,
                 color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
@@ -234,7 +234,7 @@ makeLineChart = function(chartname, series, conf){
     mychart.setTheme(sofa_theme);
     // x-axis
     var xaxis_conf = {
-        title: conf['x_title'],
+        title: conf['x_axis_title'],
         font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
         rotation: conf['axis_lbl_rotate'],
         minorTicks: conf['has_minor_ticks'],
@@ -248,8 +248,8 @@ makeLineChart = function(chartname, series, conf){
     };
     mychart.addAxis("x", xaxis_conf);
     // y-axis
-    mychart.addAxis("y", {title: conf['y_title'],
-                    vertical: true, includeZero: true, 
+    mychart.addAxis("y", {title: conf['y_axis_title'],
+                    vertical: true, includeZero: true,
                     max: conf["y_max"],
                     font: "normal normal normal 10pt Arial", fontWeight: 12
     });
@@ -262,7 +262,7 @@ makeLineChart = function(chartname, series, conf){
         mychart.addSeries(series[i]["lbl"], series[i]["vals"], series[i]["options"]);
     }
     var anim_a = new dc.action2d.Magnify(mychart, "default");
-    var anim_b = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip, 
+    var anim_b = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip,
         tooltipBorderColour: conf['tooltip_border_colour'], connectorStyle: conf['connector_style']});
     mychart.render();
     var legend = new dojox.charting.widget.Legend({chart: mychart}, "legend_for_" + chartname);
@@ -283,7 +283,7 @@ makeAreaChart = function(chartname, series, conf){
             t: 10,
             r: 10,
             b: 10+conf['axis_lbl_drop']},
-        yTitleOffset: conf['y_title_offset']});
+        yTitleOffset: conf['y_axis_title_offset']});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
@@ -306,7 +306,7 @@ makeAreaChart = function(chartname, series, conf){
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf['gridline_width'],
-	            length: 6, 
+	            length: 6,
                 color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
@@ -324,7 +324,7 @@ makeAreaChart = function(chartname, series, conf){
     mychart.setTheme(sofa_theme);
     // x-axis
     var xaxis_conf = {
-        title: conf['x_title'],
+        title: conf['x_axis_title'],
         font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
         rotation: conf['axis_lbl_rotate'],
         minorTicks: conf['has_minor_ticks'],
@@ -338,9 +338,9 @@ makeAreaChart = function(chartname, series, conf){
     };
     mychart.addAxis("x", xaxis_conf);
     // y-axis
-    mychart.addAxis("y", {title: conf['y_title'],  // normal normal bold
-                    vertical: true, includeZero: true, 
-                    max: conf["y_max"], 
+    mychart.addAxis("y", {title: conf['y_axis_title'],  // normal normal bold
+                    vertical: true, includeZero: true,
+                    max: conf["y_max"],
                     font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("default", {type: "Areas", lines: true, areas: true, markers: true});
@@ -352,7 +352,7 @@ makeAreaChart = function(chartname, series, conf){
     }
     var anim_a = new dc.action2d.Magnify(mychart, "default");
     var anim_b = new dc.action2d.Tooltip(mychart, "default",
-        {text: getTooltip, 
+        {text: getTooltip,
          tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
@@ -364,7 +364,7 @@ makeHistogram = function(chartname, data_spec, conf){
     nChart = conf["n_records"];
     // chartwide function setting - have access to val.element (Column), val.index (0), val.run.data (y_vals)
     var getTooltip = function(val){
-        return "Values: " + data_spec["bin_lbls"][val.index] + "<br>" + conf['y_title'] + ": " + val.y;
+        return "Values: " + data_spec["bin_lbls"][val.index] + "<br>" + conf['y_axis_title'] + ": " + val.y;
     };
     var dc = dojox.charting;
     var mychart = new dc.Chart2D(chartname,
@@ -373,7 +373,7 @@ makeHistogram = function(chartname, data_spec, conf){
             t: 10,
             r: 10,
             b: 10},
-        yTitleOffset: conf['y_title_offset']});
+        yTitleOffset: conf['y_axis_title_offset']});
 
     var sofa_theme = new dc.Theme({
         chart:{
@@ -397,7 +397,7 @@ makeHistogram = function(chartname, data_spec, conf){
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf['grid_line_width'],
-	            length: 6, 
+	            length: 6,
                 color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
@@ -418,10 +418,10 @@ makeHistogram = function(chartname, data_spec, conf){
     mychart.addAxis("x2", {
         min: conf["min_x_val"],
         max: conf["max_x_val"],
-        minorTicks: conf['has_minor_ticks'], 
+        minorTicks: conf['has_minor_ticks'],
         font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
-    mychart.addAxis("y", {title: conf['y_title'],  // normal normal bold
+    mychart.addAxis("y", {title: conf['y_axis_title'],  // normal normal bold
                     vertical: true, includeZero: true, font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("normal", {type: "Lines", markers: true, shadows: {dx: 2, dy: 2, dw: 2}}); // must come first to be seen!
@@ -442,7 +442,7 @@ makeHistogram = function(chartname, data_spec, conf){
     var anim_c = new dc.action2d.Tooltip(
         mychart,
         "default",
-        {text: getTooltip, 
+        {text: getTooltip,
          tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
@@ -451,7 +451,7 @@ makeHistogram = function(chartname, data_spec, conf){
 // SCATTERPLOT ***************************************************************************************
 makeScatterplot = function(chartname, series, conf){
     nChartFontColour = conf["plot_font_colour_filled"]
-    nChart = conf["n_chart"];
+    nChart = conf["n_records"];
     // chartwide function setting - have access to val.element (Column), val.index (0), val.run.data (y_vals)
     var getTooltip = function(val){
         return "(x: " + val.x + ", y: " + val.y + ")";
@@ -460,20 +460,20 @@ makeScatterplot = function(chartname, series, conf){
     var mychart = new dc.Chart2D(
         chartname,
         {margins:
-            {l: conf['margin_offset_l'],
+            {l: conf['left_margin_offset'],
              t: 10,
              r: 10,
              b: 10+conf['axis_lbl_drop']},
-         yTitleOffset: conf['y_title_offset']});
+         yTitleOffset: conf['y_axis_title_offset']});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke: null,
-        	fill: conf['chart_bg'],
+        	fill: conf['chart_bg_colour'],
 	        pageStyle: null // suggested page style as an object suitable for dojo.style()
 	    },
 	    plotarea:{
 	        stroke: null,
-	        fill: conf["plot_bg"]
+	        fill: conf["plot_bg_colour"]
 	    },
 	    axis:{
 	        stroke:	{ // the axis itself
@@ -486,9 +486,9 @@ makeScatterplot = function(chartname, series, conf){
 	            fontColor: conf["axis_font_colour"]
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
-	            width:  conf["gridline_width"],
-	            length: 6, 
-                color: conf["major_gridline_colour"]
+	            width:  conf["grid_line_width"],
+	            length: 6,
+                color: conf["major_grid_line_colour"]
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
 	            width:  0.8,
@@ -501,21 +501,21 @@ makeScatterplot = function(chartname, series, conf){
 	    }
     });
     mychart.setTheme(sofa_theme);
-    mychart.addAxis("x", {title: conf['x_title'],
-                    min: conf["xmin"], max: conf["xmax"],
+    mychart.addAxis("x", {title: conf['x_axis_title'],
+                    min: conf["x_min"], max: conf["x_max"],
                     minorTicks: conf['has_minor_ticks'], microTicks: false,
-                    font: "normal normal normal " + conf["xfontsize"] + "pt Arial"
+                    font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
-    mychart.addAxis("y", {title: conf['y_title'],
-                    min: conf["ymin"], max: conf["ymax"],
+    mychart.addAxis("y", {title: conf['y_axis_title'],
+                    min: conf["y_min"], max: conf["y_max"],
                     vertical: true, font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     // plot line first so on top
-    if(conf['inc_regression_js'] == true){
+    if(conf['show_regression_line'] == true){
         mychart.addPlot("regression", {type: "Lines", markers: false, shadows: {dx: 2, dy: 2, dw: 2}});
         for (i in series){
             try {
-                mychart.addSeries(series[i]["lineLabel"], series[i]["xyLinePairs"], series[i]["lineStyle"]);
+                mychart.addSeries(series[i]["lbl"], series[i]["xy_pairs"], series[i]["options"]);
             } catch(err) {
                 /*do nothing*/
             }
@@ -525,11 +525,11 @@ makeScatterplot = function(chartname, series, conf){
     mychart.addPlot("grid", {type: "Grid", vMajorLines: true});
     var i
     for (i in series){
-        mychart.addSeries(series[i]["seriesLabel"], series[i]["xyPairs"], series[i]["style"]);
+        mychart.addSeries(series[i]["lbl"], series[i]["xy_pairs"], series[i]["options"]);
     }
     var anim_a = new dc.action2d.Magnify(mychart, "default");
     var anim_b = new dc.action2d.Tooltip(mychart, "default",
-       {text: getTooltip, 
+       {text: getTooltip,
         tooltipBorderColour: conf['tooltip_border_colour'],
         connectorStyle: conf['connector_style']});
     mychart.render();
@@ -540,7 +540,7 @@ makeScatterplot = function(chartname, series, conf){
         easing:   dojo.fx.easing.sineOut
     });
     var anim_b = new dc.action2d.Shake(mychart, "default");
-    var anim_c = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip, 
+    var anim_c = new dc.action2d.Tooltip(mychart, "default", {text: getTooltip,
         tooltipBorderColour: conf['tooltip_border_colour'],
         connectorStyle: conf['connector_style']});
     mychart.render();
@@ -562,7 +562,7 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
              t: 10,
              r: 10,
              b: 10+conf['axis_lbl_drop']},
-         yTitleOffset: conf['y_title_offset']});
+         yTitleOffset: conf['y_axis_title_offset']});
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke:    null,
@@ -585,7 +585,7 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
 	            width:  conf['gridline_width'],
-	            length: 6, 
+	            length: 6,
                 color:  conf['axis_font_colour'] // we have vMajorLines off so we don't need to match grid color e.g. null
 	        },
 	        minorTick:	{ // minor ticks on axis, and used for minor gridlines
@@ -603,9 +603,9 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
     mychart.addPlot("grid", {type: "Grid", vMajorLines: false});
     mychart.addAxis(
         "x",
-        {title: conf['x_title'],
+        {title: conf['x_axis_title'],
          min: conf["xmin"],
-         max: conf["xmax"], 
+         max: conf["xmax"],
          majorTicks: true,
          minorTicks: conf['has_minor_ticks'],
          labels: conf["xaxis_lbls"],
@@ -613,10 +613,10 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
          rotation: conf['axis_lbl_rotate']});
     mychart.addAxis(
         "y",
-        {title: conf['y_title'],
+        {title: conf['y_axis_title'],
          vertical: true,
          min: conf["ymin"],
-         max: conf["ymax"], 
+         max: conf["ymax"],
          majorTicks: true,
          minorTicks: true,
          font: "normal normal normal " + conf["yfontsize"] + "pt Arial"});
@@ -633,7 +633,7 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
         mychart,
         "default",
         {text: getTooltip,
-         tooltipBorderColour: conf['tooltip_border_colour'], 
+         tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
 

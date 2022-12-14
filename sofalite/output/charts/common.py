@@ -12,7 +12,7 @@ from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset,
-    get_x_axis_lbl_dets, get_x_font_size, get_y_title_offset)
+    get_x_axis_lbl_dets, get_x_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
@@ -95,10 +95,10 @@ class LineArea:
             conf["tooltip_border_colour"] = "{{tooltip_border}}";
             conf["x_axis_lbls"] = {{x_axis_lbls}};
             conf["x_font_size"] = {{x_font_size}};
-            conf["x_title"] = "{{x_axis_title}}";
+            conf["x_axis_title"] = "{{x_axis_title}}";
             conf["y_max"] = {{y_max}};
-            conf["y_title"] = "{{y_axis_title}}";
-            conf["y_title_offset"] = {{y_title_offset}};
+            conf["y_axis_title"] = "{{y_axis_title}}";
+            conf["y_axis_title_offset"] = {{y_axis_title_offset}};
             // distinct fields for line charts
             conf["has_micro_ticks"] = {{has_micro_ticks_js_bool}};
             conf["is_time_series"] = {{is_time_series_js_bool}};
@@ -164,7 +164,7 @@ class LineArea:
         x_font_size: float
         y_axis_title: str
         y_max: int
-        y_title_offset: int
+        y_axis_title_offset: int
         width: float  ## pixels
 
     @staticmethod
@@ -202,8 +202,8 @@ class LineArea:
         else:
             width_per_x_item = (max([LineArea.MIN_PIXELS_PER_X_ITEM,
                 max_x_lbl_width * AVG_CHAR_WIDTH_PIXELS]) + padding_pixels)
-        width_x_title = len(x_axis_title) * AVG_CHAR_WIDTH_PIXELS + padding_pixels
-        width = max([n_x_items * width_per_x_item, width_x_title, min_chart_width])
+        width_x_axis_title = len(x_axis_title) * AVG_CHAR_WIDTH_PIXELS + padding_pixels
+        width = max([n_x_items * width_per_x_item, width_x_axis_title, min_chart_width])
         if show_major_ticks_only:
             width = max(width * 0.4, min_chart_width)
         if is_multi_chart:
@@ -244,11 +244,11 @@ class LineArea:
             max_x_lbl_width=max_x_lbl_width, is_time_series=charting_spec.is_time_series,
             show_major_ticks_only=show_major_ticks_only, x_axis_title=charting_spec.x_axis_title)
         x_axis_title_len = len(charting_spec.x_axis_title)
-        y_title_offset = get_y_title_offset(
+        y_axis_title_offset = get_y_axis_title_offset(
             x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
         left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
             offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
-            y_title_offset=y_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
+            y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
         width = width_after_left_margin + left_margin_offset
         height = get_height(axis_lbl_drop=axis_lbl_drop,
             rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
@@ -268,4 +268,4 @@ class LineArea:
             x_axis_title=charting_spec.x_axis_title,
             y_axis_title=charting_spec.y_axis_title,
             y_max=y_max,
-            y_title_offset=y_title_offset,)
+            y_axis_title_offset=y_axis_title_offset,)

@@ -51,8 +51,8 @@ class CommonMiscSpec:
     var_lbl: str
     width: float  ## pixels
     x_axis_font_size: float
-    y_title: str
-    y_title_offset: int
+    y_axis_title: str
+    y_axis_title_offset: int
 
 @dataclass(frozen=True)
 class CommonChartingSpec:
@@ -120,8 +120,8 @@ var highlight_{{chart_uuid}} = function(colour){
         conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_font_size"] = {{x_axis_font_size}};
         conf["blank_x_axis_lbls"] = {{blank_x_axis_lbls}};
-        conf["y_title"] = "{{y_title}}";
-        conf["y_title_offset"] = {{y_title_offset}};
+        conf["y_axis_title"] = "{{y_axis_title}}";
+        conf["y_axis_title_offset"] = {{y_axis_title_offset}};
 
      makeHistogram("histogram_{{chart_uuid}}", data_spec, conf);
  }
@@ -139,8 +139,8 @@ def get_width(var_lbl: str, *, n_bins: int,
         min_x_val: float, max_x_val: float, is_multi_chart: bool) -> float:
     max_lbl_width = max(len(str(round(x, 0))) for x in (min_x_val, max_x_val))
     min_bin_width = max(max_lbl_width * HISTO_AVG_CHAR_WIDTH_PIXELS, MIN_PIXELS_PER_BAR)
-    width_x_title = len(var_lbl) * HISTO_AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
-    width = max([n_bins * min_bin_width, width_x_title, MIN_CHART_WIDTH])
+    width_x_axis_title = len(var_lbl) * HISTO_AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
+    width = max([n_bins * min_bin_width, width_x_axis_title, MIN_CHART_WIDTH])
     if is_multi_chart:
         width = width * 0.9  ## vulnerable to x-axis labels vanishing on minor ticks
     return width
@@ -149,7 +149,7 @@ def get_width(var_lbl: str, *, n_bins: int,
 def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
     ## colours
     colour_mappings = style_dets.chart.colour_mappings[:1]  ## only need the first
-    ## This is an important special case because it affects the bar charts using the default style
+    ## This is an important special case because it affects the histograms using the default style
     first_colour = colour_mappings[0].main
     if first_colour == '#e95f29':  ## BURNT_ORANGE
         colour_mappings = [ColourWithHighlight('#e95f29', '#736354'), ]
@@ -158,7 +158,7 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     ## misc
     blank_x_axis_lbls = '[' + ', '.join(f"{{value: {n}, text: ''}}" for n in range(1, charting_spec.n_bins + 1)) + ']'
     height = 300 if charting_spec.is_multi_chart else 350
-    y_title_offset = 45
+    y_axis_title_offset = 45
     left_margin_offset = 25
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
     normal_stroke_width = stroke_width * 2
@@ -196,8 +196,8 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
         width=width,
         x_axis_font_size=charting_spec.x_axis_font_size,
         blank_x_axis_lbls=blank_x_axis_lbls,
-        y_title='Frequency',
-        y_title_offset=y_title_offset,
+        y_axis_title='Frequency',
+        y_axis_title_offset=y_axis_title_offset,
     )
     options = CommonOptions(
         has_minor_ticks_js_bool='true',
