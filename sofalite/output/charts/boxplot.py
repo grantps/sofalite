@@ -278,6 +278,13 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
         for box_item in data_series_spec.box_items:
             if not box_item:
                 continue
+            has_outliers = bool(box_item.outliers)
+            if has_outliers:
+                outliers = box_item.outliers
+                outliers_rounded = box_item.outliers_rounded
+            else:
+                outliers = []
+                outliers_rounded = []
             box_spec = DojoBoxSpec(
                 center=box_item.center,
                 indiv_box_lbl=box_item.indiv_box_lbl,
@@ -287,8 +294,8 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
                 lower_whisker_val_rounded=box_item.lower_whisker_val_rounded,
                 median_val=box_item.median_val,
                 median_val_rounded=box_item.median_val_rounded,
-                outliers=box_item.outliers,
-                outliers_rounded=box_item.outliers_rounded,
+                outliers=outliers,
+                outliers_rounded=outliers_rounded,
                 upper_box_val=box_item.upper_box_val,
                 upper_box_val_rounded=box_item.upper_box_val_rounded,
                 upper_whisker_val=box_item.upper_whisker_val,

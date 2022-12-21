@@ -188,8 +188,13 @@ class BoxplotChartingSpec:
             for box_item in data_series_spec.box_items:
                 if not box_item:
                     continue
-                box_min_y_val = min([box_item.lower_whisker_val, ] + box_item.outliers)
-                box_max_y_val = max([box_item.upper_whisker_val, ] + box_item.outliers)
+                items_with_low_ys = [box_item.lower_whisker_val, ]
+                items_with_high_ys = [box_item.upper_whisker_val, ]
+                if box_item.outliers:
+                    items_with_low_ys += box_item.outliers
+                    items_with_high_ys += box_item.outliers
+                box_min_y_val = min(items_with_low_ys)
+                box_max_y_val = max(items_with_high_ys)
                 all_min_ys.append(box_min_y_val)
                 all_max_ys.append(box_max_y_val)
         min_y_val = min(all_min_ys)
