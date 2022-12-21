@@ -63,14 +63,14 @@ makeBarChart = function(chartname, series, conf){
         {title: conf["x_axis_title"],
          labels: conf["x_axis_lbls"],
          minorTicks: conf["has_minor_ticks"],
-         font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
+         font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial",
          rotation: conf["axis_lbl_rotate"]
     });
     mychart.addAxis("y",
        {title: conf["y_axis_title"],
         vertical: true,
         includeZero: true,
-        max: conf["y_max"],
+        max: conf["y_axis_max"],
         font: "normal normal normal 10pt Arial",
         fontWeight: 12
     });
@@ -235,7 +235,7 @@ makeLineChart = function(chartname, series, conf){
     // x-axis
     var xaxis_conf = {
         title: conf['x_axis_title'],
-        font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
+        font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial",
         rotation: conf['axis_lbl_rotate'],
         minorTicks: conf['has_minor_ticks'],
         microTicks: conf['has_micro_ticks'],
@@ -250,7 +250,7 @@ makeLineChart = function(chartname, series, conf){
     // y-axis
     mychart.addAxis("y", {title: conf['y_axis_title'],
                     vertical: true, includeZero: true,
-                    max: conf["y_max"],
+                    max: conf["y_axis_max"],
                     font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("default", {type: "Lines", markers: true, shadows: {dx: 2, dy: 2, dw: 2}});
@@ -325,7 +325,7 @@ makeAreaChart = function(chartname, series, conf){
     // x-axis
     var xaxis_conf = {
         title: conf['x_axis_title'],
-        font: "normal normal normal " + conf["x_font_size"] + "pt Arial",
+        font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial",
         rotation: conf['axis_lbl_rotate'],
         minorTicks: conf['has_minor_ticks'],
         microTicks: conf['has_micro_ticks'],
@@ -340,7 +340,7 @@ makeAreaChart = function(chartname, series, conf){
     // y-axis
     mychart.addAxis("y", {title: conf['y_axis_title'],  // normal normal bold
                     vertical: true, includeZero: true,
-                    max: conf["y_max"],
+                    max: conf["y_axis_max"],
                     font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("default", {type: "Areas", lines: true, areas: true, markers: true});
@@ -412,17 +412,19 @@ makeHistogram = function(chartname, data_spec, conf){
     });
     mychart.setTheme(sofa_theme);
     mychart.addAxis("x", {title: data_spec["series_lbl"],
-                    labels: conf["blank_x_axis_lbls"], minorTicks: false, microTicks: false,
-                    font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
+        labels: conf["blank_x_axis_lbls"], minorTicks: false, microTicks: false,
+        font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
     mychart.addAxis("x2", {
-        min: conf["min_x_val"],
-        max: conf["max_x_val"],
+        min: conf["x_axis_min_val"],
+        max: conf["x_axis_max_val"],
         minorTicks: conf['has_minor_ticks'],
         font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
-    mychart.addAxis("y", {title: conf['y_axis_title'],  // normal normal bold
-                    vertical: true, includeZero: true, font: "normal normal normal 10pt Arial", fontWeight: 12
+    mychart.addAxis("y", {
+        title: conf['y_axis_title'],  // normal normal bold
+        max: conf["y_axis_max_val"],
+        vertical: true, includeZero: true, font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     mychart.addPlot("normal", {type: "Lines", markers: true, shadows: {dx: 2, dy: 2, dw: 2}}); // must come first to be seen!
     mychart.addPlot("default", {type: "Columns", gap: 0, shadows: {dx: 12, dy: 12}});
@@ -502,13 +504,13 @@ makeScatterplot = function(chartname, series, conf){
     });
     mychart.setTheme(sofa_theme);
     mychart.addAxis("x", {title: conf['x_axis_title'],
-                    min: conf["x_min"], max: conf["x_max"],
-                    minorTicks: conf['has_minor_ticks'], microTicks: false,
-                    font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
+        min: conf["x_axis_min_val"], max: conf["x_axis_max_val"],
+        minorTicks: conf['has_minor_ticks'], microTicks: false,
+        font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
     });
     mychart.addAxis("y", {title: conf['y_axis_title'],
-                    min: conf["y_min"], max: conf["y_max"],
-                    vertical: true, font: "normal normal normal 10pt Arial", fontWeight: 12
+        min: conf["y_axis_min_val"], max: conf["y_axis_max_val"],
+        vertical: true, font: "normal normal normal 10pt Arial", fontWeight: 12
     });
     // plot line first so on top
     if(conf['show_regression_line'] == true){
@@ -547,9 +549,9 @@ makeScatterplot = function(chartname, series, conf){
 }
 
 // BOX ***************************************************************************************
-makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
+makeBoxAndWhisker = function(chartname, series, series_conf, conf){
     nChartFontColour = conf["plot_font_colour"]
-    nChart = conf["n_chart"];
+    nChart = conf["n_records"];
     // chartwide function setting - have access to val.element (Column), val.index (0), val.run.data (y_vals)
     var getTooltip = function(val){
         return val.y;
@@ -558,7 +560,7 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
     var mychart = new dc.Chart2D(
         chartname,
         {margins:
-            {l: conf['margin_offset_l'],
+            {l: conf['left_margin_offset'],
              t: 10,
              r: 10,
              b: 10+conf['axis_lbl_drop']},
@@ -566,12 +568,12 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
     var sofa_theme = new dc.Theme({
         chart:{
 	        stroke:    null,
-        	fill:      conf['chart_bg'],
+        	fill:      conf['chart_bg_colour'],
 	        pageStyle: null // suggested page style as an object suitable for dojo.style()
 	    },
 	    plotarea:{
 	        stroke: null,
-	        fill:   conf["plot_bg"]
+	        fill:   conf["plot_bg_colour"]
 	    },
 	    axis:{
 	        stroke:	{ // the axis itself
@@ -584,7 +586,7 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
 	            fontColor: conf['axis_font_colour']
 	        },
 	        majorTick:	{ // major ticks on axis, and used for major gridlines
-	            width:  conf['gridline_width'],
+	            width:  conf['grid_line_width'],
 	            length: 6,
                 color:  conf['axis_font_colour'] // we have vMajorLines off so we don't need to match grid color e.g. null
 	        },
@@ -604,25 +606,26 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
     mychart.addAxis(
         "x",
         {title: conf['x_axis_title'],
-         min: conf["xmin"],
-         max: conf["xmax"],
+         min: 0.5,
+         max: conf["x_axis_max_val"],
          majorTicks: true,
          minorTicks: conf['has_minor_ticks'],
-         labels: conf["xaxis_lbls"],
-         font: "normal normal normal " + conf["xfontsize"] + "pt Arial",
+         labels: conf["x_axis_lbls"],
+         font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial",
          rotation: conf['axis_lbl_rotate']});
     mychart.addAxis(
         "y",
         {title: conf['y_axis_title'],
          vertical: true,
-         min: conf["ymin"],
-         max: conf["ymax"],
+         min: conf["y_axis_min_val"],
+         max: conf["y_axis_max_val"],
          majorTicks: true,
          minorTicks: true,
-         font: "normal normal normal " + conf["yfontsize"] + "pt Arial"});
+         font: "normal normal normal " + conf["x_axis_font_size"] + "pt Arial"
+         });
     var i
-    for (i in series){
-        mychart.addSeries(series[i]["seriesLabel"], [], series[i]["boxDets"]);
+    for (i in series){  // each item in series is a box (one per x value per data series)
+        mychart.addSeries('dummy_lbl_' + i, [], series[i]);  // Dojo expects a lbl and data but we won't use them  in boxplot so dummy vals used
     }
     var anim_a = new dc.action2d.Highlight(mychart, "default", {
         highlight: conf["highlight"],
@@ -636,11 +639,12 @@ makeBoxAndWhisker = function(chartname, series, seriesconf, conf){
          tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
-
-    var dummychart = new dc.Chart2D("dum" + chartname);
+    // dummy chart needed for automatic legend creation to work from - will be invisible
+    // Needs stroke (text), label (to display), and fill (colour of boxplot)
+    var dummychart = new dc.Chart2D("dummy_" + chartname);  // must use _this_ exact name as div id so legend can be put there
     dummychart.addPlot("default", {type: "ClusteredColumns"});
-    for (i in seriesconf){
-        dummychart.addSeries(seriesconf[i]["seriesLabel"], [1,2], seriesconf[i]["seriesStyle"]);
+    for (i in series_conf){  // Dojo expects data so we supply dummy data [1,2] - the only things we supply are what is required to build legend
+        dummychart.addSeries(series_conf[i]["seriesLabel"], [1,2], series_conf[i]["seriesStyle"]);
     }
     dummychart.render();
     var legend = new dojox.charting.widget.Legend({chart: dummychart}, "legend_for_" + chartname);

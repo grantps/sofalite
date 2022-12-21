@@ -47,13 +47,13 @@ class CommonMiscSpec:
     stroke_width: int
     width: float  ## pixels
     x_axis_font_size: float
+    x_axis_max_val: int
+    x_axis_min_val: int
     x_axis_title: str
-    x_max: int
-    x_min: int
+    y_axis_max_val: float
+    y_axis_min_val: float
     y_axis_title: str
     y_axis_title_offset: int
-    y_max: int
-    y_min: int
 
 @dataclass(frozen=True)
 class CommonChartingSpec:
@@ -107,14 +107,14 @@ make_chart_{{chart_uuid}} = function(){
         conf["plot_font_colour_filled"] = "{{plot_font_filled}}";
         conf["show_regression_line"] = {{show_regression_line_js_bool}};
         conf["tooltip_border_colour"] = "{{tooltip_border}}";
-        conf["x_axis_title"] = "{{x_axis_title}}";
         conf["x_axis_font_size"] = {{x_axis_font_size}};
-        conf["x_max"] = {{x_max}};
-        conf["x_min"] = {{x_min}};
+        conf["x_axis_max_val"] = {{x_axis_max_val}};
+        conf["x_axis_min_val"] = {{x_axis_min_val}};
+        conf["x_axis_title"] = "{{x_axis_title}}";
+        conf["y_axis_max_val"] = {{y_axis_max_val}};
+        conf["y_axis_min_val"] = {{y_axis_min_val}};
         conf["y_axis_title"] = "{{y_axis_title}}";
         conf["y_axis_title_offset"] = {{y_axis_title_offset}};
-        conf["y_max"] = {{y_max}};
-        conf["y_min"] = {{y_min}};
 
     makeScatterplot("scatterplot_{{chart_uuid}}", series, conf);
 }
@@ -183,13 +183,13 @@ def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_dets: Sty
         stroke_width=stroke_width,
         width=width,
         x_axis_font_size=charting_spec.x_axis_font_size,
+        x_axis_max_val=charting_spec.x_axis_max_val,
+        x_axis_min_val=charting_spec.x_axis_min_val,
         x_axis_title=charting_spec.x_axis_title,
-        x_max=charting_spec.max_x_val,
-        x_min=charting_spec.min_x_val,
+        y_axis_max_val=charting_spec.y_axis_max_val,
+        y_axis_min_val=charting_spec.y_axis_min_val,
         y_axis_title=charting_spec.y_axis_title,
         y_axis_title_offset=y_axis_title_offset,
-        y_max=charting_spec.max_y_val,
-        y_min=charting_spec.min_y_val,
     )
     options = CommonOptions(
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,

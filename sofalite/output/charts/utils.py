@@ -15,15 +15,15 @@ def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMargi
     offset = offset + offsets.multi_chart_offset if is_multi_chart else offset
     return offset
 
-def get_x_font_size(*, n_x_items: int, is_multi_chart: bool) -> float:
+def get_x_axis_font_size(*, n_x_items: int, is_multi_chart: bool) -> float:
     if n_x_items <= 5:
-        x_font_size = 10
+        x_axis_font_size = 10
     elif n_x_items > 10:
-        x_font_size = 8
+        x_axis_font_size = 8
     else:
-        x_font_size = 9
-    x_font_size = x_font_size * 0.75 if is_multi_chart else x_font_size
-    return x_font_size
+        x_axis_font_size = 9
+    x_axis_font_size = x_axis_font_size * 0.75 if is_multi_chart else x_axis_font_size
+    return x_axis_font_size
 
 def get_height(*, axis_lbl_drop: float, rotated_x_lbls=False, max_x_axis_lbl_len: float) -> float:
     height = 310
@@ -66,7 +66,7 @@ def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
         lbl_dets.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
     return lbl_dets
 
-def get_optimal_axis_bounds(axis_min: float, axis_max: float) -> tuple[float, float]:
+def get_optimal_axis_bounds(x_axis_min_val: float, x_axis_max_val: float) -> tuple[float, float]:
     """
     Useful for boxplots and scatterplots.
 
@@ -114,9 +114,9 @@ def get_optimal_axis_bounds(axis_min: float, axis_max: float) -> tuple[float, fl
     Make max 1.1 * axis_max. No harm if 0.
     Make min 1.1 * axis_min. No harm if 0.
     """
-    logging.debug(f"Orig min max: {axis_min} {axis_max}")
-    if axis_min == axis_max:
-        my_val = axis_min
+    logging.debug(f"Orig min max: {x_axis_min_val} {x_axis_max_val}")
+    if x_axis_min_val == x_axis_max_val:
+        my_val = x_axis_min_val
         if my_val < 0:
             axis_min = 1.1 * my_val
             axis_max = 0
@@ -126,49 +126,49 @@ def get_optimal_axis_bounds(axis_min: float, axis_max: float) -> tuple[float, fl
         elif my_val > 0:
             axis_min = 0
             axis_max = 1.1 * my_val
-    elif axis_min >= 0 and axis_max >= 0:  ## both +ve
+    elif x_axis_min_val >= 0 and x_axis_max_val >= 0:  ## both +ve
         """
         Snap min to 0 if gap small rel to range, otherwise make min y-axis just
         below min point. Make max y-axis just above the max point. Make the
         padding from 0 the lesser of 0.1 of axis_min and 0.1 of val_range. The
         outer padding can be the lesser of the axis_max and 0.1 of val_range.
         """
-        gap = axis_min
-        val_range = (axis_max - axis_min)
+        gap = x_axis_min_val
+        val_range = (x_axis_max_val - x_axis_min_val)
         try:
             gap2range = gap / (val_range * 1.0)
             if gap2range < 0.6:  ## close enough to snap to 0
                 axis_min = 0
             else:  ## can't just be 0.9 min - e.g. looking at years from 2000-2010 would be 1800 upwards!
-                axis_min -= min(0.1 * gap, 0.1 * val_range)  ## gap is never 0 and is at least 0.6 of valrange
+                x_axis_min_val -= min(0.1 * gap, 0.1 * val_range)  ## gap is never 0 and is at least 0.6 of valrange
         except ZeroDivisionError:
             pass
-        axis_max += min(0.1 * axis_max, 0.1 * val_range)
-    elif axis_min <= 0 and axis_max <= 0:  ## both -ve
+        x_axis_max_val += min(0.1 * x_axis_max_val, 0.1 * val_range)
+    elif x_axis_min_val <= 0 and x_axis_max_val <= 0:  ## both -ve
         """
         Snap max to 0 if gap small rel to range, otherwise make max y-axis just
         above max point. Make min y-axis just below min point. Make the padding
         the lesser of 0.1 of gap and 0.1 of val_range.
         """
-        gap = abs(axis_max)
-        val_range = abs(axis_max - axis_min)
+        gap = abs(x_axis_max_val)
+        val_range = abs(x_axis_max_val - x_axis_min_val)
         try:
             gap2range = gap / (val_range * 1.0)
             if gap2range < 0.6:
                 axis_max = 0
             else:
-                axis_max += min(0.1 * gap, 0.1 * val_range)
+                x_axis_max_val += min(0.1 * gap, 0.1 * val_range)
         except ZeroDivisionError:
             pass
-        axis_min -= min(0.1 * abs(axis_min), 0.1 * val_range)  ## make even more negative, but by the least possible
-    elif axis_min <= 0 <= axis_max:  ## spanning y-axis (even if all 0s ;-))
+        x_axis_min_val -= min(0.1 * abs(x_axis_min_val), 0.1 * val_range)  ## make even more negative, but by the least possible
+    elif x_axis_min_val <= 0 <= x_axis_max_val:  ## spanning y-axis (even if all 0s ;-))
         """
         Pad max - no harm if 0.
         Pad min with 0.1*axismin. No harm if 0.
         """
-        axis_max = 1.1 * axis_max
-        axis_min = 1.1 * axis_min
+        x_axis_max_val = 1.1 * x_axis_max_val
+        axis_min = 1.1 * x_axis_min_val
     else:
         pass
-    logging.debug(f"Final {axis_min=}; Final {axis_max=}")
-    return axis_min, axis_max
+    logging.debug(f"Final {x_axis_min_val=}; Final {x_axis_max_val=}")
+    return axis_min, x_axis_max_val

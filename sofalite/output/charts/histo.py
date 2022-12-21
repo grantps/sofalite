@@ -43,14 +43,14 @@ class CommonMiscSpec:
     grid_line_width: int
     height: float  ## pixels
     left_margin_offset: int
-    max_x_val: float
-    max_y_val: float
-    min_x_val: float
     normal_stroke_width: int
     stroke_width: int
     var_lbl: str
     width: float  ## pixels
     x_axis_font_size: float
+    x_axis_max_val: float
+    x_axis_min_val: float
+    y_axis_max_val: float
     y_axis_title: str
     y_axis_title_offset: int
 
@@ -102,6 +102,7 @@ var highlight_{{chart_uuid}} = function(colour){
 
     var conf = new Array();
         conf["axis_font_colour"] = "{{axis_font}}";
+        conf["blank_x_axis_lbls"] = {{blank_x_axis_lbls}};
         conf["chart_bg_colour"] = "{{chart_bg}}";
         conf["connector_style"] = "{{connector_style}}";
         conf["grid_line_width"] = {{grid_line_width}};
@@ -109,8 +110,6 @@ var highlight_{{chart_uuid}} = function(colour){
         conf["highlight"] = highlight_{{chart_uuid}};
         conf["left_margin_offset"] = {{left_margin_offset}};
         conf["major_grid_line_colour"] = "{{major_grid_line}}";
-        conf["max_x_val"] = {{max_x_val}};
-        conf["min_x_val"] = {{min_x_val}};
         conf["n_records"] = "{{n_records}}";
         conf["normal_curve_colour"] = "{{normal_curve}}";
         conf["plot_bg_colour"] = "{{plot_bg}}";
@@ -119,7 +118,9 @@ var highlight_{{chart_uuid}} = function(colour){
         conf["show_normal_curve"] = {{show_normal_curve_js_bool}};
         conf["tooltip_border_colour"] = "{{tooltip_border}}";
         conf["x_axis_font_size"] = {{x_axis_font_size}};
-        conf["blank_x_axis_lbls"] = {{blank_x_axis_lbls}};
+        conf["x_axis_max_val"] = {{x_axis_max_val}};
+        conf["x_axis_min_val"] = {{x_axis_min_val}};
+        conf["y_axis_max_val"] = {{y_axis_max_val}};
         conf["y_axis_title"] = "{{y_axis_title}}";
         conf["y_axis_title_offset"] = {{y_axis_title_offset}};
 
@@ -136,8 +137,8 @@ var highlight_{{chart_uuid}} = function(colour){
  """
 
 def get_width(var_lbl: str, *, n_bins: int,
-        min_x_val: float, max_x_val: float, is_multi_chart: bool) -> float:
-    max_lbl_width = max(len(str(round(x, 0))) for x in (min_x_val, max_x_val))
+        x_axis_min_val: float, x_axis_max_val: float, is_multi_chart: bool) -> float:
+    max_lbl_width = max(len(str(round(x, 0))) for x in (x_axis_min_val, x_axis_max_val))
     min_bin_width = max(max_lbl_width * HISTO_AVG_CHAR_WIDTH_PIXELS, MIN_PIXELS_PER_BAR)
     width_x_axis_title = len(var_lbl) * HISTO_AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
     width = max([n_bins * min_bin_width, width_x_axis_title, MIN_CHART_WIDTH])
@@ -164,7 +165,7 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     normal_stroke_width = stroke_width * 2
     show_normal_curve_js_bool = 'true' if charting_spec.show_normal_curve else 'false'
     width = get_width(charting_spec.var_lbl, n_bins=charting_spec.n_bins,
-        min_x_val=charting_spec.min_x_val, max_x_val=charting_spec.max_x_val,
+        x_axis_min_val=charting_spec.x_axis_min_val, x_axis_max_val=charting_spec.x_axis_max_val,
         is_multi_chart=charting_spec.is_multi_chart)
     x_axis_font_size = charting_spec.x_axis_font_size
     if charting_spec.is_multi_chart:
@@ -183,19 +184,19 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     )
     misc_spec = CommonMiscSpec(
         bin_lbls=charting_spec.bin_lbls,
+        blank_x_axis_lbls=blank_x_axis_lbls,
         connector_style=style_dets.dojo.connector_style,
         grid_line_width=style_dets.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
-        max_x_val=charting_spec.max_x_val,
-        max_y_val=charting_spec.max_y_val,
-        min_x_val=charting_spec.min_x_val,
+        x_axis_min_val=charting_spec.x_axis_min_val,
         normal_stroke_width=normal_stroke_width,
         stroke_width=stroke_width,
         var_lbl=charting_spec.var_lbl,
         width=width,
         x_axis_font_size=charting_spec.x_axis_font_size,
-        blank_x_axis_lbls=blank_x_axis_lbls,
+        x_axis_max_val=charting_spec.x_axis_max_val,
+        y_axis_max_val=charting_spec.y_axis_max_val,
         y_axis_title='Frequency',
         y_axis_title_offset=y_axis_title_offset,
     )

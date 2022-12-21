@@ -12,7 +12,7 @@ from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset,
-    get_x_axis_lbl_dets, get_x_font_size, get_y_axis_title_offset)
+    get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
@@ -93,10 +93,10 @@ class LineArea:
             conf["plot_font_colour"] = "{{plot_font}}";
             conf["plot_font_colour_filled"] = "{{plot_font_filled}}";
             conf["tooltip_border_colour"] = "{{tooltip_border}}";
+            conf["x_axis_font_size"] = {{x_axis_font_size}};
             conf["x_axis_lbls"] = {{x_axis_lbls}};
-            conf["x_font_size"] = {{x_font_size}};
+            conf["y_axis_max"] = {{y_axis_max}};
             conf["x_axis_title"] = "{{x_axis_title}}";
-            conf["y_max"] = {{y_max}};
             conf["y_axis_title"] = "{{y_axis_title}}";
             conf["y_axis_title_offset"] = {{y_axis_title_offset}};
             // distinct fields for line charts
@@ -158,12 +158,12 @@ class LineArea:
         height: float  ## pixels
         left_margin_offset: int
         legend_lbl: str
+        x_axis_font_size: float
         x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
         x_axis_specs: Sequence[CategorySpec] | None
         x_axis_title: str
-        x_font_size: float
         y_axis_title: str
-        y_max: int
+        y_axis_max: int
         y_axis_title_offset: int
         width: float  ## pixels
 
@@ -221,7 +221,7 @@ class LineArea:
         else:
             raise TypeError(f"Expected either Line or Area charting spec but got {type(charting_spec)}")
         x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
-        x_font_size = get_x_font_size(
+        x_axis_font_size = get_x_axis_font_size(
             n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
         if charting_spec.is_time_series:
             x_axis_specs = charting_spec.category_specs
@@ -229,7 +229,7 @@ class LineArea:
         else:
             x_axis_specs = None
             x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
-        y_max = charting_spec.max_y_val * 1.1
+        y_axis_max = charting_spec.max_y_val * 1.1
         axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=charting_spec.is_multi_chart,
             rotated_x_lbls=charting_spec.rotate_x_lbls,
             max_x_axis_lbl_lines=charting_spec.max_x_axis_lbl_lines)
@@ -249,7 +249,7 @@ class LineArea:
         left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
             offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
             y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
-        width = width_after_left_margin + left_margin_offset
+        width = left_margin_offset + width_after_left_margin
         height = get_height(axis_lbl_drop=axis_lbl_drop,
             rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
         return LineArea.CommonMiscSpec(
@@ -262,10 +262,10 @@ class LineArea:
             left_margin_offset=left_margin_offset,
             legend_lbl=legend_lbl,
             width=width,
+            x_axis_font_size=x_axis_font_size,
             x_axis_lbls=x_axis_lbls,
             x_axis_specs=x_axis_specs,
-            x_font_size=x_font_size,
             x_axis_title=charting_spec.x_axis_title,
             y_axis_title=charting_spec.y_axis_title,
-            y_max=y_max,
+            y_axis_max=y_axis_max,
             y_axis_title_offset=y_axis_title_offset,)

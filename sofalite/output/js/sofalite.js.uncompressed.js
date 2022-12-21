@@ -20323,7 +20323,6 @@ dojo.require("dojox.lang.functional.reversed");
 			        }
                     width = width + 2 // more visible
 
-			        var lw, lw_rounded, lq, lq_rounded, med, med_rounded, uq, uq_rounded, uw, uw_rounded, outliers;
 			            lw = run.summary_data.lwhisker; lw_rounded = run.summary_data.lwhisker_rounded;
 			            lq = run.summary_data.lbox; lq_rounded = run.summary_data.lbox_rounded;
 			            med = run.summary_data.median; med_rounded = run.summary_data.median_rounded;

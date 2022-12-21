@@ -11,7 +11,7 @@ from sofalite.conf.charting.std_specs import BarChartingSpec, IndivChartSpec
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
-    get_x_axis_lbl_dets, get_x_font_size, get_y_axis_title_offset)
+    get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -60,7 +60,7 @@ class CommonMiscSpec:
     x_gap: int
     y_axis_title: str
     y_axis_title_offset: int
-    y_max: int
+    y_axis_max: int
 
 @dataclass(frozen=True)
 class CommonChartingSpec:
@@ -118,9 +118,9 @@ make_chart_{{chart_uuid}} = function(){
         conf["x_axis_lbls"] = {{x_axis_lbls}};
         conf["x_axis_title"] = "{{x_axis_title}}";
         conf["x_gap"] = {{x_gap}};
+        conf["y_axis_max"] = {{y_axis_max}};
         conf["y_axis_title"] = "{{y_axis_title}}";
         conf["y_axis_title_offset"] = {{y_axis_title_offset}};
-        conf["y_max"] = {{y_max}};
 
     makeBarChart("bar_chart_{{chart_uuid}}", series, conf);
 }
@@ -206,7 +206,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     ## misc
     x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
-    y_max = charting_spec.max_y_val * 1.1
+    y_axis_max = charting_spec.max_y_val * 1.1
     has_minor_ticks_js_bool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
@@ -216,7 +216,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
         is_multi_chart=charting_spec.is_multi_chart,
         n_x_items=charting_spec.n_x_items, n_series=charting_spec.n_series,
         max_x_lbl_width=max_x_lbl_width, x_axis_title=charting_spec.x_axis_title)
-    x_font_size = get_x_font_size(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
+    x_axis_font_size = get_x_axis_font_size(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     x_gap = get_x_gap(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     x_axis_title_len = len(charting_spec.x_axis_title)
     y_axis_title_offset = get_y_axis_title_offset(
@@ -228,7 +228,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
         offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
         y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
-    width = width_after_left_margin + left_margin_offset
+    width = left_margin_offset + width_after_left_margin
     height = get_height(axis_lbl_drop=axis_lbl_drop,
         rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
 
@@ -254,10 +254,10 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
         stroke_width=stroke_width,
         width=width,
         x_axis_lbls=x_axis_lbls,
-        x_axis_font_size=x_font_size,
+        x_axis_font_size=x_axis_font_size,
         x_gap=x_gap,
         x_axis_title=charting_spec.x_axis_title,
-        y_max=y_max,
+        y_axis_max=y_axis_max,
         y_axis_title=charting_spec.y_axis_title,
         y_axis_title_offset=y_axis_title_offset,
     )

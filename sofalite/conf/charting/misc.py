@@ -42,3 +42,30 @@ class ScatterplotDojoSeriesSpec:
     lbl: str
     xy_pairs: Sequence[tuple[float, float]]
     options: str
+
+@dataclass(frozen=True)
+class DojoBoxSpec:
+    """
+    Has huge overlap with other_specs.BoxplotDataItem
+    """
+    center: float
+    indiv_box_lbl: str
+    lower_box_val: float
+    lower_box_val_rounded: float
+    lower_whisker_val: float
+    lower_whisker_val_rounded: float
+    median_val: float
+    median_val_rounded: float
+    outliers: Sequence[float] | None
+    outliers_rounded: Sequence[float] | None
+    upper_box_val: float
+    upper_box_val_rounded: float
+    upper_whisker_val: float
+    upper_whisker_val_rounded: float
+
+@dataclass(frozen=True)
+class BoxplotDojoSeriesSpec:
+    box_specs: Sequence[DojoBoxSpec]
+    lbl: str
+    series_id: str  ## e.g. 01
+    stroke_colour: str
