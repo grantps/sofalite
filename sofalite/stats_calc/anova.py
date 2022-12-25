@@ -8,7 +8,7 @@ from typing import Sequence
 
 from sofalite.conf.data import ValDets
 from sofalite.sql_extraction.db import ExtendedCursor
-from sofalite.sql_extraction.utils import get_sample_numbers
+from sofalite.sql_extraction.utils import get_sample
 from sofalite.stats_calc import conf as stats_conf, engine
 from sofalite.utils.misc import todict
 
@@ -43,12 +43,11 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
     ## build sample dets ready for anova function
     samples = []
     for grouping_fld_val_dets in grouping_fld_vals_dets:
-        sample_vals = get_sample_numbers(cur, tbl_name=tbl_name,
+        sample = get_sample(cur, tbl_name=tbl_name,
             grouping_filt_fld_name=grouping_fld_name,
-            grouping_filt_val=grouping_fld_val_dets.val,
+            grouping_filt_val_dets=grouping_fld_val_dets,
             grouping_filt_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
-        sample = stats_conf.Sample(lbl=grouping_fld_val_dets.lbl, vals=sample_vals)
         samples.append(sample)
     ## get results
     anova_results = engine.anova(grouping_fld_lbl, measure_fld_lbl,

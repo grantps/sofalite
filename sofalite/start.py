@@ -39,11 +39,11 @@ def run_anova():
 
 def run_ttest_indep():
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        group_a_dets = ValDets(lbl='Male', val=1)
-        group_b_dets = ValDets(lbl='Female', val=2)
+        group_a_val_dets = ValDets(lbl='Male', val=1)
+        group_b_val_dets = ValDets(lbl='Female', val=2)
         results = ttest_indep.get_results(cur, tbl_name='demo_tbl',
             grouping_fld_lbl='Gender', grouping_fld_name='gender',
-            group_a_dets=group_a_dets, group_b_dets=group_b_dets,
+            group_a_val_dets=group_a_val_dets, group_b_val_dets=group_b_val_dets,
             grouping_val_is_numeric=True,
             measure_fld_lbl='Age', measure_fld_name='age')
         style_dets = get_style_dets(style='default')
@@ -1522,7 +1522,7 @@ def run_boxplots():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-# run_anova()
+run_anova()
 run_ttest_indep()
 
 # run_clustered_bar_chart()
