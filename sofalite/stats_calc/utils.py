@@ -13,10 +13,10 @@ def get_p_str(p: float) -> str:
         p_str = f'< 0.001 ({p_str})'
     return p_str
 
-def get_obriens_msg(samples: Sequence[Sequence[float]], sim_variance_fn: Callable, *, high=False) -> str:
+def get_obriens_msg(samples_vals: Sequence[Sequence[float]], sim_variance_fn: Callable, *, high=False) -> str:
     try:
         ## sim_variance threshold parameter not used or relevant because ignoring is_similar part of output
-        _is_similar, p_sim = sim_variance_fn(samples, high=high)
+        _is_similar, p_sim = sim_variance_fn(samples_vals, high=high)
         obriens_msg = stats_utils.get_p_str(p_sim)
     except Exception as e:
         logging.info("Unable to calculate O'Briens test "

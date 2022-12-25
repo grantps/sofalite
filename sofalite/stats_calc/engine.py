@@ -210,16 +210,16 @@ def get_se(n, mysd, *, high=True):
     se = mysd / denom
     return se
 
-def get_ci95(sample=None, mymean=None, mysd=None, n=None, *, high=False):
-    if sample is None and (n is None or mymean is None or mysd is None):
+def get_ci95(sample_vals=None, mymean=None, mysd=None, n=None, *, high=False):
+    if sample_vals is None and (n is None or mymean is None or mysd is None):
         raise Exception('Unable to calculate confidence interval without either'
                         ' a sample or all of n, mean, and sd.')
     if n is None:
-        n = len(sample)
+        n = len(sample_vals)
         if high:
             n = D(n)
-    mymean = mymean if mymean is not None else mean(sample, high=high)
-    mysd = mysd if mysd is not None else stdev(sample, high=high)
+    mymean = mymean if mymean is not None else mean(sample_vals, high=high)
+    mysd = mysd if mysd is not None else stdev(sample_vals, high=high)
     if has_decimal_type_mix(numbers=(mymean, mysd, n)):
         raise Exception('Cannot mix decimals and other numbers for some '
                         'calculations e.g. division')
@@ -240,26 +240,26 @@ def get_ci95(sample=None, mymean=None, mysd=None, n=None, *, high=False):
     upper95 = mymean + diff
     return lower95, upper95
 
-def get_numeric_sample_dets_extended(sample_dets: Sample, *, high=False) -> NumericSampleDetsExt:
-    sample = sample_dets.sample
-    mymean = mean(sample, high=high)
-    std_dev = stdev(sample, high=high)
-    ci95 = get_ci95(sample, mymean, std_dev, n=None, high=high)
-    normaltest_result = normaltest(sample)
-    kurtosis_val = (normaltest_result.ckurtosis if normaltest_result.ckurtosis is not None
+def get_numeric_sample_dets_extended(sample: Sample, *, high=False) -> NumericSampleDetsExt:
+    sample_vals = sample.vals
+    mymean = mean(sample_vals, high=high)
+    std_dev = stdev(sample_vals, high=high)
+    ci95 = get_ci95(sample_vals, mymean, std_dev, n=None, high=high)
+    normal_test_result = normal_test(sample_vals)
+    kurtosis_val = (normal_test_result.c_kurtosis if normal_test_result.c_kurtosis is not None
         else 'Unable to calculate kurtosis')
-    skew_val = (normaltest_result.cskew if normaltest_result.cskew is not None
+    skew_val = (normal_test_result.c_skew if normal_test_result.c_skew is not None
         else 'Unable to calculate skew')
-    p = (normaltest_result.p if normaltest_result.p is not None
+    p = (normal_test_result.p if normal_test_result.p is not None
         else 'Unable to calculate overall p for normality test')
     numeric_sample_dets_extended = NumericSampleDetsExt(
-        lbl=sample_dets.lbl, n=len(sample), mean=mymean, stdev=std_dev,
-        sample_min=min(sample), sample_max=max(sample), ci95=ci95,
-        kurtosis=kurtosis_val, skew=skew_val, p=p, vals=sample)
+        lbl=sample.lbl, n=len(sample_vals), mean=mymean, stdev=std_dev,
+        sample_min=min(sample_vals), sample_max=max(sample_vals), ci95=ci95,
+        kurtosis=kurtosis_val, skew=skew_val, p=p, vals=sample_vals)
     return numeric_sample_dets_extended
 
 def anova(group_lbl: str, measure_fld_lbl: str,
-        samples_dets: Sequence[Sample], *, high=True) -> AnovaResult:
+        samples: Sequence[Sample], *, high=True) -> AnovaResult:
     """
     From NIST algorithm used for their ANOVA tests.
 
@@ -270,23 +270,23 @@ def anova(group_lbl: str, measure_fld_lbl: str,
      floating point. Needed to handle difficult datasets e.g. ANOVA test 9 from
      NIST site.
     """
-    orig_samples = [sample_dets.sample for sample_dets in samples_dets]
-    n_samples = len(orig_samples)
-    sample_ns = list(map(len, orig_samples))
+    orig_samples_vals = [sample.vals for sample in samples]
+    n_samples = len(orig_samples_vals)
+    sample_ns = list(map(len, orig_samples_vals))
     dets = []
-    for sample_dets in samples_dets:
-        sample_dets_extended = get_numeric_sample_dets_extended(sample_dets, high=high)
+    for sample in samples:
+        sample_dets_extended = get_numeric_sample_dets_extended(sample, high=high)
         dets.append(sample_dets_extended)
     if high:  ## inflate for ss (sum squares) calculations only
         ## if to 1 decimal point will push from float to integer (reduce errors)
         ## deflates final results appropriately in get_sswn() and get_ssbn()
         inflated_samples = []
-        for sample in orig_samples:
-            inflated_samples.append([x * 10 for x in sample])  ## NB inflated
+        for sample_vals in orig_samples_vals:
+            inflated_samples.append([x * 10 for x in sample_vals])  ## NB inflated
         samples4ss_calc = inflated_samples
         sample_means4ss_calc = [n2d(mean(x, high=high)) for x in samples4ss_calc]  ## NB inflated
     else:
-        samples4ss_calc = orig_samples
+        samples4ss_calc = orig_samples_vals
         sample_means4ss_calc = [mean(x, high=high) for x in samples4ss_calc]
     sswn = get_sswn(samples4ss_calc, sample_means4ss_calc, high=high)
     dfwn = sum(sample_ns) - n_samples
@@ -299,7 +299,7 @@ def anova(group_lbl: str, measure_fld_lbl: str,
     mean_squ_bn = ssbn / dfbn
     F = mean_squ_bn / mean_squ_wn
     p = fprob(dfbn, dfwn, F, high=high)
-    obriens_msg = stats_utils.get_obriens_msg(orig_samples, sim_variance, high=high)
+    obriens_msg = stats_utils.get_obriens_msg(orig_samples_vals, sim_variance, high=high)
     return AnovaResult(p=p, F=F, groups_dets=dets,
         sum_squares_within_groups=sswn, degrees_freedom_within_groups=dfwn, mean_squares_within_groups=mean_squ_wn,
         sum_squares_between_groups=ssbn, degrees_freedom_between_groups=dfbn, mean_squares_between_groups=mean_squ_bn,
@@ -478,16 +478,16 @@ def ttest_ind(sample_a: Sample, sample_b: Sample, *, use_orig_var=False) -> TTes
     Calculates the t-obtained T-test on TWO INDEPENDENT samples of
     scores a, and b. From Numerical Recipes, p.483.
     """
-    mean_a = mean(sample_a.sample)
-    mean_b = mean(sample_b.sample)
+    mean_a = mean(sample_a.vals)
+    mean_b = mean(sample_b.vals)
     if use_orig_var:
-        se_a = stdev(sample_a.sample) ** 2
-        se_b = stdev(sample_b.sample) ** 2
+        se_a = stdev(sample_a.vals) ** 2
+        se_b = stdev(sample_b.vals) ** 2
     else:
-        se_a = variance(sample_a.sample)
-        se_b = variance(sample_b.sample)
-    n_a = len(sample_a.sample)
-    n_b = len(sample_b.sample)
+        se_a = variance(sample_a.vals)
+        se_b = variance(sample_b.vals)
+    n_a = len(sample_a.vals)
+    n_b = len(sample_b.vals)
     df = n_a + n_b - 2
     svar = ((n_a - 1) * se_a + (n_b - 1) * se_b) / float(df)
     denom = math.sqrt(svar * (1.0 / n_a + 1.0 / n_b))
@@ -497,7 +497,7 @@ def ttest_ind(sample_a: Sample, sample_b: Sample, *, use_orig_var=False) -> TTes
     sample_b_dets_extended = get_numeric_sample_dets_extended(sample_b, high=False)
     t = (mean_a - mean_b) / denom
     p = betai(0.5 * df, 0.5, df / (df + t * t))
-    obriens_msg = stats_utils.get_obriens_msg([sample_a.sample, sample_b.sample], sim_variance, high=False)
+    obriens_msg = stats_utils.get_obriens_msg([sample_a.vals, sample_b.vals], sim_variance, high=False)
     return TTestResult(t=t, p=p,
         group_a_dets=sample_a_dets_extended, group_b_dets=sample_b_dets_extended,
         degrees_of_freedom=df, obriens_msg=obriens_msg)
@@ -1995,7 +1995,7 @@ def kurtosistest(a, dimension=None):
     return Z, (1.0 - azprob(Z)) * 2, kurt  ## I want to return the Fischer Adjusted kurtosis, not b2
 
 # noinspection PyBroadException
-def normaltest(a, dimension=None) -> NormalTestResult:
+def normal_test(a, dimension=None) -> NormalTestResult:
     """
     From stats.py.  No changes except renamed function, some vars names, N->np,
     included in return the results for skew and kurtosis, and handled errors in
@@ -2023,22 +2023,22 @@ def normaltest(a, dimension=None) -> NormalTestResult:
         a = np.ravel(a)
         dimension = 0
     try:
-        zskew, unused, cskew = skewtest(a, dimension)
+        z_skew, unused, c_skew = skewtest(a, dimension)
     except Exception:
-        zskew = None
-        cskew = None
+        z_skew = None
+        c_skew = None
     try:
-        zkurtosis, unused, ckurtosis = kurtosistest(a, dimension)
+        z_kurtosis, unused, c_kurtosis = kurtosistest(a, dimension)
     except Exception:
-        zkurtosis = None
-        ckurtosis = None
+        z_kurtosis = None
+        c_kurtosis = None
     try:
-        k2 = np.power(zskew, 2) + np.power(zkurtosis, 2)
+        k2 = np.power(z_skew, 2) + np.power(z_kurtosis, 2)
         p = achisqprob(k2, 2)
     except Exception:
         k2 = None
         p = None
-    return NormalTestResult(k2, p, cskew, zskew, ckurtosis, zkurtosis)
+    return NormalTestResult(k2, p, c_skew, z_skew, c_kurtosis, z_kurtosis)
 
 ## misc
 

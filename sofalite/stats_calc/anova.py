@@ -41,18 +41,18 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
      floating point approach used (much faster, some risk) or Decimal
     """
     ## build sample dets ready for anova function
-    samples_dets = []
+    samples = []
     for grouping_fld_val_dets in grouping_fld_vals_dets:
-        sample = get_sample_numbers(cur, tbl_name=tbl_name,
+        sample_vals = get_sample_numbers(cur, tbl_name=tbl_name,
             grouping_filt_fld_name=grouping_fld_name,
             grouping_filt_val=grouping_fld_val_dets.val,
             grouping_filt_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
-        sample_dets = stats_conf.Sample(lbl=grouping_fld_val_dets.lbl, sample=sample)
-        samples_dets.append(sample_dets)
+        sample = stats_conf.Sample(lbl=grouping_fld_val_dets.lbl, vals=sample_vals)
+        samples.append(sample)
     ## get results
     anova_results = engine.anova(grouping_fld_lbl, measure_fld_lbl,
-        samples_dets, high=high_precision_required)
+        samples, high=high_precision_required)
     anova_results_extended = stats_conf.AnovaResultExt(**todict(anova_results),
         group_lbl=grouping_fld_lbl, measure_fld_lbl=measure_fld_lbl)
     return anova_results_extended

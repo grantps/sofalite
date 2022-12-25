@@ -13,6 +13,7 @@ from sofalite.conf.charting.std_specs import (
     IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.paths import DATABASE_FPATH
+# noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
@@ -38,10 +39,10 @@ def run_anova():
 
 def run_ttest_indep():
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        group_a_dets = ValDets(lbl='Japan', val=1)
-        group_b_dets = ValDets(lbl='Germany', val=3)
+        group_a_dets = ValDets(lbl='Male', val=1)
+        group_b_dets = ValDets(lbl='Female', val=2)
         results = ttest_indep.get_results(cur, tbl_name='demo_tbl',
-            grouping_fld_lbl='Country of Residence', grouping_fld_name='country',
+            grouping_fld_lbl='Gender', grouping_fld_name='gender',
             group_a_dets=group_a_dets, group_b_dets=group_b_dets,
             grouping_val_is_numeric=True,
             measure_fld_lbl='Age', measure_fld_name='age')

@@ -1,13 +1,24 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Sequence
+from typing import Sequence
 
 MAX_RANKDATA_VALS = 100_000
 
+## samples
+
 @dataclass(frozen=True)
 class Sample:
+    """
+    Sample including label.
+    To refer to the vals of a sample call them "sample_vals" not "sample" to prevent confusion.
+    "sample" must always mean an object with both lbl and vals.
+    If there are multiple sample_vals call it "samples_vals" not "samples".
+    "samples" should only ever refer to a sequence of Sample objects.
+    Sample dets refers primarily to metadata about sample values e.g. min, max, mean.
+    A "vals" attribute is included.
+    """
     lbl: str
-    sample: Sequence[Any]
+    vals: Sequence[float]
 
 @dataclass(frozen=True, kw_only=True)
 class NumericSampleDets:
@@ -30,7 +41,7 @@ class NumericSampleDetsExt(NumericSampleDets):
 class NumericSampleDetsFormatted:
     """
     Just the fields needed for tabular display as output.
-    Usually formatted with decimal places and p in a helpful string etc
+    Usually formatted with decimal places and p in a helpful string already
     """
     lbl: str
     n: str
@@ -42,6 +53,8 @@ class NumericSampleDetsFormatted:
     kurtosis: str
     skew: str
     p: str
+
+## other
 
 @dataclass(frozen=True)
 class OrdinalResult:
@@ -150,10 +163,10 @@ class TTestIndepResultExt(TTestResult):
 class NormalTestResult:
     k2: float | None
     p: float | None
-    cskew: float | None
-    zskew: float | None
-    ckurtosis: float | None
-    zkurtosis: float | None
+    c_skew: float | None
+    z_skew: float | None
+    c_kurtosis: float | None
+    z_kurtosis: float | None
 
 @dataclass(frozen=True)
 class RegressionDets:

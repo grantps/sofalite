@@ -128,7 +128,7 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *
         'styled_misc_css': styled_misc_css,
         'styled_dojo_css': styled_dojo_css,
         'title': title,
-        't': results.t,
+        't': round(results.t, dp),
         'p': get_p_str(results.p),
         'df': results.degrees_of_freedom,
         'obriens_msg': results.obriens_msg,

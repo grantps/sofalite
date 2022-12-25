@@ -29,19 +29,19 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
     :param numeric measure_fld_lbl: e.g. Weight
     :param numeric measure_fld_name: e.g. weight
     """
-    ## build sample dets ready for ttest_indep function
+    ## build samples ready for ttest_indep function
     sample_a_vals = get_sample_numbers(cur, tbl_name=tbl_name,
         grouping_filt_fld_name=grouping_fld_name,
         grouping_filt_val=group_a_dets.val,
         grouping_filt_val_is_numeric=grouping_val_is_numeric,
         measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
-    sample_a = stats_conf.Sample(lbl=group_a_dets.lbl, sample=sample_a_vals)
+    sample_a = stats_conf.Sample(lbl=group_a_dets.lbl, vals=sample_a_vals)
     sample_b_vals = get_sample_numbers(cur, tbl_name=tbl_name,
         grouping_filt_fld_name=grouping_fld_name,
         grouping_filt_val=group_b_dets.val,
         grouping_filt_val_is_numeric=grouping_val_is_numeric,
         measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
-    sample_b = stats_conf.Sample(lbl=group_b_dets.lbl, sample=sample_b_vals)
+    sample_b = stats_conf.Sample(lbl=group_b_dets.lbl, vals=sample_b_vals)
     ## get results
     ttest_indep_results = engine.ttest_ind(sample_a, sample_b)
     ttest_indep_results_extended = stats_conf.TTestIndepResultExt(**todict(ttest_indep_results),
