@@ -10,11 +10,11 @@ from sofalite.output.stats.conf import (
     p_explain_multiple_groups,
     skew_explain, std_dev_explain,
 )
-from sofalite.stats_calc.conf import AnovaResultExt, NumericSampleDetsFormatted
+from sofalite.stats_calc.conf import NumericSampleDetsFormatted, TTestIndepResultExt
 from sofalite.stats_calc.utils import get_p_str
 from sofalite.utils.maths import format_num
 
-def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
+def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
@@ -25,38 +25,12 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
 
     <div class='default'>
     <h2>{{title}}</h2>
-    <h3>Analysis of variance table</h3>
-    <table cellspacing='0'>
-    <thead>
-      <tr>
-        <th class='firstcolvar'>Source</th>
-        <th class='firstcolvar'>Sum of Squares</th>
-        <th class='firstcolvar'>df</th>
-        <th class='firstcolvar'>Mean Sum of Squares</th>
-        <th class='firstcolvar'>F</th>
-        <th class='firstcolvar'>p<a class='tbl-heading-footnote' href='#ft1'><sup>1</sup></a></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Between</td>
-        <td class='right'>{{sum_squares_between_groups}}</td>
-        <td class='right'>{{degrees_freedom_between_groups}}</td>
-        <td class='right'>{{mean_squares_between_groups}}</td>
-        <td class='right'>{{F}}</td>
-        <td>{{p}}</td>
-      </tr>
-      <tr>
-        <td>Within</td>
-        <td class='right'>{{sum_squares_within_groups}}</td>
-        <td class='right'>{{degrees_freedom_within_groups}}</td>
-        <td class='right'>{{mean_squares_within_groups}}</td>
-        <td></td>
-        <td></td>
-      </tr>
-    </tbody>
-    </table>
+
+    <p>p value: {{p}}<a class='tbl-heading-footnote' href='#ft1'><sup>1</sup></a></p>
+    <p>t statistic: {{t}}</p>
+    <p>Degrees of Freedom (df): {{df}}</p>
     <p>O'Brien's test for homogeneity of variance: {{obriens_msg}}<a href='#ft2'><sup>2</sup></a></p>
+
     <h3>Group summary details</h3>
     <table cellspacing='0'>
       <thead>
@@ -108,19 +82,14 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
     """
     styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
     styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
-    group_vals = [group_dets.lbl for group_dets in results.groups_dets]
-    if len(group_vals) < 2:
-        raise Exception(f"Expected multiple groups in ANOVA. Details:\n{results}")
-    group_lbl_a = group_vals[0]
-    group_lbl_b = group_vals[-1]
-    title = (f"Results of ANOVA test of average {results.measure_fld_lbl} "
-        f'''for "{results.group_lbl}" groups from "{group_lbl_a}" to "{group_lbl_b}"''')
+    title = (f"Results of independent samples t-test of average {results.measure_fld_lbl} "
+        f'''for "{results.group_lbl}" groups "{results.group_a_dets.lbl}" and "{results.group_b_dets.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
     ## format group details needed by second table
     formatted_groups_dets = []
     mpl_pngs.set_gen_mpl_settings(axes_lbl_size=10, xtick_lbl_size=8, ytick_lbl_size=8)
     histograms2show = []
-    for orig_group_dets in results.groups_dets:
+    for orig_group_dets in [results.group_a_dets, results.group_b_dets]:
         n = format_num(orig_group_dets.n)
         ci95_left = num_tpl.format(round(orig_group_dets.ci95[0], dp))
         ci95_right = num_tpl.format(round(orig_group_dets.ci95[1], dp))
@@ -159,14 +128,9 @@ def make_anova_html(results: AnovaResultExt, style_dets: StyleDets, *,
         'styled_misc_css': styled_misc_css,
         'styled_dojo_css': styled_dojo_css,
         'title': title,
-        'degrees_freedom_between_groups': f"{results.degrees_freedom_between_groups:,}",
-        'sum_squares_between_groups': num_tpl.format(round(results.sum_squares_between_groups, dp)),
-        'mean_squares_between_groups': num_tpl.format(round(results.mean_squares_between_groups, dp)),
-        'F': num_tpl.format(round(results.F, dp)),
+        't': results.t,
         'p': get_p_str(results.p),
-        'sum_squares_within_groups': num_tpl.format(round(results.sum_squares_within_groups, dp)),
-        'degrees_freedom_within_groups': f"{results.degrees_freedom_within_groups:,}",
-        'mean_squares_within_groups': num_tpl.format(round(results.mean_squares_within_groups, dp)),
+        'df': results.degrees_of_freedom,
         'obriens_msg': results.obriens_msg,
         'p_explain_multiple_groups': p_explain_multiple_groups,
         'one_tail_explain': one_tail_explain,

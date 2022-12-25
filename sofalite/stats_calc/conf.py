@@ -129,6 +129,23 @@ class AnovaResultExt(AnovaResult):
     group_lbl: str
     measure_fld_lbl: str
 
+@dataclass(frozen=True, kw_only=True)
+class TTestResult:
+    """
+    p is the two-tailed probability
+    """
+    t: float | Decimal
+    p: float | Decimal
+    group_a_dets: NumericSampleDetsExt
+    group_b_dets: NumericSampleDetsExt
+    degrees_of_freedom: float
+    obriens_msg: str
+
+@dataclass(frozen=True, kw_only=True)
+class TTestIndepResultExt(TTestResult):
+    group_lbl: str
+    measure_fld_lbl: str
+
 @dataclass(frozen=True)
 class NormalTestResult:
     k2: float | None

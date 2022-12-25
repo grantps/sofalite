@@ -16,22 +16,38 @@ from sofalite.conf.paths import DATABASE_FPATH
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
-from sofalite.output.stats import anova as html_anova
+from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
 from sofalite.sql_extraction.db import Sqlite
-from sofalite.stats_calc import anova
+from sofalite.stats_calc import anova, ttest_indep
 
 def run_anova():
     with Sqlite(DATABASE_FPATH) as (_con, cur):
         grouping_fld_vals_dets = [
             ValDets(lbl='Japan', val=1), ValDets(lbl='Italy', val=2), ValDets(lbl='Germany', val=3)]
-        anova_results = anova.get_results(cur, tbl_name='demo_tbl',
+        results = anova.get_results(cur, tbl_name='demo_tbl',
             grouping_fld_lbl='Country of Residence', grouping_fld_name='country',
             grouping_fld_vals_dets=grouping_fld_vals_dets,
             grouping_val_is_numeric=True,
             measure_fld_lbl='Age', measure_fld_name='age', high_precision_required=False)
         style_dets = get_style_dets(style='prestige_screen')
-        html = html_anova.make_anova_html(anova_results, style_dets, dp=3, show_workings=False)
+        html = html_anova.make_anova_html(results, style_dets, dp=3, show_workings=False)
         fpath = '/home/g/Documents/sofalite/reports/anova_age_by_country_prestige_screen.html'
+        with open(fpath, 'w') as f:
+            f.write(html)
+        open_new_tab(url=f"file://{fpath}")
+
+def run_ttest_indep():
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        group_a_dets = ValDets(lbl='Japan', val=1)
+        group_b_dets = ValDets(lbl='Germany', val=3)
+        results = ttest_indep.get_results(cur, tbl_name='demo_tbl',
+            grouping_fld_lbl='Country of Residence', grouping_fld_name='country',
+            group_a_dets=group_a_dets, group_b_dets=group_b_dets,
+            grouping_val_is_numeric=True,
+            measure_fld_lbl='Age', measure_fld_name='age')
+        style_dets = get_style_dets(style='default')
+        html = html_ttest_indep.make_ttest_indep_html(results, style_dets, dp=3, show_workings=False)
+        fpath = '/home/g/Documents/sofalite/reports/ttest_indep_age_by_country_default.html'
         with open(fpath, 'w') as f:
             f.write(html)
         open_new_tab(url=f"file://{fpath}")
@@ -1505,6 +1521,9 @@ def run_boxplots():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+# run_anova()
+run_ttest_indep()
+
 # run_clustered_bar_chart()
 # run_multi_line_chart()
 # run_time_series_chart_with_trend_and_smooth()
@@ -1512,4 +1531,4 @@ def run_boxplots():
 # run_pie_chart()
 # run_histo()
 # run_scatterplot()
-run_boxplots()
+# run_boxplots()

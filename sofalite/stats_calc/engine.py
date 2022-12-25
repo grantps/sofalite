@@ -19,7 +19,7 @@ from sofalite.stats_calc.conf import (
     MannWhitneyDets, MannWhitneyDetsExt,
     NormalTestResult,  NumericSampleDets, NumericSampleDetsExt, OrdinalResult,
     RegressionDets, Result,
-    Sample, SpearmansDets, SpearmansInitTbl, WilcoxonDetsExt)
+    Sample, SpearmansDets, SpearmansInitTbl, TTestResult, WilcoxonDetsExt)
 from sofalite.stats_calc import utils as stats_utils
 from sofalite.utils.maths import n2d
 
@@ -299,14 +299,7 @@ def anova(group_lbl: str, measure_fld_lbl: str,
     mean_squ_bn = ssbn / dfbn
     F = mean_squ_bn / mean_squ_wn
     p = fprob(dfbn, dfwn, F, high=high)
-    try:
-        ## sim_variance threshold parameter not used or relevant because ignoring is_similar part of output
-        _is_similar, p_sim = sim_variance(orig_samples, high=high)
-        obriens_msg = stats_utils.get_p_str(p_sim)
-    except Exception as e:
-        logging.info("Unable to calculate O'Briens test "
-            f"for homogeneity of variance.\nOrig error: {e}")
-        obriens_msg = "Unable to calculate O'Briens test for homogeneity of variance"
+    obriens_msg = stats_utils.get_obriens_msg(orig_samples, sim_variance, high=high)
     return AnovaResult(p=p, F=F, groups_dets=dets,
         sum_squares_within_groups=sswn, degrees_freedom_within_groups=dfwn, mean_squares_within_groups=mean_squ_wn,
         sum_squares_between_groups=ssbn, degrees_freedom_between_groups=dfbn, mean_squares_between_groups=mean_squ_bn,
@@ -468,7 +461,7 @@ def kruskalwallish(samples, labels):
     h = h / float(T)
     return h, chisqprob(h, df), dics, df
 
-def ttest_ind(sample_a, sample_b, label_a, label_b, *, use_orig_var=False):
+def ttest_ind(sample_a: Sample, sample_b: Sample, *, use_orig_var=False) -> TTestResult:
     """
     From stats.py - there are changes to variable labels and comments; and the
     output is extracted early to give greater control over presentation. There
@@ -481,45 +474,33 @@ def ttest_ind(sample_a, sample_b, label_a, label_b, *, use_orig_var=False):
      var. Needed for unit testing against stats.py. Sort of like matching bug
      for bug ;-).
 
-    :return: t, p, dic_a, dic_b, df (p is the two-tailed probability)
-    :rtype: tuple
-
     ---------------------------------------------------------------------
     Calculates the t-obtained T-test on TWO INDEPENDENT samples of
     scores a, and b. From Numerical Recipes, p.483.
     """
-    mean_a = mean(sample_a)
-    mean_b = mean(sample_b)
+    mean_a = mean(sample_a.sample)
+    mean_b = mean(sample_b.sample)
     if use_orig_var:
-        se_a = stdev(sample_a) ** 2
-        se_b = stdev(sample_b) ** 2
-        sd_a = math.sqrt(se_a)
-        sd_b = math.sqrt(se_b)
+        se_a = stdev(sample_a.sample) ** 2
+        se_b = stdev(sample_b.sample) ** 2
     else:
-        se_a = variance(sample_a)
-        se_b = variance(sample_b)
-        sd_a = stdev(sample_a)
-        sd_b = stdev(sample_b)
-    n_a = len(sample_a)
-    n_b = len(sample_b)
+        se_a = variance(sample_a.sample)
+        se_b = variance(sample_b.sample)
+    n_a = len(sample_a.sample)
+    n_b = len(sample_b.sample)
     df = n_a + n_b - 2
     svar = ((n_a - 1) * se_a + (n_b - 1) * se_b) / float(df)
     denom = math.sqrt(svar * (1.0 / n_a + 1.0 / n_b))
     if denom == 0:
         raise ValueError("Inadequate variability - denom is 0")
+    sample_a_dets_extended = get_numeric_sample_dets_extended(sample_a, high=False)
+    sample_b_dets_extended = get_numeric_sample_dets_extended(sample_b, high=False)
     t = (mean_a - mean_b) / denom
     p = betai(0.5 * df, 0.5, df / (df + t * t))
-    min_a = min(sample_a)
-    min_b = min(sample_b)
-    max_a = max(sample_a)
-    max_b = max(sample_b)
-    ci95_a = get_ci95(sample_a, mean_a, sd_a)
-    ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = NumericSampleDets(lbl=label_a, n=n_a, mean=mean_a, stdev=sd_a,
-        sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = NumericSampleDets(lbl=label_b, n=n_b, mean=mean_b, stdev=sd_b,
-        sample_min=min_b, sample_max=max_b, ci95=ci95_b)
-    return t, p, dets_a, dets_b, df
+    obriens_msg = stats_utils.get_obriens_msg([sample_a.sample, sample_b.sample], sim_variance, high=False)
+    return TTestResult(t=t, p=p,
+        group_a_dets=sample_a_dets_extended, group_b_dets=sample_b_dets_extended,
+        degrees_of_freedom=df, obriens_msg=obriens_msg)
 
 def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
     """
