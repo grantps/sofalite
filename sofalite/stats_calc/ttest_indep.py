@@ -1,7 +1,8 @@
+from sofalite.conf import stats_calc as stats_conf
 from sofalite.conf.data import ValDets
 from sofalite.sql_extraction.db import ExtendedCursor
 from sofalite.sql_extraction.utils import get_sample
-from sofalite.stats_calc import conf as stats_conf, engine
+from sofalite.stats_calc import engine
 from sofalite.utils.misc import todict
 
 def get_results(cur: ExtendedCursor, tbl_name: str,

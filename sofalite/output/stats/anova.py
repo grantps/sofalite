@@ -1,16 +1,16 @@
 import jinja2
 
-from sofalite.conf.style import StyleDets
-from sofalite.output.charts import mpl_pngs
-from sofalite.output.stats.common import get_group_histogram_html
-from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
-from sofalite.output.stats.conf import (
+from sofalite.conf.stats_calc import AnovaResultExt, NumericSampleDetsFormatted
+from sofalite.conf.stats_output import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
     p_explain_multiple_groups,
     skew_explain, std_dev_explain,
 )
-from sofalite.stats_calc.conf import AnovaResultExt, NumericSampleDetsFormatted
+from sofalite.conf.style import StyleDets
+from sofalite.output.charts import mpl_pngs
+from sofalite.output.stats.common import get_group_histogram_html
+from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.stats_calc.utils import get_p_str
 from sofalite.utils.maths import format_num
 

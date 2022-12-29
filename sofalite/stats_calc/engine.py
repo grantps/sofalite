@@ -14,7 +14,7 @@ from typing import Sequence
 
 import numpy as np
 
-from sofalite.stats_calc.conf import (
+from sofalite.conf.stats_calc import (
     MAX_RANKDATA_VALS, AnovaResult,
     MannWhitneyDets, MannWhitneyDetsExt,
     NormalTestResult,  NumericSampleDets, NumericSampleDetsExt, OrdinalResult,

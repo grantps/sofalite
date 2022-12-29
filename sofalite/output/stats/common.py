@@ -2,9 +2,9 @@ import base64
 from io import BytesIO
 from typing import Sequence
 
+from sofalite.conf.charting.misc import HistogramConf, HistogramData
 from sofalite.conf.style import ChartStyleDets
 from sofalite.output.charts import mpl_pngs
-from sofalite.output.charts.conf import HistogramConf, HistogramData
 
 def get_group_histogram_html(measure_fld_lbl: str, style_dets: ChartStyleDets,
         var_lbl: str, vals: Sequence[float]) -> str:
