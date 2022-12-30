@@ -6,6 +6,10 @@ from sofalite.conf.charting.misc import (
     LeftMarginOffsetDetails)
 from sofalite.conf.charting.std_specs import CategorySpec
 
+def get_category_specs(category_vals2lbls: dict) -> Sequence[CategorySpec]:
+    category_specs = [CategorySpec(val, lbl) for val, lbl in category_vals2lbls.items()]
+    return category_specs
+
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
         is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> int:
     wide = width_after_left_margin > 1_200

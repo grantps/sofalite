@@ -16,6 +16,7 @@ from sofalite.conf.paths import DATABASE_FPATH
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
+from sofalite.output.charts.utils import get_category_specs
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
 from sofalite.sql_extraction import utils as sql_extraction_utils
@@ -1553,6 +1554,167 @@ def run_chart_data():
             series_vals2lbls=None,
             category_vals2lbls={1: 'Male', 2: 'Female'},
             tbl_filt_clause=None))
+
+def simple_bar_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='grey_spirals')
+    category_fld_name = 'gender'
+    category_fld_lbl = 'Gender'
+    category_vals2lbls = {1: 'Male', 2: 'Female'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = sql_extraction_utils.get_freq_specs_by_category(
+            cur, tbl_name='demo_tbl',
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None)
+    ## charting details
+    category_specs = get_category_specs(category_vals2lbls)
+    indiv_chart_spec = spec.to_indiv_chart_spec()
+    charting_spec = BarChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
+        legend_lbl=None,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_bar_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'country'
+    chart_fld_lbl = 'Country'
+    category_fld_name = 'gender'
+    category_fld_lbl = 'Gender'
+    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {1: 'Male', 2: 'Female'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = sql_extraction_utils.get_freq_specs_by_chart_category(
+            cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None)
+    ## charting details
+    category_specs = get_category_specs(category_vals2lbls)
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = BarChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=None,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_bar_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def clustered_bar_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    series_fld_name = 'country'
+    series_fld_lbl = 'Country'
+    category_fld_name = 'gender'
+    category_fld_lbl = 'Gender'
+    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {1: 'Male', 2: 'Female'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = sql_extraction_utils.get_freq_specs_by_series_category(
+            cur, tbl_name='demo_tbl',
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            series_vals2lbls=series_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None)
+    ## charting details
+    category_specs = get_category_specs(category_vals2lbls)
+    indiv_chart_spec = spec.to_indiv_chart_spec()
+    charting_spec = BarChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
+        legend_lbl=spec.series_fld_lbl,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_clustered_bar_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_clustered_bar_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'browser'
+    chart_fld_lbl = 'Web Browser'
+    series_fld_name = 'country'
+    series_fld_lbl = 'Country'
+    category_fld_name = 'gender'
+    category_fld_lbl = 'Gender'
+    chart_vals2lbls = {'Chrome': 'Google Chrome', }
+    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {1: 'Male', 2: 'Female'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = sql_extraction_utils.get_freq_specs_by_chart_series_category(
+            cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            series_vals2lbls=series_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None)
+    ## charting details
+    category_specs = get_category_specs(category_vals2lbls)
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = BarChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=spec.series_fld_lbl,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_clustered_bar_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+# simple_bar_chart_from_data()
+# multi_bar_chart_from_data()
+# clustered_bar_chart_from_data()
+multi_clustered_bar_chart_from_data()
 
 # run_chart_data()
 #

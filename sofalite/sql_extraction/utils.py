@@ -1,9 +1,12 @@
 from dataclasses import dataclass
-from textwrap import dedent
-from typing import Sequence
 
 import pandas as pd
 
+from sofalite.conf.charting.data import (
+    CategoryFreqSpecs, CategoryItemFreqSpec,
+    ChartCategoryFreqSpec, ChartCategoryFreqSpecs,
+    ChartSeriesCategoryFreqSpec, ChartSeriesCategoryFreqSpecs,
+    SeriesCategoryFreqSpec, SeriesCategoryFreqSpecs)
 from sofalite.conf.data import ValDets
 from sofalite.conf.stats_calc import Sample
 from sofalite.sql_extraction.db import ExtendedCursor
@@ -21,7 +24,7 @@ def get_sample(cur: ExtendedCursor,
     Used, for example, in the independent samples t-test.
     Note - various filters might apply e.g. we want a sample for male weight
     but only where age > 10
-
+    -
     :param tbl_name: name of table containing the data
     :param tbl_filt_clause: clause ready to put after AND in a WHERE filter.
      E.g. WHERE ... AND age > 10
@@ -64,38 +67,6 @@ def get_sample(cur: ExtendedCursor,
 
 ## Frequency & Percent (not aggregating a measure field)
 
-## Category
-
-@dataclass(frozen=True)
-class CategoryItemFreqSpec:
-    """
-    Frequency-related specification for an individual category value e.g. for Japan
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    category_val: float | str  ## e.g. 1
-    category_val_lbl: str  ## e.g. Japan
-    freq: int
-    category_pct: float
-
-@dataclass(frozen=True)
-class CategoryFreqSpecs:
-    """
-    Store frequency and percentage for each category value e.g. Japan in a category variable e.g. country
-
-    Category-by variable label e.g. country, and one spec related to frequency per country value
-    e.g. one for Italy, one for Germany etc.
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    category_fld_lbl: str  ## e.g. Country
-    category_freq_specs: Sequence[CategoryItemFreqSpec]  ## e.g. one freq spec per country
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Category field value: {self.category_fld_lbl}")
-        for freq_spec in self.category_freq_specs:
-            bits.append(f"    {freq_spec}")
-        return dedent('\n'.join(bits))
-
 def get_freq_specs_by_category(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
         tbl_filt_clause: str | None = None) -> CategoryFreqSpecs:
@@ -125,56 +96,13 @@ def get_freq_specs_by_category(cur: ExtendedCursor, tbl_name: str,
     for category_val, freq, category_pct in data:
         freq_spec = CategoryItemFreqSpec(
             category_val=category_val, category_val_lbl=category_vals2lbls.get(category_val, str(category_val)),
-            freq=freq, category_pct=category_pct)
+            freq=int(freq), category_pct=category_pct)
         category_freq_specs.append(freq_spec)
     result = CategoryFreqSpecs(
         category_fld_lbl=category_fld_lbl,
         category_freq_specs=category_freq_specs,
     )
     return result
-
-## Series, category
-
-@dataclass(frozen=True)
-class SeriesCategoryFreqSpec:
-    """
-    Frequency-related specifications for each category value within this particular value of the series-by variable.
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    series_val: float | str  ## e.g. 1
-    series_val_lbl: str  ## e.g. Male
-    category_freq_specs: Sequence[CategoryItemFreqSpec]  ## one frequency-related spec per country
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Series value (label): {self.series_val} ({self.series_val_lbl})")
-        for freq_spec in self.category_freq_specs:
-            bits.append(f"        {freq_spec}")
-        return dedent('\n'.join(bits))
-
-@dataclass(frozen=True)
-class SeriesCategoryFreqSpecs:
-    """
-    Against each series store frequency and percentage for each category value
-    e.g. Japan in a category variable e.g. country
-    Also store labels for series and category as a convenience so all the building blocks are in one place.
-
-    Series-by variable label e.g. Gender, and category-by variable label e.g. country,
-    and one spec related to frequency per country value
-    e.g. one for Italy, one for Germany etc.
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    series_fld_lbl: str  ## e.g. Gender
-    category_fld_lbl: str  ## e.g. Country
-    series_category_freq_specs: Sequence[SeriesCategoryFreqSpec]
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Series field label: {self.series_fld_lbl}")
-        bits.append(f"Category field label: {self.category_fld_lbl}")
-        for series_category_freq_spec in self.series_category_freq_specs:
-            bits.append(f"    {series_category_freq_spec}")
-        return dedent('\n'.join(bits))
 
 def get_freq_specs_by_series_category(cur: ExtendedCursor, tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
@@ -224,7 +152,7 @@ def get_freq_specs_by_series_category(cur: ExtendedCursor, tbl_name: str,
             freq_spec = CategoryItemFreqSpec(
                 category_val=category_val,
                 category_val_lbl=category_vals2lbls.get(category_val, category_val),
-                freq=freq,
+                freq=int(freq),
                 category_pct=raw_category_pct,
             )
             category_item_freq_specs.append(freq_spec)
@@ -240,44 +168,6 @@ def get_freq_specs_by_series_category(cur: ExtendedCursor, tbl_name: str,
         series_category_freq_specs=series_category_freq_specs,
     )
     return result
-
-## Chart, category
-
-@dataclass(frozen=True)
-class ChartCategoryFreqSpec:
-    """
-    Frequency-related specifications for each category value within this particular value of the chart-by variable.
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    chart_val: float | str
-    chart_val_lbl: str
-    category_freq_specs: Sequence[CategoryItemFreqSpec]
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Chart value (label): {self.chart_val} ({self.chart_val_lbl})")
-        for freq_spec in self.category_freq_specs:
-            bits.append(f"        {freq_spec}")
-        return dedent('\n'.join(bits))
-
-@dataclass(frozen=True)
-class ChartCategoryFreqSpecs:
-    """
-    Against each chart store frequency and percentage for each category value
-    e.g. Japan in a category variable e.g. country
-    Also store labels for chart and category as a convenience so all the building blocks are in one place.
-    """
-    chart_fld_lbl: str  ## e.g. Web Browser
-    category_fld_lbl: str  ## e.g. Country
-    chart_category_freq_specs: Sequence[ChartCategoryFreqSpec]
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Chart field label: {self.chart_fld_lbl}")
-        bits.append(f"Category field label: {self.category_fld_lbl}")
-        for chart_category_freq_spec in self.chart_category_freq_specs:
-            bits.append(f"    {chart_category_freq_spec}")
-        return dedent('\n'.join(bits))
 
 def get_freq_specs_by_chart_category(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
@@ -327,7 +217,7 @@ def get_freq_specs_by_chart_category(cur: ExtendedCursor, tbl_name: str,
             freq_spec = CategoryItemFreqSpec(
                 category_val=category_val,
                 category_val_lbl=category_vals2lbls.get(category_val, category_val),
-                freq=freq,
+                freq=int(freq),
                 category_pct=raw_category_pct,
             )
             freq_specs.append(freq_spec)
@@ -343,47 +233,6 @@ def get_freq_specs_by_chart_category(cur: ExtendedCursor, tbl_name: str,
         chart_category_freq_specs=chart_category_freq_specs,
     )
     return result
-
-## Chart, series, category
-
-@dataclass(frozen=True)
-class ChartSeriesCategoryFreqSpec:
-    """
-    Nested within each value of the chart-by variable, within each value of the series-by variable,
-    collect frequency-related specifications for each category value.
-    Frequency-related includes percentage. Both freq and pct are about the number of items.
-    """
-    chart_val: float | str
-    chart_val_lbl: str
-    series_category_freq_specs: Sequence[SeriesCategoryFreqSpec]
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Chart value (label): {self.chart_val} ({self.chart_val_lbl})")
-        for series_category_freq_spec in self.series_category_freq_specs:
-            bits.append(f"    {series_category_freq_spec}")
-        return dedent('\n'.join(bits))
-
-@dataclass(frozen=True)
-class ChartSeriesCategoryFreqSpecs:
-    """
-    Against each chart and series store frequency and percentage for each category value
-    e.g. Japan in a category variable e.g. country
-    Also store labels for chart, series, and category as a convenience so all the building blocks are in one place.
-    """
-    chart_fld_lbl: str  ## e.g. Web Browser
-    series_fld_lbl: str  ## e.g. Gender
-    category_fld_lbl: str  ## e.g. Country
-    chart_series_category_freq_specs: Sequence[ChartSeriesCategoryFreqSpec]
-
-    def __str__(self):
-        bits = []
-        bits.append(f"Chart field label: {self.chart_fld_lbl}")
-        bits.append(f"Series field label: {self.series_fld_lbl}")
-        bits.append(f"Category field label: {self.category_fld_lbl}")
-        for chart_series_category_freq_spec in self.chart_series_category_freq_specs:
-            bits.append(f"{chart_series_category_freq_spec}")
-        return dedent('\n'.join(bits))
 
 def get_freq_specs_by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
@@ -442,7 +291,7 @@ def get_freq_specs_by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
                 freq_spec = CategoryItemFreqSpec(
                     category_val=category_val,
                     category_val_lbl=category_vals2lbls.get(category_val, category_val),
-                    freq=freq,
+                    freq=int(freq),
                     category_pct=raw_category_pct,
                 )
                 freq_specs.append(freq_spec)
@@ -466,6 +315,54 @@ def get_freq_specs_by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
     )
     return result
 
+def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
+        category_fld_name: str, category_fld_lbl: str,
+        chart_fld_name: str | None = None, chart_fld_lbl: str | None = None,
+        series_fld_name: str | None = None, series_fld_lbl: str | None = None,
+        chart_vals2lbls: dict | None = None,
+        series_vals2lbls: dict | None = None,
+        category_vals2lbls: dict | None = None,
+        tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
+    """
+    Single interface irrespective of which settings are None
+    e.g. if no By Chart variable selected can still use same interface.
+    Convenient when calling code from a GUI.
+    """
+    if chart_fld_name is None:  ## no chart
+        if series_fld_name is None:  ## no series (so category only)
+            spec = get_freq_specs_by_category(
+                cur=cur, tbl_name=tbl_name,
+                category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+                category_vals2lbls=category_vals2lbls,
+                tbl_filt_clause=tbl_filt_clause)
+        else:  ## series and category
+            spec = get_freq_specs_by_series_category(
+                cur=cur, tbl_name=tbl_name,
+                category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+                series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+                series_vals2lbls=series_vals2lbls,
+                category_vals2lbls=category_vals2lbls,
+                tbl_filt_clause=tbl_filt_clause)
+    else:  ## chart
+        if series_fld_name is None:  ## chart and category only (no series)
+            spec = get_freq_specs_by_chart_category(
+                cur=cur, tbl_name=tbl_name,
+                chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+                category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+                chart_vals2lbls=chart_vals2lbls,
+                category_vals2lbls=category_vals2lbls,
+                tbl_filt_clause=tbl_filt_clause)
+        else: ## chart, series, and category
+            spec = get_freq_specs_by_chart_series_category(
+                cur=cur, tbl_name=tbl_name,
+                chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+                series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+                category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+                chart_vals2lbls=chart_vals2lbls,
+                series_vals2lbls=series_vals2lbls,
+                category_vals2lbls=category_vals2lbls,
+                tbl_filt_clause=tbl_filt_clause)
+    return spec
 
 ## Aggregating measure field
 

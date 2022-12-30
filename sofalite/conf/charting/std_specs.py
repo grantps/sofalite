@@ -66,7 +66,7 @@ class ChartingSpec:
 @dataclass
 class ChartingSpecAxes(ChartingSpec):
 
-    legend_lbl: str
+    legend_lbl: str | None
     rotate_x_lbls: bool
     x_axis_font_size: int
     x_axis_title: str
