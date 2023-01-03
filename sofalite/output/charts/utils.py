@@ -1,14 +1,10 @@
 import logging
 from typing import Sequence
 
-from sofalite.conf.charting.misc import (
+from sofalite.conf.charts.misc import (
     AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET, MAX_SAFE_X_LBL_LEN_PIXELS,
     LeftMarginOffsetDetails)
-from sofalite.conf.charting.std_specs import CategorySpec
-
-def get_category_specs(category_vals2lbls: dict) -> Sequence[CategorySpec]:
-    category_specs = [CategorySpec(val, lbl) for val, lbl in category_vals2lbls.items()]
-    return category_specs
+from sofalite.conf.charts.output.standard import CategorySpec
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
         is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> int:
@@ -122,14 +118,14 @@ def get_optimal_axis_bounds(x_axis_min_val: float, x_axis_max_val: float) -> tup
     if x_axis_min_val == x_axis_max_val:
         my_val = x_axis_min_val
         if my_val < 0:
-            axis_min = 1.1 * my_val
-            axis_max = 0
+            x_axis_min_val = 1.1 * my_val
+            x_axis_max_val = 0
         elif my_val == 0:
-            axis_min = -1
-            axis_max = 1
+            x_axis_min_val = -1
+            x_axis_max_val = 1
         elif my_val > 0:
-            axis_min = 0
-            axis_max = 1.1 * my_val
+            x_axis_min_val = 0
+            x_axis_max_val = 1.1 * my_val
     elif x_axis_min_val >= 0 and x_axis_max_val >= 0:  ## both +ve
         """
         Snap min to 0 if gap small rel to range, otherwise make min y-axis just
@@ -142,7 +138,7 @@ def get_optimal_axis_bounds(x_axis_min_val: float, x_axis_max_val: float) -> tup
         try:
             gap2range = gap / (val_range * 1.0)
             if gap2range < 0.6:  ## close enough to snap to 0
-                axis_min = 0
+                x_axis_min_val = 0
             else:  ## can't just be 0.9 min - e.g. looking at years from 2000-2010 would be 1800 upwards!
                 x_axis_min_val -= min(0.1 * gap, 0.1 * val_range)  ## gap is never 0 and is at least 0.6 of valrange
         except ZeroDivisionError:
@@ -159,7 +155,7 @@ def get_optimal_axis_bounds(x_axis_min_val: float, x_axis_max_val: float) -> tup
         try:
             gap2range = gap / (val_range * 1.0)
             if gap2range < 0.6:
-                axis_max = 0
+                x_axis_max_val = 0
             else:
                 x_axis_max_val += min(0.1 * gap, 0.1 * val_range)
         except ZeroDivisionError:
@@ -167,12 +163,12 @@ def get_optimal_axis_bounds(x_axis_min_val: float, x_axis_max_val: float) -> tup
         x_axis_min_val -= min(0.1 * abs(x_axis_min_val), 0.1 * val_range)  ## make even more negative, but by the least possible
     elif x_axis_min_val <= 0 <= x_axis_max_val:  ## spanning y-axis (even if all 0s ;-))
         """
+        Pad min with 0.1 * x_axis_min_val. No harm if 0.
         Pad max - no harm if 0.
-        Pad min with 0.1*axismin. No harm if 0.
         """
+        x_axis_min_val = 1.1 * x_axis_min_val
         x_axis_max_val = 1.1 * x_axis_max_val
-        axis_min = 1.1 * x_axis_min_val
     else:
         pass
     logging.debug(f"Final {x_axis_min_val=}; Final {x_axis_max_val=}")
-    return axis_min, x_axis_max_val
+    return x_axis_min_val, x_axis_max_val

@@ -13,13 +13,9 @@ class StrConst(str, Enum):
     @property
     def str(self):
         """
-
         Sometimes you really need a true str so here is syntactic sugar
-
         (e.g. some Pandas operations seem to type check rather than duck type).
-
         """
-
         return str(self.value)
 
 class Platform(StrConst):
@@ -29,6 +25,12 @@ class Platform(StrConst):
 
 PLATFORMS = {'Linux': Platform.LINUX, 'Windows': Platform.WINDOWS, 'Darwin': Platform.MAC}
 PLATFORM = PLATFORMS.get(platform.system())
+
+class SortOrder(StrConst):
+    VALUE = 'by value'
+    LABEL = 'by label'
+    INCREASING = 'by increasing frequency'
+    DECREASING = 'by decreasing frequency'
 
 @dataclass(frozen=True)
 class NiceInitialBinDets:

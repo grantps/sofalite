@@ -4,9 +4,9 @@ from typing import Callable, Literal, Sequence
 
 import jinja2
 
-from sofalite.conf.charting.misc import (
+from sofalite.conf.charts.misc import (
     AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, LeftMarginOffsetDetails)
-from sofalite.conf.charting.std_specs import AreaChartingSpec, CategorySpec, LineChartingSpec
+from sofalite.conf.charts.output.standard import AreaChartingSpec, CategorySpec, LineChartingSpec
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.html import html_bottom, tpl_html_top

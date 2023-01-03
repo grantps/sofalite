@@ -4,8 +4,8 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charting.misc import ScatterplotDojoSeriesSpec, LeftMarginOffsetDetails
-from sofalite.conf.charting.other_specs import ScatterChartingSpec, ScatterIndivChartSpec
+from sofalite.conf.charts.misc import ScatterplotDojoSeriesSpec, LeftMarginOffsetDetails
+from sofalite.conf.charts.output.non_standard import ScatterChartingSpec, ScatterIndivChartSpec
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset

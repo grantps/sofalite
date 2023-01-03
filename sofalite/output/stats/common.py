@@ -2,7 +2,7 @@ import base64
 from io import BytesIO
 from typing import Sequence
 
-from sofalite.conf.charting.misc import HistogramConf, HistogramData
+from sofalite.conf.charts.misc import HistogramConf, HistogramData
 from sofalite.conf.style import ChartStyleDets
 from sofalite.output.charts import mpl_pngs
 

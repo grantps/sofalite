@@ -174,7 +174,7 @@ class BoxplotChartingSpec:
 
     def __post_init__(self):
         if len(self.indiv_chart_specs) != 1:
-            raise Exception("Boxplot charting can only have one individual chart")
+            raise Exception("Boxplot charts can only have one individual chart")
         self.has_minor_ticks = len(self.category_specs) > 10
         self.n_series = len(self.indiv_chart_specs[0].data_series_specs)
         self.is_single_series = (self.n_series == 1)

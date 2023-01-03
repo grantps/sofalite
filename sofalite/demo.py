@@ -4,22 +4,22 @@ Will point at GUI later but good for running functions in the meanwhile.
 from random import randint
 from webbrowser import open_new_tab
 
-from sofalite.conf.charting.other_specs import (
+from sofalite.conf.charts.output.non_standard import (
     BoxplotChartingSpec, BoxplotDataItem, BoxplotDataSeriesSpec, BoxplotIndivChartSpec,
     HistoChartingSpec, HistoIndivChartSpec,
     ScatterChartingSpec, ScatterDataSeriesSpec, ScatterIndivChartSpec)
-from sofalite.conf.charting.std_specs import (
+from sofalite.conf.charts.output.standard import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
     IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
+from sofalite.conf.misc import SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
-from sofalite.output.charts.utils import get_category_specs
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
-from sofalite.sql_extraction import utils as sql_extraction_utils
+from sofalite.sql_extraction.charts import freq_specs
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova, ttest_indep
 
@@ -1526,26 +1526,26 @@ def run_boxplots():
 
 def run_chart_data():
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        print(sql_extraction_utils.get_freq_specs_by_category(
+        print(freq_specs.by_category(
             cur, tbl_name='demo_tbl',
             category_fld_name='gender', category_fld_lbl='Gender',
             category_vals2lbls={1: 'Male', 2: 'Female'},
             tbl_filt_clause=None))
-        print(sql_extraction_utils.get_freq_specs_by_series_category(
+        print(freq_specs.by_series_category(
             cur, tbl_name='demo_tbl',
             series_fld_name='browser', series_fld_lbl='Web Browser',
             category_fld_name='gender', category_fld_lbl='Gender',
             series_vals2lbls=None,
             category_vals2lbls={1: 'Male', 2: 'Female'},
             tbl_filt_clause=None))
-        print(sql_extraction_utils.get_freq_specs_by_chart_category(
+        print(freq_specs.by_chart_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name='country', chart_fld_lbl='Country',
             category_fld_name='gender', category_fld_lbl='Gender',
             chart_vals2lbls={1: 'Japan', 2: 'Italy', 3: 'Germany'},
             category_vals2lbls={1: 'Male', 2: 'Female'},
             tbl_filt_clause=None))
-        print(sql_extraction_utils.get_freq_specs_by_chart_series_category(
+        print(freq_specs.by_chart_series_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name='country', chart_fld_lbl='Country',
             series_fld_name='browser', series_fld_lbl='Web Browser',
@@ -1563,13 +1563,13 @@ def simple_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = sql_extraction_utils.get_freq_specs_by_category(
+        spec = freq_specs.by_category(
             cur, tbl_name='demo_tbl',
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None)
-    ## charting details
-    category_specs = get_category_specs(category_vals2lbls)
+            tbl_filt_clause=None, category_sort_order=SortOrder.VALUE)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
     indiv_chart_spec = spec.to_indiv_chart_spec()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
@@ -1600,15 +1600,15 @@ def multi_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = sql_extraction_utils.get_freq_specs_by_chart_category(
+        spec = freq_specs.by_chart_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None)
-    ## charting details
-    category_specs = get_category_specs(category_vals2lbls)
+            tbl_filt_clause=None, category_sort_order=SortOrder.LABEL)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
     indiv_chart_specs = spec.to_indiv_chart_specs()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
@@ -1639,15 +1639,16 @@ def clustered_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = sql_extraction_utils.get_freq_specs_by_series_category(
+        spec = freq_specs.by_series_category(
             cur, tbl_name='demo_tbl',
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None)
-    ## charting details
-    category_specs = get_category_specs(category_vals2lbls)
+            tbl_filt_clause=None,
+            category_sort_order=SortOrder.LABEL)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
     indiv_chart_spec = spec.to_indiv_chart_spec()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
@@ -1670,18 +1671,18 @@ def clustered_bar_chart_from_data():
 def multi_clustered_bar_chart_from_data():
     ## conf
     style_dets = get_style_dets(style='default')
-    chart_fld_name = 'browser'
-    chart_fld_lbl = 'Web Browser'
-    series_fld_name = 'country'
-    series_fld_lbl = 'Country'
-    category_fld_name = 'gender'
-    category_fld_lbl = 'Gender'
-    chart_vals2lbls = {'Chrome': 'Google Chrome', }
-    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {1: 'Male', 2: 'Female'}
+    chart_fld_name = 'country'
+    chart_fld_lbl = 'Country'
+    series_fld_name = 'gender'
+    series_fld_lbl = 'Gender'
+    category_fld_name = 'browser'
+    category_fld_lbl = 'Web Browser'
+    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    series_vals2lbls = {1: 'Male', 2: 'Female'}
+    category_vals2lbls = {'Chrome': 'Google Chrome', }
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = sql_extraction_utils.get_freq_specs_by_chart_series_category(
+        spec = freq_specs.by_chart_series_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
@@ -1689,9 +1690,10 @@ def multi_clustered_bar_chart_from_data():
             chart_vals2lbls=chart_vals2lbls,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None)
-    ## charting details
-    category_specs = get_category_specs(category_vals2lbls)
+            tbl_filt_clause="(gender = 1 OR browser != 'Firefox')",
+            category_sort_order=SortOrder.VALUE)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
     indiv_chart_specs = spec.to_indiv_chart_specs()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
@@ -1711,10 +1713,174 @@ def multi_clustered_bar_chart_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-# simple_bar_chart_from_data()
-# multi_bar_chart_from_data()
-# clustered_bar_chart_from_data()
+def multi_line_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    series_fld_name = 'country'
+    series_fld_lbl = 'Country'
+    category_fld_name = 'browser'
+    category_fld_lbl = 'Web Browser'
+    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {'Chrome': 'Google Chrome'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = freq_specs.by_series_category(
+            cur, tbl_name='demo_tbl',
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            series_vals2lbls=series_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None,
+            category_sort_order=SortOrder.LABEL)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
+    indiv_chart_spec = spec.to_indiv_chart_spec()
+    charting_spec = LineChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec],
+        is_time_series=False,
+        legend_lbl=spec.series_fld_lbl,
+        rotate_x_lbls=False,
+        show_major_ticks_only=True,
+        show_markers=True,
+        show_smooth_line=False,
+        show_trend_line=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def area_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'country'
+    chart_fld_lbl = 'Country'
+    category_fld_name = 'browser'
+    category_fld_lbl = 'Web Browser'
+    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {'Chrome': 'Google Chrome'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = freq_specs.by_chart_category(
+            cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None,
+            category_sort_order=SortOrder.LABEL)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = AreaChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=indiv_chart_specs,
+        is_time_series=False,
+        legend_lbl='Country',
+        rotate_x_lbls=False,
+        show_major_ticks_only=False,
+        show_markers=True,
+        show_n_records=True,
+        x_axis_font_size=12,
+        x_axis_title=spec.category_fld_lbl,
+        y_axis_title='Freq',
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_area_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def pie_chart_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'country'
+    chart_fld_lbl = 'Country'
+    category_fld_name = 'browser'
+    category_fld_lbl = 'Web Browser'
+    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    category_vals2lbls = {'Chrome': 'Google Chrome'}
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = freq_specs.by_chart_category(
+            cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=None,
+            category_sort_order=SortOrder.LABEL)
+    ## charts details
+    category_specs = spec.to_sorted_category_specs()
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = PieChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=indiv_chart_specs,
+        show_n_records=True,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_pie_chart_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def scatterplot_from_data():
+    ...
+    # ## conf
+    # style_dets = get_style_dets(style='default')
+    # chart_fld_name = 'country'
+    # chart_fld_lbl = 'Country'
+    # category_fld_name = 'browser'
+    # category_fld_lbl = 'Web Browser'
+    # chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    # category_vals2lbls = {'Chrome': 'Google Chrome'}
+    # ## data details
+    # with Sqlite(DATABASE_FPATH) as (_con, cur):
+    #     spec = .Scatterplot.by_chart_category(
+    #         cur, tbl_name='demo_tbl',
+    #         chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+    #         category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+    #         chart_vals2lbls=chart_vals2lbls,
+    #         category_vals2lbls=category_vals2lbls,
+    #         tbl_filt_clause=None,
+    #         category_sort_order=SortOrder.LABEL)
+    # ## charts details
+    # category_specs = spec.to_sorted_category_specs()
+    # indiv_chart_specs = spec.to_indiv_chart_specs()
+    # charting_spec = ScatterChartingSpec(
+    #     indiv_chart_specs=[indiv_chart_spec_nz, indiv_chart_spec_aus],
+    #     legend_lbl='Gender',
+    #     show_dot_borders=True,
+    #     show_n_records=True,
+    #     show_regression_line=True,
+    #     x_axis_font_size=10,
+    #     x_axis_title='Age',
+    #     y_axis_title='Post-diet Weight',
+    # )
+    # ## output
+    # html = get_html(charting_spec, style_dets)
+    # fpath = '/home/g/Documents/sofalite/reports/test_scatterplot_from_data.html'
+    # with open(fpath, 'w') as f:
+    #     f.write(html)
+    # open_new_tab(url=f"file://{fpath}")
+
+simple_bar_chart_from_data()
+multi_bar_chart_from_data()
+clustered_bar_chart_from_data()
 multi_clustered_bar_chart_from_data()
+multi_line_chart_from_data()
+area_chart_from_data()
+pie_chart_from_data()
+# scatterplot_from_data()
 
 # run_chart_data()
 #

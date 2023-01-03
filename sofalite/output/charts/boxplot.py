@@ -4,9 +4,9 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charting.misc import (AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
-    BoxplotDojoSeriesSpec, DojoBoxSpec, LeftMarginOffsetDetails)
-from sofalite.conf.charting.other_specs import BoxplotChartingSpec, BoxplotIndivChartSpec
+from sofalite.conf.charts.misc import (AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
+                                       BoxplotDojoSeriesSpec, DojoBoxSpec, LeftMarginOffsetDetails)
+from sofalite.conf.charts.output.non_standard import BoxplotChartingSpec, BoxplotIndivChartSpec
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import (

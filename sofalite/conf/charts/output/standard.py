@@ -26,13 +26,21 @@ class DataSeriesSpec:
     data_items: Sequence[DataItem]
 
     def __post_init__(self):
+        """
+        Used in JS which often grabs bits separately.
+        """
         self.amounts = []
         self.lbls = []
         self.tooltips = []
         for data_item in self.data_items:
-            self.amounts.append(data_item.amount)
-            self.lbls.append(data_item.lbl)
-            self.tooltips.append(data_item.tooltip)
+            if data_item is not None:
+                self.amounts.append(data_item.amount)
+                self.lbls.append(data_item.lbl)
+                self.tooltips.append(data_item.tooltip)
+            else:
+                self.amounts.append(0)
+                self.lbls.append('')
+                self.tooltips.append('')
 
 @dataclass
 class IndivChartSpec:
@@ -94,6 +102,8 @@ class ChartingSpecAxes(ChartingSpec):
         for indiv_chart_spec in self.indiv_chart_specs:
             for data_series_spec in indiv_chart_spec.data_series_specs:
                 for data_item in data_series_spec.data_items:
+                    if data_item is None:
+                        continue
                     y_val = data_item.amount
                     if y_val > max_y_val:
                         max_y_val = y_val

@@ -3,8 +3,8 @@ from typing import Literal, Sequence
 import uuid
 
 import jinja2
-from sofalite.conf.charting.misc import HISTO_AVG_CHAR_WIDTH_PIXELS
-from sofalite.conf.charting.other_specs import HistoChartingSpec, HistoIndivChartSpec
+from sofalite.conf.charts.misc import HISTO_AVG_CHAR_WIDTH_PIXELS
+from sofalite.conf.charts.output.non_standard import HistoChartingSpec, HistoIndivChartSpec
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.utils.maths import format_num

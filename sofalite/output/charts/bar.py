@@ -4,10 +4,10 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charting.misc import (
+from sofalite.conf.charts.misc import (
     AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
     DojoSeriesDetails, LeftMarginOffsetDetails)
-from sofalite.conf.charting.std_specs import BarChartingSpec, IndivChartSpec
+from sofalite.conf.charts.output.standard import BarChartingSpec, IndivChartSpec
 from sofalite.conf.style import ColourWithHighlight, StyleDets
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,

@@ -6,8 +6,8 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charting.misc import DojoSeriesDetails, LeftMarginOffsetDetails, PlotStyle
-from sofalite.conf.charting.std_specs import DataSeriesSpec, IndivChartSpec, LineChartingSpec
+from sofalite.conf.charts.misc import DojoSeriesDetails, LeftMarginOffsetDetails, PlotStyle
+from sofalite.conf.charts.output.standard import DataSeriesSpec, IndivChartSpec, LineChartingSpec
 from sofalite.conf.style import StyleDets
 from sofalite.output.charts.common import LineArea, get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.styles.misc import get_long_colour_list
