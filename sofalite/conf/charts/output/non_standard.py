@@ -43,7 +43,7 @@ class HistoChartingSpec:
 @dataclass
 class ScatterDataSeriesSpec:
     lbl: str | None
-    xy_pairs: list[tuple[float, float]]
+    xy_pairs: Sequence[tuple[float, float]]
 
 @dataclass
 class ScatterIndivChartSpec:
@@ -59,7 +59,7 @@ class ScatterIndivChartSpec:
 @dataclass
 class ScatterChartingSpec:
     indiv_chart_specs: Sequence[ScatterIndivChartSpec]
-    legend_lbl: str
+    legend_lbl: str | None
     show_dot_borders: bool
     show_n_records: bool
     show_regression_line: bool

@@ -6,7 +6,7 @@ It is the dataclasses returned by these functions that are responsible for empty
 Empty values are handled in their methods responsible for translating into charts specs
 e.g. to_indiv_chart_spec().
 
-Sort oder always includes by value and by label. Only single chart, single series charts
+Sort order always includes by value and by label. Only single chart, single series charts
 also sort by increasing and decreasing.
 """
 import pandas as pd
@@ -60,12 +60,12 @@ def by_category(cur: ExtendedCursor, tbl_name: str,
     return result
 
 def by_series_category(cur: ExtendedCursor, tbl_name: str,
-           series_fld_name: str, series_fld_lbl: str,
-           category_fld_name: str, category_fld_lbl: str,
-           series_vals2lbls: dict | None,
-           category_vals2lbls: dict | None,
-           tbl_filt_clause: str | None = None,
-           category_sort_order: SortOrder = SortOrder.VALUE) -> SeriesCategoryFreqSpecs:
+        series_fld_name: str, series_fld_lbl: str,
+        category_fld_name: str, category_fld_lbl: str,
+        series_vals2lbls: dict | None,
+        category_vals2lbls: dict | None,
+        tbl_filt_clause: str | None = None,
+        category_sort_order: SortOrder = SortOrder.VALUE) -> SeriesCategoryFreqSpecs:
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
@@ -127,12 +127,12 @@ def by_series_category(cur: ExtendedCursor, tbl_name: str,
     return result
 
 def by_chart_category(cur: ExtendedCursor, tbl_name: str,
-          chart_fld_name: str, chart_fld_lbl: str,
-          category_fld_name: str, category_fld_lbl: str,
-          chart_vals2lbls: dict | None,
-          category_vals2lbls: dict | None,
-          tbl_filt_clause: str | None = None,
-          category_sort_order: SortOrder = SortOrder.VALUE) -> ChartCategoryFreqSpecs:
+        chart_fld_name: str, chart_fld_lbl: str,
+        category_fld_name: str, category_fld_lbl: str,
+        chart_vals2lbls: dict | None,
+        category_vals2lbls: dict | None,
+        tbl_filt_clause: str | None = None,
+        category_sort_order: SortOrder = SortOrder.VALUE) -> ChartCategoryFreqSpecs:
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
@@ -194,14 +194,14 @@ def by_chart_category(cur: ExtendedCursor, tbl_name: str,
     return result
 
 def by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
-             chart_fld_name: str, chart_fld_lbl: str,
-             series_fld_name: str, series_fld_lbl: str,
-             category_fld_name: str, category_fld_lbl: str,
-             chart_vals2lbls: dict | None,
-             series_vals2lbls: dict | None,
-             category_vals2lbls: dict | None,
-             tbl_filt_clause: str | None = None,
-             category_sort_order: SortOrder = SortOrder.VALUE) -> ChartSeriesCategoryFreqSpecs:
+         chart_fld_name: str, chart_fld_lbl: str,
+         series_fld_name: str, series_fld_lbl: str,
+         category_fld_name: str, category_fld_lbl: str,
+         chart_vals2lbls: dict | None,
+         series_vals2lbls: dict | None,
+         category_vals2lbls: dict | None,
+         tbl_filt_clause: str | None = None,
+         category_sort_order: SortOrder = SortOrder.VALUE) -> ChartSeriesCategoryFreqSpecs:
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
@@ -277,13 +277,13 @@ def by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
     return result
 
 def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
-           category_fld_name: str, category_fld_lbl: str,
-           chart_fld_name: str | None = None, chart_fld_lbl: str | None = None,
-           series_fld_name: str | None = None, series_fld_lbl: str | None = None,
-           chart_vals2lbls: dict | None = None,
-           series_vals2lbls: dict | None = None,
-           category_vals2lbls: dict | None = None,
-           tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
+        category_fld_name: str, category_fld_lbl: str,
+        chart_fld_name: str | None = None, chart_fld_lbl: str | None = None,
+        series_fld_name: str | None = None, series_fld_lbl: str | None = None,
+        chart_vals2lbls: dict | None = None,
+        series_vals2lbls: dict | None = None,
+        category_vals2lbls: dict | None = None,
+        tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
     """
     Single interface irrespective of which settings are None
     e.g. if no By Chart variable selected can still use same interface.

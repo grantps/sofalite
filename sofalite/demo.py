@@ -20,6 +20,7 @@ from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
 from sofalite.sql_extraction.charts import freq_specs
+from sofalite.sql_extraction.charts import xys
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova, ttest_indep
 
@@ -1833,54 +1834,162 @@ def pie_chart_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def scatterplot_from_data():
-    ...
+def single_series_scatterplot_from_data():
     # ## conf
-    # style_dets = get_style_dets(style='default')
-    # chart_fld_name = 'country'
-    # chart_fld_lbl = 'Country'
-    # category_fld_name = 'browser'
-    # category_fld_lbl = 'Web Browser'
-    # chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    # category_vals2lbls = {'Chrome': 'Google Chrome'}
-    # ## data details
-    # with Sqlite(DATABASE_FPATH) as (_con, cur):
-    #     spec = .Scatterplot.by_chart_category(
-    #         cur, tbl_name='demo_tbl',
-    #         chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-    #         category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-    #         chart_vals2lbls=chart_vals2lbls,
-    #         category_vals2lbls=category_vals2lbls,
-    #         tbl_filt_clause=None,
-    #         category_sort_order=SortOrder.LABEL)
-    # ## charts details
-    # category_specs = spec.to_sorted_category_specs()
-    # indiv_chart_specs = spec.to_indiv_chart_specs()
-    # charting_spec = ScatterChartingSpec(
-    #     indiv_chart_specs=[indiv_chart_spec_nz, indiv_chart_spec_aus],
-    #     legend_lbl='Gender',
-    #     show_dot_borders=True,
-    #     show_n_records=True,
-    #     show_regression_line=True,
-    #     x_axis_font_size=10,
-    #     x_axis_title='Age',
-    #     y_axis_title='Post-diet Weight',
-    # )
-    # ## output
-    # html = get_html(charting_spec, style_dets)
-    # fpath = '/home/g/Documents/sofalite/reports/test_scatterplot_from_data.html'
-    # with open(fpath, 'w') as f:
-    #     f.write(html)
-    # open_new_tab(url=f"file://{fpath}")
+    style_dets = get_style_dets(style='default')
+    x_fld_name = 'age'
+    x_fld_lbl = 'Age'
+    y_fld_name = 'weight'
+    y_fld_lbl = 'Weight'
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = xys.by_xy(
+            cur, tbl_name='demo_tbl',
+            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            tbl_filt_clause=None)
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = ScatterChartingSpec(
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=None,
+        show_dot_borders=True,
+        show_n_records=True,
+        show_regression_line=True,
+        x_axis_font_size=10,
+        x_axis_title=x_fld_lbl,
+        y_axis_title=y_fld_lbl,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_single_series_scatterplot_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
 
-simple_bar_chart_from_data()
-multi_bar_chart_from_data()
-clustered_bar_chart_from_data()
-multi_clustered_bar_chart_from_data()
-multi_line_chart_from_data()
-area_chart_from_data()
-pie_chart_from_data()
-# scatterplot_from_data()
+def multi_series_scatterplot_from_data():
+    # ## conf
+    style_dets = get_style_dets(style='default')
+    series_fld_name = 'gender'
+    series_fld_lbl = 'Gender'
+    series_vals2lbls = {1: 'Male', 2: 'Female'}
+    x_fld_name = 'age'
+    x_fld_lbl = 'Age'
+    y_fld_name = 'weight'
+    y_fld_lbl = 'Weight'
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = xys.by_series_xy(cur, tbl_name='demo_tbl',
+            series_fld_name=series_fld_name,
+            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            series_vals2lbls=series_vals2lbls,
+            tbl_filt_clause=None)
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = ScatterChartingSpec(
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=series_fld_lbl,
+        show_dot_borders=True,
+        show_n_records=True,
+        show_regression_line=True,
+        x_axis_font_size=10,
+        x_axis_title=x_fld_lbl,
+        y_axis_title=y_fld_lbl,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_series_scatterplot_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_chart_scatterplot_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'gender'
+    chart_fld_lbl = 'Gender'
+    chart_vals2lbls = {1: 'Male', 2: 'Female'}
+    x_fld_name = 'age'
+    x_fld_lbl = 'Age'
+    y_fld_name = 'weight'
+    y_fld_lbl = 'Weight'
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = xys.by_chart_xy(cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            chart_vals2lbls=chart_vals2lbls,
+            tbl_filt_clause=None)
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = ScatterChartingSpec(
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=None,
+        show_dot_borders=True,
+        show_n_records=True,
+        show_regression_line=True,
+        x_axis_font_size=10,
+        x_axis_title=x_fld_lbl,
+        y_axis_title=y_fld_lbl,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_scatterplot_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_chart_series_scatterplot_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'gender'
+    chart_fld_lbl = 'Gender'
+    chart_vals2lbls = {1: 'Male', 2: 'Female'}
+    series_fld_name = 'country'
+    series_fld_lbl = 'Country'
+    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    x_fld_name = 'age'
+    x_fld_lbl = 'Age'
+    y_fld_name = 'weight'
+    y_fld_lbl = 'Weight'
+    ## data details
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = xys.by_chart_series_xy(cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            series_fld_name=series_fld_name,
+            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            chart_vals2lbls=chart_vals2lbls,
+            series_vals2lbls=series_vals2lbls,
+            tbl_filt_clause=None)
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    charting_spec = ScatterChartingSpec(
+        indiv_chart_specs=indiv_chart_specs,
+        legend_lbl=series_fld_lbl,
+        show_dot_borders=True,
+        show_n_records=True,
+        show_regression_line=True,
+        x_axis_font_size=10,
+        x_axis_title=x_fld_lbl,
+        y_axis_title=y_fld_lbl,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_series_scatterplot_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+# simple_bar_chart_from_data()
+# multi_bar_chart_from_data()
+# clustered_bar_chart_from_data()
+# multi_clustered_bar_chart_from_data()
+# multi_line_chart_from_data()
+# area_chart_from_data()
+# pie_chart_from_data()
+# single_series_scatterplot_from_data()
+# multi_series_scatterplot_from_data()
+# multi_chart_scatterplot_from_data()
+multi_chart_series_scatterplot_from_data()
 
 # run_chart_data()
 #
