@@ -456,7 +456,7 @@ makeScatterplot = function(chartname, series, conf){
     nChart = conf["n_records"];
     // chartwide function setting - have access to val.element (Column), val.index (0), val.run.data (y_vals)
     var getTooltip = function(val){
-        return "(x: " + val.x + ", y: " + val.y + ")";
+        return "(" + conf['x_axis_title'] + ": " + val.x + ", " + conf['y_axis_title'] + ": " + val.y + ")";
     };
     var dc = dojox.charting;
     var mychart = new dc.Chart2D(
