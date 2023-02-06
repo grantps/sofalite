@@ -34,7 +34,19 @@ class SortOrder(StrConst):
 
 @dataclass(frozen=True)
 class NiceInitialBinDets:
+    """
+    Details which will be enough to get initial histogram details when accompanied by the actual values.
+    """
     n_bins: int
+    lower_limit: float
+    upper_limit: float
+
+@dataclass(frozen=True)
+class BinWidthDets:
+    """
+    Widths, ranges, for bins.
+    """
+    bin_width: float
     lower_limit: float
     upper_limit: float
 

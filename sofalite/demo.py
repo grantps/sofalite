@@ -10,7 +10,7 @@ from sofalite.conf.charts.output.non_standard import (
     ScatterChartingSpec, ScatterDataSeriesSpec, ScatterIndivChartSpec)
 from sofalite.conf.charts.output.standard import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
-    IndivChartSpec, LineChartingSpec, PieChartingSpec)
+    HistoChartingSpec, IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.misc import SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
@@ -1979,6 +1979,30 @@ def multi_chart_series_scatterplot_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+def histogram_from_data():
+    ## conf
+    style_dets = get_style_dets(style='default')
+
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs() # Sequence[HistoIndivChartSpec]
+    charting_spec = HistoChartingSpec(
+        bin_lbls=bin_lbls, # Sequence[str]
+        indiv_chart_specs=indiv_chart_specs,
+        show_borders=False,
+        show_n_records=True,
+        show_normal_curve=True,
+        var_lbl=var_lbl, # str | None
+        x_axis_font_size=12,
+        x_axis_max_val=x_axis_max_val, # float
+        x_axis_min_val=x_axis_min_val, # float
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_histogram_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
 # simple_bar_chart_from_data()
 # multi_bar_chart_from_data()
 # clustered_bar_chart_from_data()
@@ -1989,7 +2013,8 @@ def multi_chart_series_scatterplot_from_data():
 # single_series_scatterplot_from_data()
 # multi_series_scatterplot_from_data()
 # multi_chart_scatterplot_from_data()
-multi_chart_series_scatterplot_from_data()
+# multi_chart_series_scatterplot_from_data()
+histogram_from_data()
 
 # run_chart_data()
 #

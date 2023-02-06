@@ -2,10 +2,9 @@ import logging
 import math
 from typing import Sequence
 
-from sofalite.conf.misc import HistogramDetails, NiceInitialBinDets
+from sofalite.conf.misc import BinWidthDets, HistogramDetails, NiceInitialBinDets
 
-def get_nice_initial_bin_details(*,
-        min_val, max_val, n_distinct) -> NiceInitialBinDets:
+def get_nice_initial_bin_details(*, min_val, max_val, n_distinct) -> NiceInitialBinDets:
     """
     Goal - set nice bin widths so 'nice' value e.g. 0.2, 0.5, 1 (or
     200, 500, 1000 or 0.002, 0.005, 0.01) and not too many or too few bins.
@@ -99,7 +98,19 @@ def get_nice_initial_bin_details(*,
         f'{lower_limit} to {upper_limit} giving you {n_bins} bins')
     return NiceInitialBinDets(n_bins, lower_limit, upper_limit)
 
-def get_histogram_details(vals: Sequence[float], n_bins=10, default_real_limits=None,
+def _get_limits_and_bin_width(vals: Sequence[float],
+        n_bins=10, limits: tuple[float, float] | None = None) -> BinWidthDets:
+    if limits is None:  ## no limits given for histogram, both must be calculated
+        est_bin_width = (max(vals) - min(vals)) / float(n_bins) + 1e-6  ## 1=>cover all
+        bin_width = (max(vals) - min(vals) + est_bin_width) / float(n_bins)
+        lower_real_limit = min(vals) - bin_width / 2  ## lower real limit, 1st bin
+        upper_real_limit = 1.000001 * max(vals)  ## added so able to include top val in final bin. Use same code as orig to calc upp from lower
+    else:
+        lower_real_limit, upper_real_limit = limits
+        bin_width = (upper_real_limit - lower_real_limit) / float(n_bins)
+    return BinWidthDets(bin_width, lower_real_limit, upper_real_limit)
+
+def get_histogram_details(vals: Sequence[float], n_bins=10, limits=None,
         inc_uppermost_val_in_top_bin=True) -> HistogramDetails:
     """
     Includes the uppermost value in top bin.
@@ -108,47 +119,33 @@ def get_histogram_details(vals: Sequence[float], n_bins=10, default_real_limits=
     NB label of top bin must be explicit about including upper values.
     Known problem with continuous distributions.
 
-    Returns
+    Returns:
     (i) a list of histogram bin counts
     (ii) the smallest value of the histogram binning
-    (iii) the bin width (the last 2 are not necessarily integers).
+    (iii) the bin width
+    (the last 2 are not necessarily integers).
     Default number of bins is 10.
     If no sequence object is given for default_real_limits,
     the routine picks (usually non-pretty) bins spanning all the numbers in bin_freqs.
     """
-    if default_real_limits is not None:
-        if (not isinstance(default_real_limits, (list, tuple))) or \
-                len(default_real_limits) == 1:  ## only one limit given, assumed to be lower one & upper is calculated
-            lower_real_limit = default_real_limits
-            upper_real_limit = 1.000001 * max(vals)
-        else:  ## assume both limits given
-            lower_real_limit = default_real_limits[0]
-            upper_real_limit = default_real_limits[1]
-        bin_width = (upper_real_limit - lower_real_limit) / float(n_bins)
-    else:  ## no limits given for histogram, both must be calc'd
-        est_bin_width = (max(vals) - min(vals)) / float(n_bins) + 1e-6  ## 1=>cover all
-        bin_width = (max(vals) - min(vals) + est_bin_width) / float(n_bins)
-        lower_real_limit = min(vals) - bin_width / 2  ## lower real limit, 1st bin
-        upper_real_limit = 1.000001 * max(vals)  ## added so able to include top val in final bin. Use same code as orig to calc upp from lower
+    bin_dets = _get_limits_and_bin_width(vals, n_bins=n_bins, limits=limits)
     bin_freqs = [0] * n_bins
     n_extra_points = 0
     for val in vals:
         try:
-            if (val - lower_real_limit) < 0 and inc_uppermost_val_in_top_bin:
+            if (val - bin_dets.lower_limit) < 0 and inc_uppermost_val_in_top_bin:
                 n_extra_points += 1
             else:
-                if val == upper_real_limit:  ## includes uppermost value in top bin
+                if val == bin_dets.upper_limit:  ## includes uppermost value in top bin
                     bin_freqs[n_bins - 1] += 1
                 else:  ## the original always did this if not (num - lower_real_limit) < 0
-                    bin2increment = int((val - lower_real_limit) / float(bin_width))
+                    bin2increment = int((val - bin_dets.lower_limit) / float(bin_dets.bin_width))
                     bin_freqs[bin2increment] = bin_freqs[bin2increment] + 1
         except Exception:
             n_extra_points += 1
-    logging.debug(f"{bin_freqs=}, {lower_real_limit=}, {bin_width=}, {n_extra_points=}")
-    return HistogramDetails(bin_freqs, lower_real_limit, bin_width, n_extra_points)
+    return HistogramDetails(bin_freqs, bin_dets.lower_limit, bin_dets.bin_width, n_extra_points)
 
-def has_saw_toothing(
-        bin_freqs: Sequence[float], period: int, start_idx: int = 0) -> bool:
+def has_saw_toothing(bin_freqs: Sequence[float], period: int, start_idx: int = 0) -> bool:
     """
     Saw-toothing is where every nth bin has values, but the others have none.
     """
@@ -159,7 +156,7 @@ def has_saw_toothing(
     return sum_non_period == 0
 
 def fix_saw_toothing(
-        vals: Sequence[float], initial_n_bins: int, default_real_limits,  ## enough to recalculate histogram details
+        vals: Sequence[float], initial_n_bins: int, limits: tuple[float, float],  ## enough to recalculate histogram details
         orig_histogram_details: HistogramDetails  ## existing details to be updated
         ) -> HistogramDetails:
     """
@@ -184,6 +181,10 @@ def fix_saw_toothing(
             break
         ## all we are changing is the number of bins (reducing them) and then getting fresh results
         n_bins = int(math.ceil(n_bins / shrink_factor))
-        fixed_histogram_details = get_histogram_details(vals, n_bins, default_real_limits)
+        fixed_histogram_details = get_histogram_details(vals, n_bins, limits)
         logging.debug(fixed_histogram_details)
     return fixed_histogram_details
+
+_vals = [1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,5,5,5,6,6,6,6,12,13,13,13,20,20,34,34,34,35,36,45,45,77]
+print(_vals)
+print(get_histogram_details(_vals, n_bins=4))
