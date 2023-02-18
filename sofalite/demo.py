@@ -10,7 +10,7 @@ from sofalite.conf.charts.output.non_standard import (
     ScatterChartingSpec, ScatterDataSeriesSpec, ScatterIndivChartSpec)
 from sofalite.conf.charts.output.standard import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
-    HistoChartingSpec, IndivChartSpec, LineChartingSpec, PieChartingSpec)
+    IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
 from sofalite.conf.misc import SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
@@ -20,7 +20,7 @@ from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
 from sofalite.sql_extraction.charts import freq_specs
-from sofalite.sql_extraction.charts import xys
+from sofalite.sql_extraction.charts import vals, xys
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova, ttest_indep
 
@@ -1981,24 +1981,67 @@ def multi_chart_series_scatterplot_from_data():
 
 def histogram_from_data():
     ## conf
+    dp = 3
     style_dets = get_style_dets(style='default')
-
+    fld_name = 'age'
+    fld_lbl = 'Age'
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = vals.by_vals(cur, tbl_name='demo_tbl', fld_name=fld_name, tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs() # Sequence[HistoIndivChartSpec]
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    bin_lbls = spec.to_bin_lbls(dp=dp)
+    x_axis_min_val, x_axis_max_val = spec.to_x_axis_range()
     charting_spec = HistoChartingSpec(
-        bin_lbls=bin_lbls, # Sequence[str]
+        bin_lbls=bin_lbls,
         indiv_chart_specs=indiv_chart_specs,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
-        var_lbl=var_lbl, # str | None
+        var_lbl=fld_lbl,
         x_axis_font_size=12,
-        x_axis_max_val=x_axis_max_val, # float
-        x_axis_min_val=x_axis_min_val, # float
+        x_axis_max_val=x_axis_max_val,
+        x_axis_min_val=x_axis_min_val,
     )
     ## output
     html = get_html(charting_spec, style_dets)
     fpath = '/home/g/Documents/sofalite/reports/test_histogram_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_chart_histogram_from_data():
+    ## conf
+    dp = 3
+    style_dets = get_style_dets(style='default')
+    chart_fld_name = 'gender'
+    chart_fld_lbl = 'Gender'
+    chart_vals2lbls = {1: 'Male', 2: 'Female'}
+    fld_name = 'age'
+    fld_lbl = 'Age'
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        spec = vals.by_chart(cur, tbl_name='demo_tbl',
+            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            fld_name=fld_name,
+            chart_vals2lbls=chart_vals2lbls,
+            tbl_filt_clause=None)
+    ## charts details
+    indiv_chart_specs = spec.to_indiv_chart_specs()
+    bin_lbls = spec.to_bin_lbls(dp=dp)
+    x_axis_min_val, x_axis_max_val = spec.to_x_axis_range()
+    charting_spec = HistoChartingSpec(
+        bin_lbls=bin_lbls,
+        indiv_chart_specs=indiv_chart_specs,
+        show_borders=False,
+        show_n_records=True,
+        show_normal_curve=True,
+        var_lbl=fld_lbl,
+        x_axis_font_size=12,
+        x_axis_max_val=x_axis_max_val,
+        x_axis_min_val=x_axis_min_val,
+    )
+    ## output
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_histogram_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -2014,7 +2057,8 @@ def histogram_from_data():
 # multi_series_scatterplot_from_data()
 # multi_chart_scatterplot_from_data()
 # multi_chart_series_scatterplot_from_data()
-histogram_from_data()
+# histogram_from_data()
+multi_chart_histogram_from_data()
 
 # run_chart_data()
 #

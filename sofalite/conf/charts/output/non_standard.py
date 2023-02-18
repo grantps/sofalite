@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Sequence
 
+from sofalite.conf.misc import BinDets
 from sofalite.output.charts.utils import get_optimal_axis_bounds
 
 ## Histogram
@@ -10,7 +11,7 @@ class HistoIndivChartSpec:
     lbl: str | None
     n_records: int
     norm_y_vals: Sequence[float]
-    y_vals: Sequence[float]
+    y_vals: Sequence[int]
 
 @dataclass
 class HistoChartingSpec:

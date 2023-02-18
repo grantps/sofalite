@@ -169,9 +169,9 @@ def by_chart_category(cur: ExtendedCursor, tbl_name: str,
     for chart_val in df['chart_val'].unique():
         freq_specs = []
         for _i, (category_val, freq, raw_category_pct) in df.loc[
-            df['chart_val'] == chart_val,
-            ['category_val', 'freq', 'raw_category_pct']
-        ].iterrows():
+                    df['chart_val'] == chart_val,
+                    ['category_val', 'freq', 'raw_category_pct']
+                ].iterrows():
             freq_spec = CategoryItemFreqSpec(
                 category_val=category_val,
                 category_val_lbl=category_vals2lbls.get(category_val, category_val),

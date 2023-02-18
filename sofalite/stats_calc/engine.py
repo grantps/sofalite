@@ -2135,5 +2135,5 @@ def get_normal_ys(vals, bins):
     if sigma == 0:
         raise Exception(
             'Unable to get y-axis values for normal curve with a sigma of 0.')
-    norm_ys = normpdf_from_old_mpl(bins, mu, sigma)
+    norm_ys = list(normpdf_from_old_mpl(bins, mu, sigma))
     return norm_ys

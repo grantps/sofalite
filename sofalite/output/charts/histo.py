@@ -162,7 +162,7 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     y_axis_title_offset = 45
     left_margin_offset = 25
     stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
-    normal_stroke_width = stroke_width * 2
+    normal_stroke_width = 4
     show_normal_curve_js_bool = 'true' if charting_spec.show_normal_curve else 'false'
     width = get_width(charting_spec.var_lbl, n_bins=charting_spec.n_bins,
         x_axis_min_val=charting_spec.x_axis_min_val, x_axis_max_val=charting_spec.x_axis_max_val,

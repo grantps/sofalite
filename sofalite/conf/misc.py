@@ -32,27 +32,44 @@ class SortOrder(StrConst):
     INCREASING = 'by increasing frequency'
     DECREASING = 'by decreasing frequency'
 
-@dataclass(frozen=True)
-class NiceInitialBinDets:
-    """
-    Details which will be enough to get initial histogram details when accompanied by the actual values.
-    """
+@dataclass(frozen=False)
+class BinDets:
+    lower_limit: float
+    upper_limit: float
     n_bins: int
-    lower_limit: float
-    upper_limit: float
-
-@dataclass(frozen=True)
-class BinWidthDets:
-    """
-    Widths, ranges, for bins.
-    """
     bin_width: float
-    lower_limit: float
-    upper_limit: float
 
-@dataclass(frozen=True)
-class HistogramDetails:
-    bins_freqs: Sequence[int]
-    lower_real_limit: float
-    bin_width: float
-    n_extra_points: int
+    def validate(self):
+        expected_n_bins = round(self.range / self.bin_width)
+        if self.n_bins != expected_n_bins:
+            raise ValueError(f"{self.n_bins} not expected value {expected_n_bins} "
+                f"as calculated from {self.lower_limit=}, {self.upper_limit=}, and {self.bin_width=}")
+
+    def __post_init__(self):
+        self.range = self.upper_limit - self.lower_limit
+        self.validate()
+        bin_start = self.lower_limit
+        self.bin_ranges = []
+        for bin_n in range(1, self.n_bins + 1):
+            bin_end = bin_start + self.bin_width
+            self.bin_ranges.append((bin_start, bin_end))
+            bin_start = bin_end
+
+    def to_bin_lbls(self, *, dp: int = 3):
+        rounded_bin_ranges = []
+        for raw_bin_start, raw_bin_end in self.bin_ranges:
+            ## if ints
+            rounded_start = round(raw_bin_start, dp)
+            if rounded_start == int(rounded_start):
+                bin_start = int(rounded_start)
+            else:
+                bin_start = rounded_start
+            rounded_end = round(raw_bin_end, dp)
+            if rounded_end == int(rounded_end):
+                bin_end = int(rounded_end)
+            else:
+                bin_end = rounded_end
+            rounded_bin_ranges.append((bin_start, bin_end))
+        bin_lbls = [f"{lower} to < {upper}" for lower, upper in rounded_bin_ranges]
+        bin_lbls[-1] = bin_lbls[-1].replace('<', '<=')
+        return bin_lbls

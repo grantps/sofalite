@@ -9,8 +9,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
 from sofalite.conf.charts.misc import HistogramConf, HistogramData, ScatterplotConf,ScatterplotSeries
-from sofalite.stats_calc.histogram import (fix_saw_toothing, get_histogram_details,
-    get_nice_initial_bin_details)
+from sofalite.stats_calc.histogram import get_bin_details_from_vals
 from sofalite.stats_calc.engine import get_normal_ys, get_regression_dets
 
 def set_gen_mpl_settings(axes_lbl_size=14, xtick_lbl_size=10, ytick_lbl_size=10):
@@ -33,14 +32,7 @@ def get_histogram_fig(chart_conf: HistogramConf, data_dets: HistogramData) -> Fi
     rect = ax.patch
     rect.set_facecolor(chart_conf.inner_bg_colour)
     vals = data_dets.vals
-    initial_bin_dets = get_nice_initial_bin_details(
-        min_val=min(vals), max_val=max(vals), n_distinct=len(set(vals)))
-    default_real_limits = [initial_bin_dets.lower_limit, initial_bin_dets.upper_limit]
-    histogram_details = get_histogram_details(
-        vals, initial_bin_dets.n_bins, default_real_limits=default_real_limits)
-    fixed_histogram_details = fix_saw_toothing(
-        vals, initial_bin_dets.n_bins, default_real_limits=default_real_limits,
-        orig_histogram_details=histogram_details)
+    bin_dets, bin_freqs = get_bin_details_from_vals(vals)
     ax.set_xlabel(chart_conf.var_lbl)
     ax.set_ylabel('P')
     if chart_conf.chart_lbl:
@@ -49,13 +41,12 @@ def get_histogram_fig(chart_conf: HistogramConf, data_dets: HistogramData) -> Fi
         chart_lbl = f"Histogram for {chart_conf.var_lbl}"
     ax.set_title(chart_lbl)
     ## see entry for hist in http://matplotlib.sourceforge.net/api/axes_api.html
-    n_bins = len(fixed_histogram_details.bins_freqs)
     ## density=True means the integral of the histogram is 1 (the area = 1)
     ## the wider the bins the smaller the P values
     ## See https://plotly.com/chart-studio-help/histogram/
     ## See also https://matplotlib.org/stable/gallery/statistics/histogram_features.html
-    n, bins, patches = ax.hist(vals, n_bins, density=True,
-        range=tuple(default_real_limits),
+    n, bins, patches = ax.hist(vals, bin_dets.n_bins, density=True,
+        range=(bin_dets.lower_limit, bin_dets.upper_limit),
         facecolor=chart_conf.bar_colour, edgecolor=chart_conf.line_colour)
     # ensure enough y-axis to show all of normpdf
     ymin, ymax = ax.get_ylim()
