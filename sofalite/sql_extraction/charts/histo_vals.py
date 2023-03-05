@@ -4,12 +4,12 @@ Then, using get_bin_freqs(vals, bin_dets), and the common bin_dets, get bin_freq
 """
 import pandas as pd
 
-from sofalite.conf.charts.data.vals import ChartValsSpecs, ValsSpec
+from sofalite.conf.charts.data.vals import HistoValsSpecs, HistoValsSpec
 from sofalite.sql_extraction.db import ExtendedCursor
 
 def by_vals(cur: ExtendedCursor, tbl_name: str,
-        fld_name: str,
-        tbl_filt_clause: str | None = None) -> ValsSpec:
+        fld_name: str, fld_lbl: str,
+        tbl_filt_clause: str | None = None) -> HistoValsSpec:
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     ## assemble SQL
@@ -25,17 +25,18 @@ def by_vals(cur: ExtendedCursor, tbl_name: str,
     data = cur.fetchall()
     vals = [row[0] for row in data]
     ## build result
-    result = ValsSpec(
-        lbl=None,
+    data_spec = HistoValsSpec(
+        chart_lbl=None,
+        fld_lbl=fld_lbl,
         vals=vals,
     )
-    return result
+    return data_spec
 
 def by_chart(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
-        fld_name: str,
+        fld_name: str, fld_lbl: str,
         chart_vals2lbls: dict | None,
-        tbl_filt_clause: str | None = None) -> ChartValsSpecs:
+        tbl_filt_clause: str | None = None) -> HistoValsSpecs:
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     ## assemble SQL
@@ -59,13 +60,15 @@ def by_chart(cur: ExtendedCursor, tbl_name: str,
         chart_lbl = chart_vals2lbls.get(chart_val, chart_val)
         df_vals = df.loc[df['chart_val'] == chart_val, ['val']]
         vals = list(df_vals['val'])
-        vals_spec = ValsSpec(
-            lbl=chart_lbl,
+        vals_spec = HistoValsSpec(
+            chart_lbl=chart_lbl,
+            fld_lbl=fld_lbl,  ## needed when single chart but redundant / repeated here in multi-chart context
             vals=vals,
         )
         chart_vals_specs.append(vals_spec)
-    result = ChartValsSpecs(
+    data_spec = HistoValsSpecs(
         chart_fld_lbl=chart_fld_lbl,
+        fld_lbl=fld_lbl,
         chart_vals_specs=chart_vals_specs,
     )
-    return result
+    return data_spec

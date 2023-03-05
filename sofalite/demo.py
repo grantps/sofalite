@@ -20,7 +20,7 @@ from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
 from sofalite.sql_extraction.charts import freq_specs
-from sofalite.sql_extraction.charts import vals, xys
+from sofalite.sql_extraction.charts import histo_vals, xys
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova, ttest_indep
 
@@ -1564,14 +1564,14 @@ def simple_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_category(
+        data_spec = freq_specs.by_category(
             cur, tbl_name='demo_tbl',
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             category_vals2lbls=category_vals2lbls,
             tbl_filt_clause=None, category_sort_order=SortOrder.VALUE)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_spec = spec.to_indiv_chart_spec()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_spec = data_spec.to_indiv_chart_spec()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=[indiv_chart_spec, ],
@@ -1580,7 +1580,7 @@ def simple_bar_chart_from_data():
         show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1601,7 +1601,7 @@ def multi_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_chart_category(
+        data_spec = freq_specs.by_chart_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -1609,8 +1609,8 @@ def multi_bar_chart_from_data():
             category_vals2lbls=category_vals2lbls,
             tbl_filt_clause=None, category_sort_order=SortOrder.LABEL)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=indiv_chart_specs,
@@ -1619,7 +1619,7 @@ def multi_bar_chart_from_data():
         show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1640,7 +1640,7 @@ def clustered_bar_chart_from_data():
     category_vals2lbls = {1: 'Male', 2: 'Female'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_series_category(
+        data_spec = freq_specs.by_series_category(
             cur, tbl_name='demo_tbl',
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -1649,17 +1649,17 @@ def clustered_bar_chart_from_data():
             tbl_filt_clause=None,
             category_sort_order=SortOrder.LABEL)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_spec = spec.to_indiv_chart_spec()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_spec = data_spec.to_indiv_chart_spec()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=[indiv_chart_spec, ],
-        legend_lbl=spec.series_fld_lbl,
+        legend_lbl=data_spec.series_fld_lbl,
         rotate_x_lbls=False,
         show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1683,7 +1683,7 @@ def multi_clustered_bar_chart_from_data():
     category_vals2lbls = {'Chrome': 'Google Chrome', }
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_chart_series_category(
+        data_spec = freq_specs.by_chart_series_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
@@ -1694,17 +1694,17 @@ def multi_clustered_bar_chart_from_data():
             tbl_filt_clause="(gender = 1 OR browser != 'Firefox')",
             category_sort_order=SortOrder.VALUE)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = BarChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=indiv_chart_specs,
-        legend_lbl=spec.series_fld_lbl,
+        legend_lbl=data_spec.series_fld_lbl,
         rotate_x_lbls=False,
         show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1725,7 +1725,7 @@ def multi_line_chart_from_data():
     category_vals2lbls = {'Chrome': 'Google Chrome'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_series_category(
+        data_spec = freq_specs.by_series_category(
             cur, tbl_name='demo_tbl',
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -1734,13 +1734,13 @@ def multi_line_chart_from_data():
             tbl_filt_clause=None,
             category_sort_order=SortOrder.LABEL)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_spec = spec.to_indiv_chart_spec()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_spec = data_spec.to_indiv_chart_spec()
     charting_spec = LineChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=[indiv_chart_spec],
         is_time_series=False,
-        legend_lbl=spec.series_fld_lbl,
+        legend_lbl=data_spec.series_fld_lbl,
         rotate_x_lbls=False,
         show_major_ticks_only=True,
         show_markers=True,
@@ -1748,7 +1748,7 @@ def multi_line_chart_from_data():
         show_trend_line=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1769,7 +1769,7 @@ def area_chart_from_data():
     category_vals2lbls = {'Chrome': 'Google Chrome'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_chart_category(
+        data_spec = freq_specs.by_chart_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -1778,8 +1778,8 @@ def area_chart_from_data():
             tbl_filt_clause=None,
             category_sort_order=SortOrder.LABEL)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = AreaChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=indiv_chart_specs,
@@ -1790,7 +1790,7 @@ def area_chart_from_data():
         show_markers=True,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=spec.category_fld_lbl,
+        x_axis_title=data_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
     ## output
@@ -1811,7 +1811,7 @@ def pie_chart_from_data():
     category_vals2lbls = {'Chrome': 'Google Chrome'}
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = freq_specs.by_chart_category(
+        data_spec = freq_specs.by_chart_category(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -1820,8 +1820,8 @@ def pie_chart_from_data():
             tbl_filt_clause=None,
             category_sort_order=SortOrder.LABEL)
     ## charts details
-    category_specs = spec.to_sorted_category_specs()
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = PieChartingSpec(
         category_specs=category_specs,
         indiv_chart_specs=indiv_chart_specs,
@@ -1843,12 +1843,13 @@ def single_series_scatterplot_from_data():
     y_fld_lbl = 'Weight'
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = xys.by_xy(
+        data_spec = xys.by_xy(
             cur, tbl_name='demo_tbl',
-            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
             tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = ScatterChartingSpec(
         indiv_chart_specs=indiv_chart_specs,
         legend_lbl=None,
@@ -1856,8 +1857,8 @@ def single_series_scatterplot_from_data():
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=x_fld_lbl,
-        y_axis_title=y_fld_lbl,
+        x_axis_title=data_spec.x_fld_lbl,
+        y_axis_title=data_spec.y_fld_lbl,
     )
     ## output
     html = get_html(charting_spec, style_dets)
@@ -1878,22 +1879,23 @@ def multi_series_scatterplot_from_data():
     y_fld_lbl = 'Weight'
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = xys.by_series_xy(cur, tbl_name='demo_tbl',
-            series_fld_name=series_fld_name,
-            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+        data_spec = xys.by_series_xy(cur, tbl_name='demo_tbl',
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = ScatterChartingSpec(
         indiv_chart_specs=indiv_chart_specs,
-        legend_lbl=series_fld_lbl,
+        legend_lbl=data_spec.series_fld_lbl,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=x_fld_lbl,
-        y_axis_title=y_fld_lbl,
+        x_axis_title=data_spec.x_fld_lbl,
+        y_axis_title=data_spec.y_fld_lbl,
     )
     ## output
     html = get_html(charting_spec, style_dets)
@@ -1914,13 +1916,14 @@ def multi_chart_scatterplot_from_data():
     y_fld_lbl = 'Weight'
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = xys.by_chart_xy(cur, tbl_name='demo_tbl',
+        data_spec = xys.by_chart_xy(cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = ScatterChartingSpec(
         indiv_chart_specs=indiv_chart_specs,
         legend_lbl=None,
@@ -1928,8 +1931,8 @@ def multi_chart_scatterplot_from_data():
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=x_fld_lbl,
-        y_axis_title=y_fld_lbl,
+        x_axis_title=data_spec.x_fld_lbl,
+        y_axis_title=data_spec.y_fld_lbl,
     )
     ## output
     html = get_html(charting_spec, style_dets)
@@ -1953,15 +1956,16 @@ def multi_chart_series_scatterplot_from_data():
     y_fld_lbl = 'Weight'
     ## data details
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = xys.by_chart_series_xy(cur, tbl_name='demo_tbl',
+        data_spec = xys.by_chart_series_xy(cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            series_fld_name=series_fld_name,
-            x_fld_name=x_fld_name, y_fld_name=y_fld_name,
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
+            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
     charting_spec = ScatterChartingSpec(
         indiv_chart_specs=indiv_chart_specs,
         legend_lbl=series_fld_lbl,
@@ -1969,8 +1973,8 @@ def multi_chart_series_scatterplot_from_data():
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=x_fld_lbl,
-        y_axis_title=y_fld_lbl,
+        x_axis_title=data_spec.x_fld_lbl,
+        y_axis_title=data_spec.y_fld_lbl,
     )
     ## output
     html = get_html(charting_spec, style_dets)
@@ -1986,18 +1990,19 @@ def histogram_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = vals.by_vals(cur, tbl_name='demo_tbl', fld_name=fld_name, tbl_filt_clause=None)
+        data_spec = histo_vals.by_vals(
+            cur, tbl_name='demo_tbl', fld_name=fld_name, fld_lbl=fld_lbl, tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
-    bin_lbls = spec.to_bin_lbls(dp=dp)
-    x_axis_min_val, x_axis_max_val = spec.to_x_axis_range()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
+    bin_lbls = data_spec.to_bin_lbls(dp=dp)
+    x_axis_min_val, x_axis_max_val = data_spec.to_x_axis_range()
     charting_spec = HistoChartingSpec(
         bin_lbls=bin_lbls,
         indiv_chart_specs=indiv_chart_specs,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
-        var_lbl=fld_lbl,
+        var_lbl=data_spec.fld_lbl,
         x_axis_font_size=12,
         x_axis_max_val=x_axis_max_val,
         x_axis_min_val=x_axis_min_val,
@@ -2019,22 +2024,22 @@ def multi_chart_histogram_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        spec = vals.by_chart(cur, tbl_name='demo_tbl',
+        data_spec = histo_vals.by_chart(cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            fld_name=fld_name,
+            fld_name=fld_name, fld_lbl=fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=None)
     ## charts details
-    indiv_chart_specs = spec.to_indiv_chart_specs()
-    bin_lbls = spec.to_bin_lbls(dp=dp)
-    x_axis_min_val, x_axis_max_val = spec.to_x_axis_range()
+    indiv_chart_specs = data_spec.to_indiv_chart_specs()
+    bin_lbls = data_spec.to_bin_lbls(dp=dp)
+    x_axis_min_val, x_axis_max_val = data_spec.to_x_axis_range()
     charting_spec = HistoChartingSpec(
         bin_lbls=bin_lbls,
         indiv_chart_specs=indiv_chart_specs,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
-        var_lbl=fld_lbl,
+        var_lbl=data_spec.fld_lbl,
         x_axis_font_size=12,
         x_axis_max_val=x_axis_max_val,
         x_axis_min_val=x_axis_min_val,
@@ -2058,7 +2063,7 @@ def multi_chart_histogram_from_data():
 # multi_chart_scatterplot_from_data()
 # multi_chart_series_scatterplot_from_data()
 # histogram_from_data()
-multi_chart_histogram_from_data()
+# multi_chart_histogram_from_data()
 
 # run_chart_data()
 #

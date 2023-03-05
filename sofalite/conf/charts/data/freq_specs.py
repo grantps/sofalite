@@ -30,7 +30,6 @@ class CategoryFreqSpecs:
     category_fld_lbl: str  ## e.g. Country
     category_freq_specs: Sequence[CategoryItemFreqSpec]  ## e.g. one freq spec per country
     category_sort_order: SortOrder
-    category_vals2lbls: dict[Any, str]
 
     def __str__(self):
         bits = [f"Category field value: {self.category_fld_lbl}", ]

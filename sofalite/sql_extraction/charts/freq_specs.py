@@ -51,13 +51,12 @@ def by_category(cur: ExtendedCursor, tbl_name: str,
             category_val=category_val, category_val_lbl=category_vals2lbls.get(category_val, str(category_val)),
             freq=int(freq), category_pct=category_pct)
         category_freq_specs.append(freq_spec)
-    result = CategoryFreqSpecs(
+    data_spec = CategoryFreqSpecs(
         category_fld_lbl=category_fld_lbl,
         category_freq_specs=category_freq_specs,
         category_sort_order=category_sort_order,
-        category_vals2lbls=category_vals2lbls,
     )
-    return result
+    return data_spec
 
 def by_series_category(cur: ExtendedCursor, tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
@@ -118,13 +117,13 @@ def by_series_category(cur: ExtendedCursor, tbl_name: str,
             category_freq_specs=category_item_freq_specs,
         )
         series_category_freq_specs.append(series_category_freq_spec)
-    result = SeriesCategoryFreqSpecs(
+    data_spec = SeriesCategoryFreqSpecs(
         series_fld_lbl=series_fld_lbl,
         category_fld_lbl=category_fld_lbl,
         series_category_freq_specs=series_category_freq_specs,
         category_sort_order=category_sort_order,
     )
-    return result
+    return data_spec
 
 def by_chart_category(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
@@ -185,13 +184,13 @@ def by_chart_category(cur: ExtendedCursor, tbl_name: str,
             category_freq_specs=freq_specs,
         )
         chart_category_freq_specs.append(chart_category_freq_spec)
-    result = ChartCategoryFreqSpecs(
+    data_spec = ChartCategoryFreqSpecs(
         chart_fld_lbl=chart_fld_lbl,
         category_fld_lbl=category_fld_lbl,
         chart_category_freq_specs=chart_category_freq_specs,
         category_sort_order=category_sort_order,
     )
-    return result
+    return data_spec
 
 def by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
@@ -267,14 +266,14 @@ def by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
             series_category_freq_specs=series_category_freq_specs,
         )
         chart_series_category_freq_specs.append(chart_series_category_freq_spec)
-    result = ChartSeriesCategoryFreqSpecs(
+    data_spec = ChartSeriesCategoryFreqSpecs(
         chart_fld_lbl=chart_fld_lbl,
         series_fld_lbl=series_fld_lbl,
         category_fld_lbl=category_fld_lbl,
         chart_series_category_freq_specs=chart_series_category_freq_specs,
         category_sort_order=category_sort_order,
     )
-    return result
+    return data_spec
 
 def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
@@ -291,13 +290,13 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
     """
     if chart_fld_name is None:  ## no chart
         if series_fld_name is None:  ## no series (so category only)
-            spec = by_category(
+            data_spec = by_category(
                 cur=cur, tbl_name=tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## series and category
-            spec = by_series_category(
+            data_spec = by_series_category(
                 cur=cur, tbl_name=tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
@@ -306,7 +305,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 tbl_filt_clause=tbl_filt_clause)
     else:  ## chart
         if series_fld_name is None:  ## chart and category only (no series)
-            spec = by_chart_category(
+            data_spec = by_chart_category(
                 cur=cur, tbl_name=tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -314,7 +313,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## chart, series, and category
-            spec = by_chart_series_category(
+            data_spec = by_chart_series_category(
                 cur=cur, tbl_name=tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
@@ -323,4 +322,4 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 series_vals2lbls=series_vals2lbls,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
-    return spec
+    return data_spec

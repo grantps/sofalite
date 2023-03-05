@@ -5,7 +5,7 @@ from sofalite.conf.charts.data.xys import (ChartSeriesXYSpec, ChartSeriesXYSpecs
 from sofalite.sql_extraction.db import ExtendedCursor
 
 def by_xy(cur: ExtendedCursor, tbl_name: str,
-        x_fld_name: str, y_fld_name: str,
+        x_fld_name: str, x_fld_lbl: str, y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
@@ -23,14 +23,17 @@ def by_xy(cur: ExtendedCursor, tbl_name: str,
     cur.exe(sql)
     data = cur.fetchall()
     ## build result
-    result = XYSpecs(
+    data_spec = XYSpecs(
+        x_fld_lbl=x_fld_lbl,
+        y_fld_lbl=y_fld_lbl,
         xys=data,
     )
-    return result
+    return data_spec
 
 def by_series_xy(cur: ExtendedCursor, tbl_name: str,
-        series_fld_name: str,
-        x_fld_name: str, y_fld_name: str,
+        series_fld_name: str, series_fld_lbl: str,
+        x_fld_name: str, x_fld_lbl: str,
+        y_fld_name: str, y_fld_lbl: str,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> SeriesXYSpecs:
     ## prepare clauses
@@ -61,14 +64,18 @@ def by_series_xy(cur: ExtendedCursor, tbl_name: str,
             xys=xys,
         )
         series_xy_specs.append(series_xy_spec)
-    result = SeriesXYSpecs(
+    data_spec = SeriesXYSpecs(
+        series_fld_lbl=series_fld_lbl,
+        x_fld_lbl=x_fld_lbl,
+        y_fld_lbl=y_fld_lbl,
         series_xy_specs=series_xy_specs,
     )
-    return result
+    return data_spec
 
 def by_chart_xy(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
-        x_fld_name: str, y_fld_name: str,
+        x_fld_name: str, x_fld_lbl: str,
+        y_fld_name: str, y_fld_lbl: str,
         chart_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartXYSpecs:
     ## prepare clauses
@@ -99,15 +106,18 @@ def by_chart_xy(cur: ExtendedCursor, tbl_name: str,
             xys=xys,
         )
         charts_xy_specs.append(chart_xy_spec)
-    result = ChartXYSpecs(
+    data_spec = ChartXYSpecs(
+        x_fld_lbl=x_fld_lbl,
+        y_fld_lbl=y_fld_lbl,
         charts_xy_specs=charts_xy_specs,
     )
-    return result
+    return data_spec
 
 def by_chart_series_xy(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
-        series_fld_name: str,
-        x_fld_name: str, y_fld_name: str,
+        series_fld_name: str, series_fld_lbl: str,
+        x_fld_name: str, x_fld_lbl: str,
+        y_fld_name: str, y_fld_lbl: str,
         chart_vals2lbls: dict | None,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartSeriesXYSpecs:
@@ -151,7 +161,10 @@ def by_chart_series_xy(cur: ExtendedCursor, tbl_name: str,
             series_xy_specs=series_xy_specs,
         )
         chart_series_xy_specs.append(chart_series_xy_spec)
-    result = ChartSeriesXYSpecs(
+    data_spec = ChartSeriesXYSpecs(
+        series_fld_lbl=series_fld_lbl,
+        x_fld_lbl=x_fld_lbl,
+        y_fld_lbl=y_fld_lbl,
         chart_series_xy_specs=chart_series_xy_specs,
     )
-    return result
+    return data_spec

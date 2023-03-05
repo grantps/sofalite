@@ -5,6 +5,8 @@ from sofalite.conf.charts.output.non_standard import ScatterDataSeriesSpec, Scat
 
 @dataclass(frozen=True)
 class XYSpecs:
+    x_fld_lbl: str
+    y_fld_lbl: str
     xys: Sequence[tuple[float, float]]
 
     def to_indiv_chart_specs(self) -> Sequence[ScatterIndivChartSpec]:
@@ -26,6 +28,9 @@ class SeriesXYSpec:
 
 @dataclass(frozen=True)
 class SeriesXYSpecs:
+    series_fld_lbl: str
+    x_fld_lbl: str
+    y_fld_lbl: str
     series_xy_specs: Sequence[SeriesXYSpec]
 
     def to_indiv_chart_specs(self) -> Sequence[ScatterIndivChartSpec]:
@@ -50,6 +55,8 @@ class ChartXYSpec:
 
 @dataclass(frozen=True)
 class ChartXYSpecs:
+    x_fld_lbl: str
+    y_fld_lbl: str
     charts_xy_specs: Sequence[ChartXYSpec]
 
     def to_indiv_chart_specs(self) -> Sequence[ScatterIndivChartSpec]:
@@ -73,6 +80,9 @@ class ChartSeriesXYSpec:
 
 @dataclass(frozen=True)
 class ChartSeriesXYSpecs:
+    series_fld_lbl: str
+    x_fld_lbl: str
+    y_fld_lbl: str
     chart_series_xy_specs: Sequence[ChartSeriesXYSpec]
 
     def to_indiv_chart_specs(self) -> Sequence[ScatterIndivChartSpec]:

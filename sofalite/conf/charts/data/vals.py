@@ -6,8 +6,9 @@ from sofalite.stats_calc.engine import get_normal_ys
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
 
 @dataclass(frozen=False)
-class ValsSpec:
-    lbl: str | None
+class HistoValsSpec:
+    chart_lbl: str | None
+    fld_lbl: str
     vals: Sequence[float]
 
     def __post_init__(self):
@@ -28,7 +29,7 @@ class ValsSpec:
         norm_multiplier = sum_y_vals / sum_norm_y_vals
         adjusted_norm_y_vals = [val * norm_multiplier for val in norm_y_vals]
         indiv_chart_spec = HistoIndivChartSpec(
-            lbl=self.lbl,
+            lbl=self.chart_lbl,
             n_records=len(self.vals),
             norm_y_vals=adjusted_norm_y_vals,
             y_vals=self.bin_freqs,
@@ -46,9 +47,10 @@ class ValsSpec:
         return x_axis_min_val, x_axis_max_val
 
 @dataclass(frozen=False)
-class ChartValsSpecs:
+class HistoValsSpecs:
     chart_fld_lbl: str
-    chart_vals_specs: Sequence[ValsSpec]
+    fld_lbl: str
+    chart_vals_specs: Sequence[HistoValsSpec]
 
     def __post_init__(self):
         vals = []
