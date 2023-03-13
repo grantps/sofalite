@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
 import platform
-from typing import Any, Sequence
+import statistics
+from typing import Sequence
+
+from sofalite.stats_calc.boxplot import get_bottom_whisker, get_top_whisker
+from sofalite.stats_calc.engine import get_quartiles
 
 SOFALITE_WEB_RESOURCES_ROOT = 'http://www.sofastatistics.com/sofalite'
 
@@ -31,6 +35,46 @@ class SortOrder(StrConst):
     LABEL = 'by label'
     INCREASING = 'by increasing frequency'
     DECREASING = 'by decreasing frequency'
+
+class BoxplotType(StrConst):
+    MIN_MAX_WHISKERS = 'min_max_whiskers'
+    HIDE_OUTLIERS = 'hide_outliers'
+    IQR_1_PT_5_OR_INSIDE = '1.5 IQR or inside'
+
+@dataclass(frozen=False)
+class BoxDets:
+    vals: Sequence[float]
+    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+
+    def __post_init__(self):
+        """
+        lower_box_val=box_dets.lower_box_val,
+        upper_box_val=box_dets.upper_box_val,
+        """
+        min_measure = min(self.vals)
+        max_measure = max(self.vals)
+        ## box
+        lower_quartile, upper_quartile = get_quartiles(self.vals)
+        self.box_bottom = lower_quartile
+        self.box_top = upper_quartile
+        ## median
+        self.median = statistics.median(self.vals)
+        ## whiskers
+        if self.boxplot_type == BoxplotType.MIN_MAX_WHISKERS:
+            self.bottom_whisker = min_measure
+            self.top_whisker = max_measure
+        else:
+            iqr = self.box_top - self.box_bottom
+            raw_bottom_whisker = self.box_bottom - (1.5 * iqr)
+            raw_top_whisker = self.box_top + (1.5 * iqr)
+            self.bottom_whisker = get_bottom_whisker(raw_bottom_whisker, self.box_bottom, self.vals)
+            self.top_whisker = get_top_whisker(raw_top_whisker, self.box_top, self.vals)
+        ## outliers
+        if self.boxplot_type == BoxplotType.IQR_1_PT_5_OR_INSIDE:
+            self.outliers = [x for x in self.vals
+                if x < self.bottom_whisker or x > self.top_whisker]
+        else:
+            self.outliers = []  ## hidden or inside whiskers
 
 @dataclass(frozen=False)
 class BinDets:

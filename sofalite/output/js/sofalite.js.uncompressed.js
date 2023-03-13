@@ -20270,8 +20270,8 @@ dojo.require("dojox.lang.functional.reversed");
 				        stats.vmax = Math.max(stats.vmax, val);
 			        });
 			    } else {
-			        stats.vmin = Math.min(stats.vmin, run.data.lwhisker);
-			        stats.vmin = Math.min(stats.vmin, run.data.lbox);
+			        stats.vmin = Math.min(stats.vmin, run.data.bottom_whisker);
+			        stats.vmin = Math.min(stats.vmin, run.data.box_bottom);
 			        dojo.forEach(run.data.outliers, function(val, i){
 				        stats.vmin = Math.min(stats.vmin, val);
 				        stats.vmax = Math.max(stats.vmax, val);
@@ -20323,11 +20323,11 @@ dojo.require("dojox.lang.functional.reversed");
 			        }
                     width = width + 2 // more visible
 
-			            lw = run.summary_data.lwhisker; lw_rounded = run.summary_data.lwhisker_rounded;
-			            lq = run.summary_data.lbox; lq_rounded = run.summary_data.lbox_rounded;
+			            lw = run.summary_data.bottom_whisker; lw_rounded = run.summary_data.bottom_whisker_rounded;
+			            lq = run.summary_data.box_bottom; lq_rounded = run.summary_data.box_bottom_rounded;
 			            med = run.summary_data.median; med_rounded = run.summary_data.median_rounded;
-			            uq = run.summary_data.ubox; uq_rounded = run.summary_data.ubox_rounded;
-			            uw = run.summary_data.uwhisker; uw_rounded = run.summary_data.uwhisker_rounded;
+			            uq = run.summary_data.box_top; uq_rounded = run.summary_data.box_top_rounded;
+			            uw = run.summary_data.top_whisker; uw_rounded = run.summary_data.top_whisker_rounded;
 			            outliers = run.summary_data.outliers; outliers_rounded = run.summary_data.outliers_rounded;
                         indiv_boxlbl = run.indiv_boxlbl;
 

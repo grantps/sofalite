@@ -12,15 +12,14 @@ from sofalite.conf.charts.output.standard import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
     IndivChartSpec, LineChartingSpec, PieChartingSpec)
 from sofalite.conf.data import ValDets
-from sofalite.conf.misc import SortOrder
+from sofalite.conf.misc import BoxplotType, SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
 from sofalite.output.styles.misc import get_style_dets
 from sofalite.output.stats import anova as html_anova, ttest_indep as html_ttest_indep
-from sofalite.sql_extraction.charts import freq_specs
-from sofalite.sql_extraction.charts import histo_vals, xys
+from sofalite.sql_extraction.charts import box_vals, freq_specs, histo_vals, xys
 from sofalite.sql_extraction.db import Sqlite
 from sofalite.stats_calc import anova, ttest_indep
 
@@ -1429,78 +1428,78 @@ def run_boxplots():
         CategorySpec(val=3, lbl='Canada'),
     ]
     box_item_male_nz = BoxplotDataItem(
-        lower_box_val=26,
-        lower_box_val_rounded=26,
-        lower_whisker_val=7,
-        lower_whisker_val_rounded=7,
-        median_val=46,
-        median_val_rounded=46,
+        box_bottom=26,
+        box_bottom_rounded=26,
+        bottom_whisker=7,
+        bottom_whisker_rounded=7,
+        median=46,
+        median_rounded=46,
         outliers=[],
         outliers_rounded=[],
-        upper_box_val=73,
-        upper_box_val_rounded=73,
-        upper_whisker_val=95,
-        upper_whisker_val_rounded=95,
+        box_top=73,
+        box_top_rounded=73,
+        top_whisker=95,
+        top_whisker_rounded=95,
     )
     box_item_male_us = BoxplotDataItem(
-        lower_box_val=17.5,
-        lower_box_val_rounded=17.5,
-        lower_whisker_val=1,
-        lower_whisker_val_rounded=1,
-        median_val=43,
-        median_val_rounded=43,
+        box_bottom=17.5,
+        box_bottom_rounded=17.5,
+        bottom_whisker=1,
+        bottom_whisker_rounded=1,
+        median=43,
+        median_rounded=43,
         outliers=[88, 88, 89],
         outliers_rounded=[88, 88, 89],
-        upper_box_val=66,
-        upper_box_val_rounded=66,
-        upper_whisker_val=86,
-        upper_whisker_val_rounded=86,
+        box_top=66,
+        box_top_rounded=66,
+        top_whisker=86,
+        top_whisker_rounded=86,
     )
     box_item_male_canada = BoxplotDataItem(
-        lower_box_val=26,
-        lower_box_val_rounded=26,
-        lower_whisker_val=1,
-        lower_whisker_val_rounded=1,
-        median_val=43,
-        median_val_rounded=43,
+        box_bottom=26,
+        box_bottom_rounded=26,
+        bottom_whisker=1,
+        bottom_whisker_rounded=1,
+        median=43,
+        median_rounded=43,
         outliers=[],
         outliers_rounded=[],
-        upper_box_val=68,
-        upper_box_val_rounded=68,
-        upper_whisker_val=91,
-        upper_whisker_val_rounded=91,
+        box_top=68,
+        box_top_rounded=68,
+        top_whisker=91,
+        top_whisker_rounded=91,
     )
     data_series_spec_male = BoxplotDataSeriesSpec(
         lbl='Male',
         box_items=[box_item_male_nz, box_item_male_us, box_item_male_canada],
     )
     box_item_female_nz = BoxplotDataItem(
-        lower_box_val=29,
-        lower_box_val_rounded=29,
-        lower_whisker_val=8,
-        lower_whisker_val_rounded=8,
-        median_val=48.5,
-        median_val_rounded=48.5,
+        box_bottom=29,
+        box_bottom_rounded=29,
+        bottom_whisker=8,
+        bottom_whisker_rounded=8,
+        median=48.5,
+        median_rounded=48.5,
         outliers=[],
         outliers_rounded=[],
-        upper_box_val=75.5,
-        upper_box_val_rounded=75.5,
-        upper_whisker_val=96,
-        upper_whisker_val_rounded=96,
+        box_top=75.5,
+        box_top_rounded=75.5,
+        top_whisker=96,
+        top_whisker_rounded=96,
     )
     box_item_female_canada = BoxplotDataItem(
-        lower_box_val=23,
-        lower_box_val_rounded=23,
-        lower_whisker_val=2,
-        lower_whisker_val_rounded=2,
-        median_val=47,
-        median_val_rounded=47,
+        box_bottom=23,
+        box_bottom_rounded=23,
+        bottom_whisker=2,
+        bottom_whisker_rounded=2,
+        median=47,
+        median_rounded=47,
         outliers=None,
         outliers_rounded=None,
-        upper_box_val=69,
-        upper_box_val_rounded=69,
-        upper_whisker_val=91,
-        upper_whisker_val_rounded=91,
+        box_top=69,
+        box_top_rounded=69,
+        top_whisker=91,
+        top_whisker_rounded=91,
     )
     data_series_spec_female = BoxplotDataSeriesSpec(
         lbl='Female',
@@ -2051,6 +2050,44 @@ def multi_chart_histogram_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+def boxplot_from_data():
+    ## conf
+    dp = 3
+    style_dets = get_style_dets(style='default')
+    category_fld_name = 'country'
+    category_fld_lbl = 'Country'
+    category_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
+    fld_name = 'age'
+    fld_lbl = 'Age'
+    with Sqlite(DATABASE_FPATH) as (_con, cur):
+        data_spec = box_vals.by_category(cur, tbl_name='demo_tbl',
+            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
+            fld_name=fld_name, fld_lbl=fld_lbl,
+            tbl_filt_clause=None,
+            category_vals2lbls=category_vals2lbls,
+            category_sort_order=SortOrder.VALUE,
+            boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE)
+    # print(data_spec)
+    ## charts details
+    category_specs = data_spec.to_sorted_category_specs()
+    indiv_chart_spec = data_spec.to_indiv_chart_spec(dp=dp)
+    # print(indiv_chart_specs)
+    charting_spec = BoxplotChartingSpec(
+        category_specs=category_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
+        legend_lbl=data_spec.series_fld_lbl,
+        rotate_x_lbls=False,
+        show_n_records=True,
+        x_axis_title=data_spec.category_fld_lbl,
+        y_axis_title=data_spec.fld_lbl,
+    )
+    html = get_html(charting_spec, style_dets)
+    fpath = '/home/g/Documents/sofalite/reports/test_boxplot_from_data.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+
 # simple_bar_chart_from_data()
 # multi_bar_chart_from_data()
 # clustered_bar_chart_from_data()
@@ -2064,6 +2101,7 @@ def multi_chart_histogram_from_data():
 # multi_chart_series_scatterplot_from_data()
 # histogram_from_data()
 # multi_chart_histogram_from_data()
+boxplot_from_data()
 
 # run_chart_data()
 #

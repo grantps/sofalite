@@ -81,22 +81,22 @@ class ScatterplotDojoSeriesSpec:
 @dataclass(frozen=True)
 class DojoBoxSpec:
     """
-    Has huge overlap with other_specs.BoxplotDataItem
+    Has huge overlap with non_standard.BoxplotDataItem
     """
     center: float
     indiv_box_lbl: str
-    lower_box_val: float
-    lower_box_val_rounded: float
-    lower_whisker_val: float
-    lower_whisker_val_rounded: float
-    median_val: float
-    median_val_rounded: float
+    box_bottom: float
+    box_bottom_rounded: float
+    bottom_whisker: float
+    bottom_whisker_rounded: float
+    median: float
+    median_rounded: float
     outliers: Sequence[float] | None
     outliers_rounded: Sequence[float] | None
-    upper_box_val: float
-    upper_box_val_rounded: float
-    upper_whisker_val: float
-    upper_whisker_val_rounded: float
+    box_top: float
+    box_top_rounded: float
+    top_whisker: float
+    top_whisker_rounded: float
 
 @dataclass(frozen=True)
 class BoxplotDojoSeriesSpec:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Sequence
 
-from sofalite.conf.misc import BinDets
+from sofalite.conf.charts.output.standard import CategorySpec
 from sofalite.output.charts.utils import get_optimal_axis_bounds
 
 ## Histogram
@@ -110,31 +110,22 @@ class ScatterChartingSpec:
 
 ## Boxplot
 
-## The categories e.g. NZ (common across all individual charts and series within any charts)
-@dataclass(frozen=True)
-class CategorySpec:
-    """
-    lbl: HTML label e.g. "Ubuntu<br>Linux" - ready for display in chart
-    """
-    val: Any
-    lbl: str
-
 @dataclass
 class BoxplotDataItem:
-    ## indiv_box_lbl - derived from series lbl and category spec lbls
-    lower_box_val: float
-    lower_box_val_rounded: float
-    lower_whisker_val: float
-    lower_whisker_val_rounded: float
-    median_val: float
-    median_val_rounded: float
+    ## indiv_box_lbl - derived from series lbl and category spec lbls in BoxplotIndivChartSpec
+    box_bottom: float
+    box_bottom_rounded: float
+    bottom_whisker: float
+    bottom_whisker_rounded: float
+    median: float
+    median_rounded: float
     outliers: Sequence[float] | None
     outliers_rounded: Sequence[float] | None
-    upper_box_val: float
-    upper_box_val_rounded: float
-    upper_whisker_val: float
-    upper_whisker_val_rounded: float
-    ## center - derived from offset depending on which item on series (move rightwards)
+    box_top: float
+    box_top_rounded: float
+    top_whisker: float
+    top_whisker_rounded: float
+    ## center - derived from offset depending on which item on series (move rightwards) in BoxplotIndivChartSpec
 
 @dataclass
 class BoxplotDataSeriesSpec:
@@ -189,8 +180,8 @@ class BoxplotChartingSpec:
             for box_item in data_series_spec.box_items:
                 if not box_item:
                     continue
-                items_with_low_ys = [box_item.lower_whisker_val, ]
-                items_with_high_ys = [box_item.upper_whisker_val, ]
+                items_with_low_ys = [box_item.bottom_whisker, ]
+                items_with_high_ys = [box_item.top_whisker, ]
                 if box_item.outliers:
                     items_with_low_ys += box_item.outliers
                     items_with_high_ys += box_item.outliers

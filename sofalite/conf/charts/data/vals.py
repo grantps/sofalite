@@ -1,9 +1,121 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from sofalite.conf.charts.output.non_standard import HistoIndivChartSpec
+from sofalite.conf.charts.output.non_standard import (
+    BoxplotDataItem, BoxplotDataSeriesSpec, BoxplotIndivChartSpec, HistoIndivChartSpec)
+from sofalite.conf.charts.output.standard import CategorySpec
+from sofalite.conf.misc import BoxDets, BoxplotType, SortOrder
 from sofalite.stats_calc.engine import get_normal_ys
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
+
+@dataclass(frozen=False)
+class BoxplotCategoryItemValsSpec:
+    category_val: float | str  ## e.g. 1
+    category_val_lbl: str  ## e.g. Japan
+    vals: Sequence[float]
+
+@dataclass(frozen=False)
+class BoxplotCategoryValsSpecs:
+    chart_lbl: str | None
+    series_fld_lbl: str | None
+    category_fld_lbl: str  ## e.g. Country
+    fld_lbl: str
+    category_vals_specs: Sequence[BoxplotCategoryItemValsSpec]
+    category_sort_order: SortOrder
+    boxplot_type: BoxplotType
+
+    def to_sorted_category_specs(self):
+        """
+        category_specs = [
+            CategorySpec(val=1, lbl='New Zealand'),
+            CategorySpec(val=2, lbl='United States'),
+            CategorySpec(val=3, lbl='Canada'),
+        ]
+        """
+        category_specs = []
+        for category_vals_spec in self.category_vals_specs:
+            category_spec = CategorySpec(
+                val=category_vals_spec.category_val,
+                lbl=category_vals_spec.category_val_lbl,
+            )
+            category_specs.append(category_spec)
+        if self.category_sort_order == SortOrder.VALUE:
+            sorted_category_specs = sorted(category_specs, key=lambda x: x.val)
+        elif self.category_sort_order == SortOrder.LABEL:
+            sorted_category_specs = sorted(category_specs, key=lambda x: x.lbl)
+        else:
+            raise ValueError("Boxplot categories can only be sorted by value or label")
+        return sorted_category_specs
+
+    def to_indiv_chart_spec(self, *, dp: int = 3) -> BoxplotIndivChartSpec:
+        n_records = 0
+        box_items = []
+        for category_vals_spec in self.category_vals_specs:
+            n_records += len(category_vals_spec.vals)
+            box_dets = BoxDets(category_vals_spec.vals, self.boxplot_type)
+            box_item = BoxplotDataItem(
+                box_bottom=box_dets.box_bottom,
+                box_bottom_rounded=round(box_dets.box_bottom, dp),
+                bottom_whisker=box_dets.bottom_whisker,
+                bottom_whisker_rounded=round(box_dets.bottom_whisker, dp),
+                median=box_dets.median,
+                median_rounded=round(box_dets.median, dp),
+                outliers=box_dets.outliers,
+                outliers_rounded=[round(outlier, dp) for outlier in box_dets.outliers],
+                box_top=box_dets.box_top,
+                box_top_rounded=round(box_dets.box_top, dp),
+                top_whisker=box_dets.top_whisker,
+                top_whisker_rounded=round(box_dets.top_whisker, dp)
+            )
+            box_items.append(box_item)
+        data_series_spec = BoxplotDataSeriesSpec(
+            lbl=None,
+            box_items=box_items,
+        )
+        indiv_chart_spec = BoxplotIndivChartSpec(
+            data_series_specs=[data_series_spec, ],
+            n_records=n_records,
+        )
+        return indiv_chart_spec
+
+@dataclass(frozen=False)
+class BoxplotSeriesItemCategoryValsSpecs:
+    series_val: float | str  ## e.g. 1
+    series_val_lbl: str  ## e.g. Male
+    category_vals_specs: Sequence[BoxplotCategoryItemValsSpec]
+
+@dataclass(frozen=False)
+class BoxplotSeriesCategoryValsSpecs:
+    chart_lbl: str | None
+    series_fld_lbl: str  ## e.g. Gender
+    category_fld_lbl: str  ## e.g. Country
+    fld_lbl: str
+    series_category_vals_specs: Sequence[BoxplotSeriesItemCategoryValsSpecs]
+
+@dataclass(frozen=False)
+class BoxplotChartItemCategoryValsSpecs:
+    chart_val: float | str
+    chart_val_lbl: str
+    category_vals_specs: Sequence[BoxplotCategoryItemValsSpec]
+
+@dataclass(frozen=False)
+class BoxplotChartCategoryValsSpecs:
+    category_fld_lbl: str  ## e.g. Country
+    fld_lbl: str
+    chart_category_vals_specs: Sequence[BoxplotChartItemCategoryValsSpecs]
+
+@dataclass(frozen=False)
+class BoxplotChartItemSeriesCategoryValsSpecs:
+    chart_val: float | str
+    chart_val_lbl: str
+    series_category_vals_specs: Sequence[BoxplotSeriesCategoryValsSpecs]
+
+@dataclass(frozen=False)
+class BoxplotChartSeriesCategoryValsSpecs:
+    chart_fld_lbl: str
+    chart_series_category_vals_specs: Sequence[BoxplotChartItemSeriesCategoryValsSpecs]
+
+## ========================================================================================
 
 @dataclass(frozen=False)
 class HistoValsSpec:

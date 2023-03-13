@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from textwrap import dedent
-from typing import Any, Sequence
+from typing import Sequence
 
 from sofalite.conf.charts.output.standard import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
 from sofalite.conf.misc import SortOrder
