@@ -2085,34 +2085,34 @@ def boxplot_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def multi_chart_boxplot_from_data():
+def multi_series_boxplot_from_data():
     ## conf
     dp = 3
     style_dets = get_style_dets(style='default')
-    chart_fld_name = 'gender'
-    chart_fld_lbl = 'Gender'
-    chart_vals2lbls = {1: 'Male', 2: 'Female'}
+    series_fld_name = 'gender'
+    series_fld_lbl = 'Gender'
+    series_vals2lbls = {1: 'Male', 2: 'Female'}
     category_fld_name = 'country'
     category_fld_lbl = 'Country'
     category_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        data_spec = box_vals.by_chart_category(cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+        data_spec = box_vals.by_series_category(cur, tbl_name='demo_tbl',
+            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=fld_name, fld_lbl=fld_lbl,
             tbl_filt_clause=None,
-            chart_vals2lbls=chart_vals2lbls,
+            series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls,
             category_sort_order=SortOrder.VALUE,
             boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE)
     ## charts details
     category_specs = data_spec.to_sorted_category_specs()
-    indiv_chart_specs = data_spec.to_indiv_chart_specs(dp=dp)
+    indiv_chart_spec = data_spec.to_indiv_chart_spec(dp=dp)
     charting_spec = BoxplotChartingSpec(
         category_specs=category_specs,
-        indiv_chart_specs=indiv_chart_specs,
+        indiv_chart_specs=[indiv_chart_spec, ],
         legend_lbl=data_spec.series_fld_lbl,
         rotate_x_lbls=False,
         show_n_records=True,
@@ -2120,7 +2120,7 @@ def multi_chart_boxplot_from_data():
         y_axis_title=data_spec.fld_lbl,
     )
     html = get_html(charting_spec, style_dets)
-    fpath = '/home/g/Documents/sofalite/reports/test_multichart_boxplot_from_data.html'
+    fpath = '/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -2140,7 +2140,7 @@ def multi_chart_boxplot_from_data():
 # histogram_from_data()
 # multi_chart_histogram_from_data()
 # boxplot_from_data()
-multi_chart_boxplot_from_data()
+multi_series_boxplot_from_data()
 
 # run_chart_data()
 #

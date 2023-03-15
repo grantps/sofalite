@@ -90,37 +90,23 @@ class BoxplotSeriesItemCategoryValsSpecs:
 
 @dataclass(frozen=False)
 class BoxplotSeriesCategoryValsSpecs:
-    chart_lbl: str | None
     series_fld_lbl: str  ## e.g. Gender
     category_fld_lbl: str  ## e.g. Country
     fld_lbl: str
     series_category_vals_specs: Sequence[BoxplotSeriesItemCategoryValsSpecs]
-
-@dataclass(frozen=False)
-class BoxplotChartItemCategoryValsSpecs:
-    chart_val: float | str
-    chart_val_lbl: str
-    category_vals_specs: Sequence[BoxplotCategoryItemValsSpec]
-
-@dataclass(frozen=False)
-class BoxplotChartCategoryValsSpecs:
-    series_fld_lbl: str | None
-    category_fld_lbl: str  ## e.g. Country
-    fld_lbl: str
-    chart_category_vals_specs: Sequence[BoxplotChartItemCategoryValsSpecs]
     category_sort_order: SortOrder
     boxplot_type: BoxplotType
 
     def to_sorted_category_specs(self):
-        first_chart_category_vals_specs = self.chart_category_vals_specs[0].category_vals_specs  ## same for all of them so look at first chart
-        return get_sorted_category_specs(first_chart_category_vals_specs, self.category_sort_order)
+        first_series_category_vals_specs = self.series_category_vals_specs[0].category_vals_specs  ## same for all of them so look at first chart
+        return get_sorted_category_specs(first_series_category_vals_specs, self.category_sort_order)
 
-    def to_indiv_chart_specs(self, *, dp: int = 3):
-        indiv_chart_specs = []
-        for chart_item_category_vals_specs in self.chart_category_vals_specs:
-            n_records = 0
+    def to_indiv_chart_spec(self, *, dp: int = 3):
+        n_records = 0
+        data_series_specs = []
+        for series_item_category_vals_specs in self.series_category_vals_specs:
             box_items = []
-            for category_vals_spec in chart_item_category_vals_specs.category_vals_specs:
+            for category_vals_spec in series_item_category_vals_specs.category_vals_specs:
                 n_records += len(category_vals_spec.vals)
                 box_dets = BoxDets(category_vals_spec.vals, self.boxplot_type)
                 box_item = BoxplotDataItem(
@@ -142,23 +128,12 @@ class BoxplotChartCategoryValsSpecs:
                 lbl=None,
                 box_items=box_items,
             )
-            indiv_chart_spec = BoxplotIndivChartSpec(
-                data_series_specs=[data_series_spec, ],
-                n_records=n_records,
-            )
-            indiv_chart_specs.append(indiv_chart_spec)
-        return indiv_chart_specs
-
-@dataclass(frozen=False)
-class BoxplotChartItemSeriesCategoryValsSpecs:
-    chart_val: float | str
-    chart_val_lbl: str
-    series_category_vals_specs: Sequence[BoxplotSeriesCategoryValsSpecs]
-
-@dataclass(frozen=False)
-class BoxplotChartSeriesCategoryValsSpecs:
-    chart_fld_lbl: str
-    chart_series_category_vals_specs: Sequence[BoxplotChartItemSeriesCategoryValsSpecs]
+            data_series_specs.append(data_series_spec)
+        indiv_chart_spec = BoxplotIndivChartSpec(
+            data_series_specs=data_series_specs,
+            n_records=n_records,
+        )
+        return indiv_chart_spec
 
 ## ========================================================================================
 
