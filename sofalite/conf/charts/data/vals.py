@@ -14,6 +14,30 @@ class BoxplotCategoryItemValsSpec:
     category_val_lbl: str  ## e.g. Japan
     vals: Sequence[float]
 
+def get_sorted_category_specs(
+        category_vals_specs: Sequence[BoxplotCategoryItemValsSpec], category_sort_order: SortOrder):
+    """
+    category_specs = [
+        CategorySpec(val=1, lbl='New Zealand'),
+        CategorySpec(val=2, lbl='United States'),
+        CategorySpec(val=3, lbl='Canada'),
+    ]
+    """
+    category_specs = []
+    for category_vals_spec in category_vals_specs:
+        category_spec = CategorySpec(
+            val=category_vals_spec.category_val,
+            lbl=category_vals_spec.category_val_lbl,
+        )
+        category_specs.append(category_spec)
+    if category_sort_order == SortOrder.VALUE:
+        sorted_category_specs = sorted(category_specs, key=lambda x: x.val)
+    elif category_sort_order == SortOrder.LABEL:
+        sorted_category_specs = sorted(category_specs, key=lambda x: x.lbl)
+    else:
+        raise ValueError("Boxplot categories can only be sorted by value or label")
+    return sorted_category_specs
+
 @dataclass(frozen=False)
 class BoxplotCategoryValsSpecs:
     chart_lbl: str | None
@@ -25,27 +49,7 @@ class BoxplotCategoryValsSpecs:
     boxplot_type: BoxplotType
 
     def to_sorted_category_specs(self):
-        """
-        category_specs = [
-            CategorySpec(val=1, lbl='New Zealand'),
-            CategorySpec(val=2, lbl='United States'),
-            CategorySpec(val=3, lbl='Canada'),
-        ]
-        """
-        category_specs = []
-        for category_vals_spec in self.category_vals_specs:
-            category_spec = CategorySpec(
-                val=category_vals_spec.category_val,
-                lbl=category_vals_spec.category_val_lbl,
-            )
-            category_specs.append(category_spec)
-        if self.category_sort_order == SortOrder.VALUE:
-            sorted_category_specs = sorted(category_specs, key=lambda x: x.val)
-        elif self.category_sort_order == SortOrder.LABEL:
-            sorted_category_specs = sorted(category_specs, key=lambda x: x.lbl)
-        else:
-            raise ValueError("Boxplot categories can only be sorted by value or label")
-        return sorted_category_specs
+        return get_sorted_category_specs(self.category_vals_specs, self.category_sort_order)
 
     def to_indiv_chart_spec(self, *, dp: int = 3) -> BoxplotIndivChartSpec:
         n_records = 0
@@ -100,9 +104,50 @@ class BoxplotChartItemCategoryValsSpecs:
 
 @dataclass(frozen=False)
 class BoxplotChartCategoryValsSpecs:
+    series_fld_lbl: str | None
     category_fld_lbl: str  ## e.g. Country
     fld_lbl: str
     chart_category_vals_specs: Sequence[BoxplotChartItemCategoryValsSpecs]
+    category_sort_order: SortOrder
+    boxplot_type: BoxplotType
+
+    def to_sorted_category_specs(self):
+        first_chart_category_vals_specs = self.chart_category_vals_specs[0].category_vals_specs  ## same for all of them so look at first chart
+        return get_sorted_category_specs(first_chart_category_vals_specs, self.category_sort_order)
+
+    def to_indiv_chart_specs(self, *, dp: int = 3):
+        indiv_chart_specs = []
+        for chart_item_category_vals_specs in self.chart_category_vals_specs:
+            n_records = 0
+            box_items = []
+            for category_vals_spec in chart_item_category_vals_specs.category_vals_specs:
+                n_records += len(category_vals_spec.vals)
+                box_dets = BoxDets(category_vals_spec.vals, self.boxplot_type)
+                box_item = BoxplotDataItem(
+                    box_bottom=box_dets.box_bottom,
+                    box_bottom_rounded=round(box_dets.box_bottom, dp),
+                    bottom_whisker=box_dets.bottom_whisker,
+                    bottom_whisker_rounded=round(box_dets.bottom_whisker, dp),
+                    median=box_dets.median,
+                    median_rounded=round(box_dets.median, dp),
+                    outliers=box_dets.outliers,
+                    outliers_rounded=[round(outlier, dp) for outlier in box_dets.outliers],
+                    box_top=box_dets.box_top,
+                    box_top_rounded=round(box_dets.box_top, dp),
+                    top_whisker=box_dets.top_whisker,
+                    top_whisker_rounded=round(box_dets.top_whisker, dp)
+                )
+                box_items.append(box_item)
+            data_series_spec = BoxplotDataSeriesSpec(
+                lbl=None,
+                box_items=box_items,
+            )
+            indiv_chart_spec = BoxplotIndivChartSpec(
+                data_series_specs=[data_series_spec, ],
+                n_records=n_records,
+            )
+            indiv_chart_specs.append(indiv_chart_spec)
+        return indiv_chart_specs
 
 @dataclass(frozen=False)
 class BoxplotChartItemSeriesCategoryValsSpecs:
