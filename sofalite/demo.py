@@ -2132,7 +2132,7 @@ def multi_series_boxplot_from_data():
 # multi_clustered_bar_chart_from_data()
 # multi_line_chart_from_data()
 # area_chart_from_data()
-# pie_chart_from_data()
+pie_chart_from_data()
 # single_series_scatterplot_from_data()
 # multi_series_scatterplot_from_data()
 # multi_chart_scatterplot_from_data()
