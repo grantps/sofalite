@@ -1,10 +1,10 @@
 import pandas as pd
 
-from sofalite.conf.charts.data.xys import (ChartSeriesXYSpec, ChartSeriesXYSpecs, ChartXYSpec, ChartXYSpecs,
+from sofalite.conf.charts.intermediate.xys import (ChartSeriesXYSpec, ChartSeriesXYSpecs, ChartXYSpec, ChartXYSpecs,
     SeriesXYSpec, SeriesXYSpecs, XYSpecs)
 from sofalite.sql_extraction.db import ExtendedCursor
 
-def by_xy(cur: ExtendedCursor, tbl_name: str,
+def get_by_xy_charting_space(cur: ExtendedCursor, tbl_name: str,
         x_fld_name: str, x_fld_lbl: str, y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
     ## prepare clauses
@@ -30,7 +30,7 @@ def by_xy(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_series_xy(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
@@ -72,7 +72,7 @@ def by_series_xy(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_chart_xy(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
@@ -113,7 +113,7 @@ def by_chart_xy(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_chart_series_xy(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,

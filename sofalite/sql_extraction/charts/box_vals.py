@@ -1,13 +1,13 @@
 from collections import defaultdict
 from itertools import groupby  ## actually quite performant
 
-from sofalite.conf.charts.data.vals import (
+from sofalite.conf.charts.intermediate.vals import (
     BoxplotCategoryItemValsSpec, BoxplotCategoryValsSpecs, BoxplotSeriesCategoryValsSpecs,
     BoxplotSeriesItemCategoryValsSpecs)
 from sofalite.conf.misc import BoxplotType, SortOrder
 from sofalite.sql_extraction.db import ExtendedCursor
 
-def by_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None,
@@ -52,7 +52,7 @@ def by_category(cur: ExtendedCursor, tbl_name: str,
     )
     return result
 
-def by_series_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,

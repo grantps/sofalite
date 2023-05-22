@@ -4,10 +4,10 @@ Then, using get_bin_freqs(vals, bin_dets), and the common bin_dets, get bin_freq
 """
 import pandas as pd
 
-from sofalite.conf.charts.data.vals import HistoValsSpecs, HistoValsSpec
+from sofalite.conf.charts.intermediate.vals import HistoValsSpecs, HistoValsSpec
 from sofalite.sql_extraction.db import ExtendedCursor
 
-def by_vals(cur: ExtendedCursor, tbl_name: str,
+def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None) -> HistoValsSpec:
     ## prepare clauses
@@ -32,7 +32,7 @@ def by_vals(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_chart(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_charting_spec(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         chart_vals2lbls: dict | None,

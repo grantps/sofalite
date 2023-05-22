@@ -11,7 +11,7 @@ also sort by increasing and decreasing.
 """
 import pandas as pd
 
-from sofalite.conf.charts.data.freq_specs import (
+from sofalite.conf.charts.intermediate.freq_specs import (
     CategoryFreqSpecs, CategoryItemFreqSpec,
     ChartCategoryFreqSpec, ChartCategoryFreqSpecs,
     ChartSeriesCategoryFreqSpec, ChartSeriesCategoryFreqSpecs,
@@ -19,7 +19,7 @@ from sofalite.conf.charts.data.freq_specs import (
 from sofalite.conf.misc import SortOrder
 from sofalite.sql_extraction.db import ExtendedCursor
 
-def by_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
         tbl_filt_clause: str | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE) -> CategoryFreqSpecs:
@@ -58,7 +58,7 @@ def by_category(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_series_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         series_vals2lbls: dict | None,
@@ -125,7 +125,7 @@ def by_series_category(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def by_chart_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_vals2lbls: dict | None,
@@ -184,15 +184,15 @@ def by_chart_category(cur: ExtendedCursor, tbl_name: str,
             category_freq_specs=freq_specs,
         )
         chart_category_freq_specs.append(chart_category_freq_spec)
-    data_spec = ChartCategoryFreqSpecs(
+    charting_spec = ChartCategoryFreqSpecs(
         chart_fld_lbl=chart_fld_lbl,
         category_fld_lbl=category_fld_lbl,
         chart_category_freq_specs=chart_category_freq_specs,
         category_sort_order=category_sort_order,
     )
-    return data_spec
+    return charting_spec
 
-def by_chart_series_category(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
          series_fld_name: str, series_fld_lbl: str,
          category_fld_name: str, category_fld_lbl: str,
@@ -290,13 +290,13 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
     """
     if chart_fld_name is None:  ## no chart
         if series_fld_name is None:  ## no series (so category only)
-            data_spec = by_category(
+            data_spec = get_by_category_charting_spec(
                 cur=cur, tbl_name=tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## series and category
-            data_spec = by_series_category(
+            data_spec = get_by_series_category_charting_spec(
                 cur=cur, tbl_name=tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
@@ -305,7 +305,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 tbl_filt_clause=tbl_filt_clause)
     else:  ## chart
         if series_fld_name is None:  ## chart and category only (no series)
-            data_spec = by_chart_category(
+            data_spec = get_by_chart_category_charting_spec(
                 cur=cur, tbl_name=tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -313,7 +313,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## chart, series, and category
-            data_spec = by_chart_series_category(
+            data_spec = get_by_chart_series_category_charting_spec(
                 cur=cur, tbl_name=tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
