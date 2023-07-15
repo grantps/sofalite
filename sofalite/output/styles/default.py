@@ -27,6 +27,7 @@ BLACK = '#000000'
 def get_style_dets() -> StyleDets:
     connector_style = 'defbrown'
     table_dets = TableStyleDets(
+        ## font colours
         first_cell_font_colour=WHITE,
         var_font_colour=BLACK_BLUE,
         heading_footnote_font_colour=WHITE,

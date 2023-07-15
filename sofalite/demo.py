@@ -1810,7 +1810,7 @@ def pie_chart_from_data():
     category_vals2lbls = {'Chrome': 'Google Chrome'}
     ## intermediate charting spec (including data)
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_category_charting_spec(
+        intermediate_charting_spec = freq_specs.get_by_chart_category_charting_spec(
             cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
@@ -2132,12 +2132,12 @@ def multi_series_boxplot_from_data():
 # multi_clustered_bar_chart_from_data()
 # multi_line_chart_from_data()
 # area_chart_from_data()
-pie_chart_from_data()
+# pie_chart_from_data()
 # single_series_scatterplot_from_data()
 # multi_series_scatterplot_from_data()
 # multi_chart_scatterplot_from_data()
 # multi_chart_series_scatterplot_from_data()
-# histogram_from_data()
+histogram_from_data()
 # multi_chart_histogram_from_data()
 # boxplot_from_data()
 # multi_series_boxplot_from_data()
