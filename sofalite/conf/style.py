@@ -35,32 +35,27 @@ class ColourWithHighlight:
     highlight: str
 
 @dataclass(frozen=False, kw_only=True)  ## unfrozen so post init possible
-class TableStyleDets:
+class TableStyleSpec:
     ## font colours
-    first_cell_font_colour: str
-    var_font_colour: str
+    var_font_colour_first_level: str
+    var_font_colour_not_first_level: str
     heading_footnote_font_colour: str
     footnote_font_colour: str
     gui_msg_font_colour: str  ## TODO: used?
     gui_note_font_colour: str
     ## background colours
-    first_cell_bg_colour: str
-    heading_lbl_bg_colour: str
+    var_bg_colour_first_level: str
+    var_bg_colour_not_first_level: str
     gui_note_bg_colour: str
     ## borders
-    main_border: str
-    heading_cell_border: str
-    first_row_border: str | None = None
+    var_border_colour_first_level: str  ## usually dark enough for heading cell and spaceholder colours (if they're dark, this must be dark)
+    var_border_colour_not_first_level: str  ## usually more pale so numbers stand out
     ## spaceholders
-    spaceholder: str
-    spaceholder_bg_img_or_none: str
-
-    def __post_init__(self):
-        if self.first_row_border is None:
-            self.first_row_border = self.var_font_colour
+    spaceholder_bg_colour: str | None = None
+    spaceholder_bg_img: str | None = None
 
 @dataclass(frozen=True)
-class ChartStyleDets:
+class ChartStyleSpec:
     chart_bg_colour: str
     chart_font_colour: str
     plot_bg_colour: str
@@ -76,7 +71,7 @@ class ChartStyleDets:
     colour_mappings: Sequence[ColourWithHighlight]
 
 @dataclass(frozen=True)
-class DojoStyleDets:
+class DojoStyleSpec:
     connector_style: str
     tooltip_connector_up: str
     tooltip_connector_down: str
@@ -84,7 +79,7 @@ class DojoStyleDets:
     tooltip_connector_right: str
 
 @dataclass(frozen=True)
-class StyleDets:
-    table: TableStyleDets
-    chart: ChartStyleDets
-    dojo: DojoStyleDets
+class StyleSpec:
+    table: TableStyleSpec
+    chart: ChartStyleSpec
+    dojo: DojoStyleSpec

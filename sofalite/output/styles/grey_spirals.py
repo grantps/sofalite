@@ -1,7 +1,5 @@
-
-from sofalite.conf.style import (
-    ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
-from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.conf.style import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
+from sofalite.conf.misc import SOFALITE_FS_RESOURCES_ROOT, SOFALITE_WEB_RESOURCES_ROOT
 
 BLUE_GREY = '#4c547c'
 VERY_PALE_TURQUOISE = '#e8f4ff'
@@ -22,31 +20,28 @@ BLACK = '#000000'
 DARKER_MID_GREY = '#a1a1a1'
 LIGHT_GREY = '#f5f5f5'
 MID_GREY = '#c0c0c0'
-WHITE = '#ffffff'
-BLACK = '#000000'
 
-def get_style_dets() -> StyleDets:
+def get_style_spec() -> StyleSpec:
     connector_style = 'paleblue'
-    table_dets = TableStyleDets(
-        first_cell_font_colour=WHITE,
-        var_font_colour=BLACK_BLUE,
+    table_spec = TableStyleSpec(
+        var_font_colour_first_level=WHITE,
+        var_font_colour_not_first_level=BLACK_BLUE,
         heading_footnote_font_colour=WHITE,
         footnote_font_colour=BLACK,
         gui_msg_font_colour=BLACK_BROWN,  ## replacing #29221c;
         gui_note_font_colour=WHITE,
         ## background colours
-        first_cell_bg_colour=BLACK_BLUE,
-        heading_lbl_bg_colour=LIGHT_GREY,
+        var_bg_colour_first_level=BLACK_BLUE,
+        var_bg_colour_not_first_level=LIGHT_GREY,
         gui_note_bg_colour=BURNT_ORANGE,
         ## borders
-        main_border=MID_GREY,
-        heading_cell_border=DARKER_MID_GREY,
-        first_row_border=None,
+        var_border_colour_first_level=DARKER_MID_GREY,
+        var_border_colour_not_first_level=MID_GREY,
         ## spaceholders
-        spaceholder=GREY_BLUE,
-        spaceholder_bg_img_or_none=f"{SOFALITE_WEB_RESOURCES_ROOT}/grey_spirals.gif",
+        spaceholder_bg_colour=GREY_BLUE,
+        spaceholder_bg_img=f"{SOFALITE_FS_RESOURCES_ROOT}/grey_spirals.gif",
     )
-    chart_dets = ChartStyleDets(
+    chart_spec = ChartStyleSpec(
         chart_bg_colour=WHITE,
         chart_font_colour=BLUE_GREY,
         plot_bg_colour=VERY_PALE_TURQUOISE,
@@ -67,16 +62,16 @@ def get_style_dets() -> StyleDets:
             ColourWithHighlight(MURKY_GREY_BLUE, MURKY_GREY),
         ],
     )
-    dojo_dets = DojoStyleDets(
+    dojo_spec = DojoStyleSpec(
         connector_style=connector_style,
         tooltip_connector_up=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorUp-{connector_style}.png",
         tooltip_connector_down=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorDown-{connector_style}.png",
         tooltip_connector_left=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorLeft-{connector_style}.png",
         tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
-    style_dets = StyleDets(
-        table=table_dets,
-        chart=chart_dets,
-        dojo=dojo_dets,
+    style_spec = StyleSpec(
+        table=table_spec,
+        chart=chart_spec,
+        dojo=dojo_spec,
     )
-    return style_dets
+    return style_spec

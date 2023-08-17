@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 import platform
 import statistics
 from typing import Sequence
@@ -8,6 +9,7 @@ from sofalite.stats_calc.boxplot import get_bottom_whisker, get_top_whisker
 from sofalite.stats_calc.engine import get_quartiles
 
 SOFALITE_WEB_RESOURCES_ROOT = 'http://www.sofastatistics.com/sofalite'
+SOFALITE_FS_RESOURCES_ROOT = Path('/home/g/Documents/sofastats/reports/sofastats_report_extras')
 
 class StrConst(str, Enum):
 

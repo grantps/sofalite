@@ -25,6 +25,7 @@ want to be able to get:
 * access to specific style settings for insertion via pandas styling and in-line styling (vs internal CSS)
   will be based on style dets data classes
 """
+import base64
 from enum import Enum
 import importlib
 from pathlib import Path
@@ -33,16 +34,44 @@ from typing import Sequence
 import jinja2
 
 from sofalite.conf.style import (
-    DOJO_COLOURS, ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
+    DOJO_COLOURS, ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
 from sofalite.utils.misc import todict
+
+def get_style_names() -> list[str]:
+    """
+    Just names, not paths.
+    Names can be handed to get_style_spec(style_name)
+    """
+    from sofalite.output.styles import default  ## assumes default is always there
+    style_root = Path(default.__file__).parent
+    style_names = [fpath.name for fpath in style_root.iterdir() if fpath.suffix == '.py']
+    return style_names
+
+def get_style_spec(style_name: str) -> StyleSpec:
+    """
+    Get dataclass with key colour details and so on e.g.
+    style_dets.table_dets.heading_cell_border (DARKER_MID_GREY)
+    style_dets.table_dets.first_row_border (None)
+    """
+    style_module = importlib.import_module(f"sofalite.output.styles.{style_name}")
+    return style_module.get_style_spec()
+
+def get_all_style_dets() -> dict[str, StyleSpec]:
+    style_names = get_style_names()
+    style_specs = {}
+    for style_name in style_names:
+        style_spec = get_style_spec(style_name)
+        style_specs[style_name] = style_spec
+    return style_specs
 
 class CSS(Enum):
     """
-    Only need to put CSS in variables rather than just some text to insert into HTML when used,
-    in addition to CSS strings for insertion at top of HTML,
-    in strings supplied to tables via Pandas df styling.
-    The latter requires us being able to pull it apart and get specific CSS strings for specific parts of the table as
-    inline CSS.
+    CSS can be stored as giant, monolithic blocks of text ready for insertion at the top of HTML files.
+    Or as smaller blocks of css stored in variables.
+    We store CSS as variables when we need to use it for specific parts of tables in the form of inline CSS.
+    In such cases, individual blocks of CSS text are supplied to tables via Pandas df styling.
+    Note - CSS text pulled out into individual variables can still be used as part of large, monolithic CSS text
+    for insertion at the top of HTML files - it just has to be interpolated in (see get_generic_css()).
     """
     ROW_LEVEL_1_VAR = [
         "font-family: Ubuntu, Helvetica, Arial, sans-serif;",
@@ -79,9 +108,13 @@ class CSS(Enum):
 
 def get_generic_css() -> str:
     """
-    Get CSS with no style-specific aspects:
-    table, Dojo, and page styling
+    Get CSS with no style-specific aspects: includes table, Dojo, and page styling.
     """
+
+    def flatten(items: Sequence[str]):
+        flattened = '\n'.join(items)
+        return flattened
+
     generic_css = f"""\
     body {{
         font-size: 12px;
@@ -103,9 +136,24 @@ def get_generic_css() -> str:
         width: auto;
         height: 18px;
     }}
+    table {{
+        border-collapse: collapse;
+    }}
+
+    /* NOT used by tables styled by pandas - they are at id level <================================================== */
+
     /* Note - tables are not just used for report tables but also in chart legends and more besides  */
     tr, td, th {{
         margin: 0;
+    }}
+    tr.data-tbl-data-cell td {{
+        {flatten(CSS.DATA_TBL_DATA_CELL.value)}
+    }}
+    tr.data-tbl-total-row td {{
+        {flatten(CSS.DATA_TBL_TOTAL_ROW.value)}
+    }}
+    th, .data {{
+        border: solid 1px #afb2b6; /*dark grey*/
     }}
     th {{
         margin: 0;
@@ -115,29 +163,20 @@ def get_generic_css() -> str:
         padding: 2px 6px;
         font-size: 13px;
     }}
-    table {{
-        border-collapse: collapse;
-    }}
     .row-level-1-var {{
-        {CSS.ROW_LEVEL_1_VAR}
+        {flatten(CSS.ROW_LEVEL_1_VAR.value)}
     }}
     .col-level-1-var {{
-        {CSS.COL_LEVEL_1_VAR}
+        {flatten(CSS.COL_LEVEL_1_VAR.value)}
     }}
     .row-value {{
-        {CSS.ROW_VALUE}
+        {flatten(CSS.ROW_VALUE.value)}
     }}
     .col-value {{
-        {CSS.COL_VALUE}
+        {flatten(CSS.COL_VALUE.value)}
     }}
     .corner-spaceholder {{
-        {CSS.CORNER_SPACEHOLDER}
-    }}
-    tr.data-tbl-data-cell td {{
-        {CSS.DATA_TBL_DATA_CELL}
-    }}
-    tr.data-tbl-total-row td {{
-        {CSS.DATA_TBL_TOTAL_ROW}
+        {flatten(CSS.CORNER_SPACEHOLDER.value)}
     }}
     .ftnote-line{{
         /* for hr http://www.w3schools.com/TAGS/att_hr_align.asp*/
@@ -146,24 +185,15 @@ def get_generic_css() -> str:
         margin-left: 0; /* Firefox, Chrome, Safari */
     }}
     .left {{
-        {CSS.LEFT}
+        {flatten(CSS.LEFT.value)}
     }}
     .right {{
-        {CSS.RIGHT}
+        {flatten(CSS.RIGHT.value)}
     }}
     """
     return generic_css
 
-def get_style_dets(style: str) -> StyleDets:
-    """
-    Get dataclass with key colour details and so on e.g.
-    style_dets.table_dets.heading_cell_border (DARKER_MID_GREY)
-    style_dets.table_dets.first_row_border (None)
-    """
-    style_module = importlib.import_module(f"sofalite.output.styles.{style}")
-    return style_module.get_style_dets()
-
-def get_styled_dojo_css(style_dets: DojoStyleDets) -> str:
+def get_styled_dojo_css(dojo_style_spec: DojoStyleSpec) -> str:
     tpl = """\
         /* Tool tip connector arrows */
         .dijitTooltipBelow-{{connector_style}} {
@@ -209,19 +239,9 @@ def get_styled_dojo_css(style_dets: DojoStyleDets) -> str:
     """
     environment = jinja2.Environment()
     template = environment.from_string(tpl)
-    context = todict(style_dets, shallow=True)
+    context = todict(dojo_style_spec, shallow=True)
     css = template.render(context)
     return css
-
-def get_style_names() -> list[str]:
-    """
-    Just names, not paths.
-    Names can be handed to get_style_dets(style_name)
-    """
-    from sofalite.output.styles import default  ## assumes default is always there
-    style_root = Path(default.__file__).parent
-    style_names = [fpath.name for fpath in style_root.iterdir() if fpath.suffix == '.py']
-    return style_names
 
 def get_all_dojo_css_styles() -> str:
     """
@@ -230,21 +250,40 @@ def get_all_dojo_css_styles() -> str:
     style_names = get_style_names()
     css_all = []
     for style_name in style_names:
-        style_dets = get_style_dets(style_name)
-        css_style = get_styled_dojo_css(style_dets)
+        style_spec = get_style_spec(style_name)
+        css_style = get_styled_dojo_css(style_spec.dojo)
         css_all.append(css_style)
     css = '\n\n'.join(css_all)
     return css
 
-def get_all_style_dets() -> dict[str, StyleDets]:
-    style_names = get_style_names()
-    all_style_dets = {}
-    for style_name in style_names:
-        style_dets = get_style_dets(style_name)
-        all_style_dets[style_name] = style_dets
-    return all_style_dets
+def get_placeholder_css(style_name: str) -> str:
+    style_spec = get_style_spec(style_name)
+    if style_spec.table.spaceholder_bg_img:
+        binary_fc = open(style_spec.table.spaceholder_bg_img, 'rb').read()  ## fc a.k.a. file_content
+        bg_img_base64 = base64.b64encode(binary_fc).decode('utf-8')
+        bg_line = f"background-image: url(data:image/gif;base64,{bg_img_base64}) !important;"
+    elif style_spec.table.spaceholder_bg_colour:
+        bg_line = f"background-color: {style_spec.table.spaceholder_bg_colour};"
+    else:
+        bg_line = ''
+    placeholder_css = """
+    .spaceholder-%(style)s {
+        %(bg_line)s
+        border: solid 1px %(border)s;
+    }
+    """ % {
+        'style': style_name.replace('_', '-'),
+        'bg_line': bg_line,
+        'border': style_spec.table.var_border_colour_first_level,
+    }
+    return placeholder_css
 
-def get_styled_misc_css(chart_style_dets: ChartStyleDets, table_style_dets: TableStyleDets) -> str:
+def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list[str]:
+    defined_colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    long_colour_list = defined_colours + DOJO_COLOURS
+    return long_colour_list
+
+def get_styled_misc_css(chart_style_spec: ChartStyleSpec, table_style_spec: TableStyleSpec) -> str:
     """
     TODO: remove
     """
@@ -297,13 +336,7 @@ def get_styled_misc_css(chart_style_dets: ChartStyleDets, table_style_dets: Tabl
     """
     environment = jinja2.Environment()
     template = environment.from_string(tpl)
-    context = todict(chart_style_dets, shallow=True)
-    context.update(todict(table_style_dets, shallow=True))
+    context = todict(chart_style_spec, shallow=True)
+    context.update(todict(table_style_spec, shallow=True))
     css = template.render(context)
     return css
-
-def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list[str]:
-    defined_colours = [colour_mapping.main for colour_mapping in colour_mappings]
-    long_colour_list = defined_colours + DOJO_COLOURS
-    return long_colour_list
-

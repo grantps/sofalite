@@ -1,5 +1,4 @@
-from sofalite.conf.style import (
-    ChartStyleDets, ColourWithHighlight, DojoStyleDets, StyleDets, TableStyleDets)
+from sofalite.conf.style import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
 
 BLACK_BLUE = '#333435'
@@ -24,29 +23,28 @@ PALE_SCARLET = '#f75858'
 WHITE = '#ffffff'
 BLACK = '#000000'
 
-def get_style_dets() -> StyleDets:
+def get_style_spec() -> StyleSpec:
     connector_style = 'defbrown'
-    table_dets = TableStyleDets(
+    table_spec = TableStyleSpec(
         ## font colours
-        first_cell_font_colour=WHITE,
-        var_font_colour=BLACK_BLUE,
+        var_font_colour_first_level=WHITE,
+        var_font_colour_not_first_level=BLACK_BLUE,
         heading_footnote_font_colour=WHITE,
         footnote_font_colour=BLACK,
         gui_msg_font_colour=BLACK_BROWN,  ## replacing #29221c;
         gui_note_font_colour=BURNT_ORANGE,
         ## background colours
-        first_cell_bg_colour=BLACK_BLUE,
-        heading_lbl_bg_colour=LIGHT_GREY,
+        var_bg_colour_first_level=BLACK_BLUE,
+        var_bg_colour_not_first_level=LIGHT_GREY,
         gui_note_bg_colour=BURNT_ORANGE,
         ## borders
-        main_border=MID_GREY,
-        heading_cell_border=DARKER_MID_GREY,
-        first_row_border=None,
+        var_border_colour_first_level=DARKER_MID_GREY,
+        var_border_colour_not_first_level=MID_GREY,
         ## spaceholders
-        spaceholder=GREY_BLUE,
-        spaceholder_bg_img_or_none='none',
+        spaceholder_bg_colour=GREY_BLUE,
+        spaceholder_bg_img=None,
     )
-    chart_dets = ChartStyleDets(
+    chart_spec = ChartStyleSpec(
         chart_bg_colour=WHITE,
         chart_font_colour=BLACK_BROWN,
         plot_bg_colour=LIGHT_GREY_BLUE,
@@ -67,16 +65,16 @@ def get_style_dets() -> StyleDets:
             ColourWithHighlight(OFF_SCARLET, PALE_SCARLET),
         ],
     )
-    dojo_dets = DojoStyleDets(
+    dojo_spec = DojoStyleSpec(
         connector_style=connector_style,
         tooltip_connector_up=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorUp-{connector_style}.png",
         tooltip_connector_down=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorDown-{connector_style}.png",
         tooltip_connector_left=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorLeft-{connector_style}.png",
         tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
-    style_dets = StyleDets(
-        table=table_dets,
-        chart=chart_dets,
-        dojo=dojo_dets,
+    style_spec = StyleSpec(
+        table=table_spec,
+        chart=chart_spec,
+        dojo=dojo_spec,
     )
-    return style_dets
+    return style_spec
