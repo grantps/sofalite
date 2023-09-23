@@ -6,7 +6,7 @@ import jinja2
 
 from sofalite.conf.charts.misc import ScatterplotDojoSeriesSpec, LeftMarginOffsetDetails
 from sofalite.conf.charts.output.non_standard import ScatterChartingSpec, ScatterIndivChartSpec
-from sofalite.conf.style import ColourWithHighlight, StyleDets
+from sofalite.conf.style import ColourWithHighlight, StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset
 from sofalite.output.styles.misc import get_long_colour_list
@@ -136,9 +136,9 @@ make_chart_{{chart_uuid}} = function(){
 """
 
 @get_common_charting_spec.register
-def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
     ## colours
-    colour_mappings = style_dets.chart.colour_mappings
+    colour_mappings = style_spec.chart.colour_mappings
     if charting_spec.is_single_series:
         ## This is an important special case because it affects the scatter plots charts using the default style
         if colour_mappings[0].main == '#e95f29':  ## BURNT_ORANGE
@@ -148,7 +148,7 @@ def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_dets: Sty
         for colour_mapping in colour_mappings]
     ## misc
     has_minor_ticks_js_bool = 'true' if charting_spec.has_minor_ticks else 'false'
-    stroke_width = style_dets.chart.stroke_width if charting_spec.show_dot_borders else 0
+    stroke_width = style_spec.chart.stroke_width if charting_spec.show_dot_borders else 0
     show_regression_line_js_bool = 'true' if charting_spec.show_regression_line else 'false'
     ## sizing
     if charting_spec.is_multi_chart:
@@ -163,20 +163,20 @@ def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_dets: Sty
         y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=False)
 
     colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
+        axis_font=style_spec.chart.axis_font_colour,
+        chart_bg=style_spec.chart.chart_bg_colour,
         colour_cases=colour_cases,
         colours=colours,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        major_grid_line=style_spec.chart.major_grid_line_colour,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
     misc_spec = CommonMiscSpec(
         axis_lbl_drop=10,
-        connector_style=style_dets.dojo.connector_style,
-        grid_line_width=style_dets.chart.grid_line_width,
+        connector_style=style_spec.dojo.connector_style,
+        grid_line_width=style_spec.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
         legend_lbl=charting_spec.legend_lbl,

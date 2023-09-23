@@ -39,7 +39,7 @@ tpl_html_top = """\
 </style>
 <style type="text/css">
 <!--
-{{common_css}}
+{{generic_css}}
 {{styled_misc_css}}
 {{styled_dojo_css}}
 -->

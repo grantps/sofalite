@@ -1,4 +1,9 @@
 """
+TODO: fix get_tbl_df() (see demo) so takes floats and rounds and adds %s
+TODO: Then put other tbl demo code into proper places and call it in demo
+TODO: make conf.tables.misc.VarTrees and Measures
+TODO: Then make sql code to turn out dataclass CrossTabSpec from inputs VarTrees and Measures
+
 Top-level package for sofalite.
 
 Big picture architecture of code pipeline:
@@ -27,8 +32,8 @@ The flow is from config through various standard variables e.g. strings, dicts, 
 through to an HTML string.
 
                    | data extraction -> intermediate spec (inc data) dc -> |
-GUI -> design vals |                                                       |  --> output spce dc --> output HTML
-                   | style specs dc + titles + other show n etc ---------> |
+GUI -> design vals |                                                       |  --> output spec dc --> output HTML
+                   | style specs dc + titles + other (show n) etc -------> |
 
 For example - making a Pie Chart:
                                    GUI or directly
@@ -89,19 +94,19 @@ For example, making a Frequency or CrossTab Table:
    conf.tables.misc.Measures dc                                  |
               |                                                  |
               v                                                  |
-    Intermediate charting spec (including data)                  |
-    -------------------------------------------                  |
-
-       TODO: define here
-
+    Intermediate table spec (including data)                     |
+    ----------------------------------------                     |
+         CrossTabSpec                                            |
+         (defined in conf.tables.intermediate.cross_tab)         |
+                                                                 |
             from                                                 |
     sql_extraction.tables.dims                                   |
-    e.g. get_freq                                                |
+    e.g. get_cross_tab                                           |
     takes all the design args as an input                        |
-              |     TODO: show main parts e.g. blocks            |
+              |                                                  |
               v                                                  |
-   conf.tables.output.FreqTableSpec dc                           |
-   (defined in conf.tables.output.dim)                           |
+   df made by get_tbl_df()                                       |
+   (from conf.tables.output.cross_tab)                           |
               |                                                  |
               --------------------> HTML str <-------------------
 

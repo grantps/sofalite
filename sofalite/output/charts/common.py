@@ -8,19 +8,20 @@ from sofalite.conf.charts.misc import (
     AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, LeftMarginOffsetDetails)
 from sofalite.conf.charts.output.standard import AreaChartingSpec, CategorySpec, LineChartingSpec
 from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
-from sofalite.conf.style import StyleDets
+from sofalite.conf.style import StyleSpec
 from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
+from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
-def get_html_styling_top(style_dets: StyleDets) -> str:
-    styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
-    styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
+def get_html_styling_top(style_spec: StyleSpec) -> str:
+    generic_css = get_generic_css()
+    styled_dojo_css = get_styled_dojo_css(style_spec.dojo)
+    styled_misc_css = get_styled_misc_css(style_spec.chart, style_spec.table)
     context = {
-        'common_css': common_css,
+        'generic_css': generic_css,
         'sofalite_web_resources_root': SOFALITE_WEB_RESOURCES_ROOT,
         'styled_dojo_css': styled_dojo_css,
         'styled_misc_css': styled_misc_css,
@@ -41,7 +42,7 @@ def get_indiv_chart_html(common_charting_spec, chart_dets, chart_counter):
     raise NotImplementedError("Unable to find registered get_indiv_chart_html function "
         f"for {type(common_charting_spec)}")
 
-def get_html(charting_spec, style_dets: StyleDets) -> str:
+def get_html(charting_spec, style_dets: StyleSpec) -> str:
     html_styling_top = get_html_styling_top(style_dets)
     common_charting_spec = get_common_charting_spec(
         charting_spec, style_dets)  ## correct version e.g. from pie module, depending on charting_spec type
@@ -211,7 +212,7 @@ class LineArea:
         return width
 
     @staticmethod
-    def get_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, style_dets: StyleDets,
+    def get_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, style_spec: StyleSpec,
             legend_lbl: str, left_margin_offset_dets: LeftMarginOffsetDetails) -> CommonMiscSpec:
         ## calculation
         if isinstance(charting_spec, LineChartingSpec):
@@ -256,8 +257,8 @@ class LineArea:
             chart_js_fn_name=chart_js_fn_name,
             axis_lbl_drop=axis_lbl_drop,
             axis_lbl_rotate=axis_lbl_rotate,
-            connector_style=style_dets.dojo.connector_style,
-            grid_line_width=style_dets.chart.grid_line_width,
+            connector_style=style_spec.dojo.connector_style,
+            grid_line_width=style_spec.chart.grid_line_width,
             height=height,
             left_margin_offset=left_margin_offset,
             legend_lbl=legend_lbl,

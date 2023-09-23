@@ -8,7 +8,7 @@ import jinja2
 
 from sofalite.conf.charts.misc import DojoSeriesDetails, LeftMarginOffsetDetails, PlotStyle
 from sofalite.conf.charts.output.standard import DataSeriesSpec, IndivChartSpec, LineChartingSpec
-from sofalite.conf.style import StyleDets
+from sofalite.conf.style import StyleSpec
 from sofalite.output.charts.common import LineArea, get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
@@ -136,9 +136,9 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
     return smooth_series_dets
 
 @get_common_charting_spec.register
-def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
     ## colours
-    colour_mappings = style_dets.chart.colour_mappings
+    colour_mappings = style_spec.chart.colour_mappings
     if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
     colours = get_long_colour_list(colour_mappings)
@@ -155,16 +155,16 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_dets: StyleD
     left_margin_offset_dets = LeftMarginOffsetDetails(
         initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
+        axis_font=style_spec.chart.axis_font_colour,
+        chart_bg=style_spec.chart.chart_bg_colour,
         colours=colours,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        major_grid_line=style_spec.chart.major_grid_line_colour,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
-    misc_spec = LineArea.get_misc_spec(charting_spec, style_dets, legend_lbl, left_margin_offset_dets)
+    misc_spec = LineArea.get_misc_spec(charting_spec, style_spec, legend_lbl, left_margin_offset_dets)
     options = CommonOptions(
         has_micro_ticks_js_bool=has_micro_ticks_js_bool,
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,

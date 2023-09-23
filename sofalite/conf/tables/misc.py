@@ -1,0 +1,2 @@
+
+BLANK = '__blank__'

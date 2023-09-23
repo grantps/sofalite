@@ -6,19 +6,19 @@ from sofalite.conf.stats_output import (
     p_explain_multiple_groups,
     skew_explain, std_dev_explain,
 )
-from sofalite.conf.style import StyleDets
+from sofalite.conf.style import StyleSpec
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
-from sofalite.output.styles.misc import common_css, get_styled_dojo_css, get_styled_misc_css
+from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
 from sofalite.conf.stats_calc import NumericSampleDetsFormatted, TTestIndepResultExt
 from sofalite.stats_calc.utils import get_p_str
 from sofalite.utils.maths import format_num
 
-def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *,
+def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{common_css}}
+        {{generic_css}}
         {{styled_misc_css}}
         {{styled_dojo_css}}
     </style>
@@ -80,8 +80,9 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *
     {% endif %}
     </div>
     """
-    styled_misc_css = get_styled_misc_css(style_dets.chart, style_dets.table)
-    styled_dojo_css = get_styled_dojo_css(style_dets.dojo)
+    generic_css = get_generic_css()
+    styled_misc_css = get_styled_misc_css(style_spec.chart, style_spec.table)
+    styled_dojo_css = get_styled_dojo_css(style_spec.dojo)
     title = (f"Results of independent samples t-test of average {results.measure_fld_lbl} "
         f'''for "{results.group_lbl}" groups "{results.group_a_dets.lbl}" and "{results.group_b_dets.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
@@ -115,7 +116,7 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *
         ## make images
         try:
             histogram_html = get_group_histogram_html(
-                results.measure_fld_lbl, style_dets.chart, orig_group_dets.lbl, orig_group_dets.vals)
+                results.measure_fld_lbl, style_spec.chart, orig_group_dets.lbl, orig_group_dets.vals)
         except Exception as e:
             html_or_msg = (
                 f"<b>{orig_group_dets.lbl}</b> - unable to display histogram. Reason: {e}")
@@ -124,7 +125,7 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_dets: StyleDets, *
         histograms2show.append(html_or_msg)
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
-        'common_css': common_css,
+        'generic_css': generic_css,
         'styled_misc_css': styled_misc_css,
         'styled_dojo_css': styled_dojo_css,
         'title': title,

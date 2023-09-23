@@ -8,7 +8,7 @@ from sofalite.conf.charts.misc import (
     AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
     DojoSeriesDetails, LeftMarginOffsetDetails)
 from sofalite.conf.charts.output.standard import BarChartingSpec, IndivChartSpec
-from sofalite.conf.style import ColourWithHighlight, StyleDets
+from sofalite.conf.style import ColourWithHighlight, StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
@@ -177,7 +177,7 @@ def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_serie
     return width
 
 @get_common_charting_spec.register
-def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
     """
     Get details that apply to all charts in bar chart set
     (often just one bar chart in set)
@@ -194,7 +194,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     Probably a dojo bug I can't fix, so I have to work around it.
     """
     ## colours
-    colour_mappings = style_dets.chart.colour_mappings
+    colour_mappings = style_spec.chart.colour_mappings
     if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:1]  ## only need the first
         ## This is an important special case because it affects the bar charts using the default style
@@ -209,7 +209,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
     y_axis_max = charting_spec.max_y_val * 1.1
     has_minor_ticks_js_bool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
-    stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
+    stroke_width = style_spec.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
     max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_axis_lbl_len)
     width_after_left_margin = get_width_after_left_margin(
@@ -233,21 +233,21 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_dets: StyleDe
         rotated_x_lbls=charting_spec.rotate_x_lbls, max_x_axis_lbl_len=charting_spec.max_x_axis_lbl_len)
 
     colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
+        axis_font=style_spec.chart.axis_font_colour,
+        chart_bg=style_spec.chart.chart_bg_colour,
         colour_cases=colour_cases,
         colours=colours,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        major_grid_line=style_spec.chart.major_grid_line_colour,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
     misc_spec = CommonMiscSpec(
         axis_lbl_drop=axis_lbl_drop,
         axis_lbl_rotate=axis_lbl_rotate,
-        connector_style=style_dets.dojo.connector_style,
-        grid_line_width=style_dets.chart.grid_line_width,
+        connector_style=style_spec.dojo.connector_style,
+        grid_line_width=style_spec.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
         legend_lbl=legend_lbl,

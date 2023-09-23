@@ -5,7 +5,7 @@ import uuid
 import jinja2
 from sofalite.conf.charts.misc import HISTO_AVG_CHAR_WIDTH_PIXELS
 from sofalite.conf.charts.output.non_standard import HistoChartingSpec, HistoIndivChartSpec
-from sofalite.conf.style import ColourWithHighlight, StyleDets
+from sofalite.conf.style import ColourWithHighlight, StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -147,9 +147,9 @@ def get_width(var_lbl: str, *, n_bins: int,
     return width
 
 @get_common_charting_spec.register
-def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_charting_spec(charting_spec: HistoChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
     ## colours
-    colour_mappings = style_dets.chart.colour_mappings[:1]  ## only need the first
+    colour_mappings = style_spec.chart.colour_mappings[:1]  ## only need the first
     ## This is an important special case because it affects the histograms using the default style
     first_colour = colour_mappings[0].main
     if first_colour == '#e95f29':  ## BURNT_ORANGE
@@ -161,7 +161,7 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     height = 300 if charting_spec.is_multi_chart else 350
     y_axis_title_offset = 45
     left_margin_offset = 25
-    stroke_width = style_dets.chart.stroke_width if charting_spec.show_borders else 0
+    stroke_width = style_spec.chart.stroke_width if charting_spec.show_borders else 0
     normal_stroke_width = 4
     show_normal_curve_js_bool = 'true' if charting_spec.show_normal_curve else 'false'
     width = get_width(charting_spec.var_lbl, n_bins=charting_spec.n_bins,
@@ -171,22 +171,22 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_dets: Style
     if charting_spec.is_multi_chart:
         x_axis_font_size *= 0.8
     colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
+        axis_font=style_spec.chart.axis_font_colour,
+        chart_bg=style_spec.chart.chart_bg_colour,
         colour_cases=colour_cases,
         fill=first_colour,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        normal_curve=style_dets.chart.normal_curve_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        major_grid_line=style_spec.chart.major_grid_line_colour,
+        normal_curve=style_spec.chart.normal_curve_colour,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
     misc_spec = CommonMiscSpec(
         bin_lbls=charting_spec.bin_lbls,
         blank_x_axis_lbls=blank_x_axis_lbls,
-        connector_style=style_dets.dojo.connector_style,
-        grid_line_width=style_dets.chart.grid_line_width,
+        connector_style=style_spec.dojo.connector_style,
+        grid_line_width=style_spec.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
         x_axis_min_val=charting_spec.x_axis_min_val,

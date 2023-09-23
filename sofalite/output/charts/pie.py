@@ -5,7 +5,7 @@ import uuid
 import jinja2
 
 from sofalite.conf.charts.output.standard import IndivChartSpec, PieChartingSpec
-from sofalite.conf.style import StyleDets
+from sofalite.conf.style import StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.misc import todict
@@ -98,9 +98,9 @@ var highlight_{{chart_uuid}} = function(colour){
  """
 
 @get_common_charting_spec.register
-def get_common_pie_charting_spec(charting_spec: PieChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
+def get_common_pie_charting_spec(charting_spec: PieChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
     ## colours
-    colour_mappings = style_dets.chart.colour_mappings
+    colour_mappings = style_spec.chart.colour_mappings
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]
     slice_colours = get_long_colour_list(colour_mappings)
@@ -115,15 +115,15 @@ def get_common_pie_charting_spec(charting_spec: PieChartingSpec, style_dets: Sty
         slice_font_size *= 0.8
     colour_spec = CommonColourSpec(
         colour_cases=colour_cases,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_bg_filled=style_dets.chart.plot_bg_colour_filled,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_bg_filled=style_spec.chart.plot_bg_colour_filled,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
         slice_colours=slice_colours,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
     misc_spec = CommonMiscSpec(
-        connector_style=style_dets.dojo.connector_style,
+        connector_style=style_spec.dojo.connector_style,
         height=height,
         lbl_offset=lbl_offset,
         radius=radius,

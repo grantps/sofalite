@@ -7,7 +7,7 @@ import jinja2
 from sofalite.conf.charts.misc import (AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
                                        BoxplotDojoSeriesSpec, DojoBoxSpec, LeftMarginOffsetDetails)
 from sofalite.conf.charts.output.non_standard import BoxplotChartingSpec, BoxplotIndivChartSpec
-from sofalite.conf.style import ColourWithHighlight, StyleDets
+from sofalite.conf.style import ColourWithHighlight, StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbl_dets,
@@ -187,8 +187,8 @@ def get_width_after_left_margin(*, n_x_items: int, n_series: int,
     return width
 
 @get_common_charting_spec.register
-def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_dets: StyleDets) -> CommonChartingSpec:
-    colour_mappings = style_dets.chart.colour_mappings
+def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
+    colour_mappings = style_spec.chart.colour_mappings
     if charting_spec.is_single_series:
         colour_mappings = colour_mappings[:1]  ## only need the first
         ## This is an important special case because it affects the bar charts using the default style
@@ -221,20 +221,20 @@ def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_dets: Sty
     width = left_margin_offset + width_after_left_margin
 
     colour_spec = CommonColourSpec(
-        axis_font=style_dets.chart.axis_font_colour,
-        chart_bg=style_dets.chart.chart_bg_colour,
+        axis_font=style_spec.chart.axis_font_colour,
+        chart_bg=style_spec.chart.chart_bg_colour,
         colours=colours,
-        major_grid_line=style_dets.chart.major_grid_line_colour,
-        plot_bg=style_dets.chart.plot_bg_colour,
-        plot_font=style_dets.chart.plot_font_colour,
-        plot_font_filled=style_dets.chart.plot_font_colour_filled,
-        tooltip_border=style_dets.chart.tooltip_border_colour,
+        major_grid_line=style_spec.chart.major_grid_line_colour,
+        plot_bg=style_spec.chart.plot_bg_colour,
+        plot_font=style_spec.chart.plot_font_colour,
+        plot_font_filled=style_spec.chart.plot_font_colour_filled,
+        tooltip_border=style_spec.chart.tooltip_border_colour,
     )
     misc_spec = CommonMiscSpec(
         axis_lbl_drop=axis_lbl_drop,
         axis_lbl_rotate=axis_lbl_rotate,
-        connector_style=style_dets.dojo.connector_style,
-        grid_line_width=style_dets.chart.grid_line_width,
+        connector_style=style_spec.dojo.connector_style,
+        grid_line_width=style_spec.chart.grid_line_width,
         height=height,
         left_margin_offset=left_margin_offset,
         legend_lbl=legend_lbl,
