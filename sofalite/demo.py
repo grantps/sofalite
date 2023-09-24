@@ -16,7 +16,7 @@ from sofalite.conf.charts.output.standard import (
 from sofalite.conf.data import ValDets
 from sofalite.conf.misc import BoxplotType, SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
-from sofalite.conf.tables.misc import BLANK
+from sofalite.conf.tables.misc import BLANK, Measure
 from sofalite.conf.tables.output.cross_tab import get_tbl_df
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
@@ -2136,6 +2136,7 @@ def multi_series_boxplot_from_data():
 
 def cross_tab_from_data():
     dp = 2
+    debug = True
     row_idx_tuples = [
         ('Country', 'Japan', 'Gender', 'Male'),
         ('Country', 'Japan', 'Gender', 'Female'),
@@ -2147,48 +2148,48 @@ def cross_tab_from_data():
         ('Gender', 'Female', BLANK, BLANK),
     ]
     col_idx_tuples = [
-        ('Age Group', '< 20', BLANK, BLANK, 'Freq'),
-        ('Age Group', '< 20', BLANK, BLANK, 'Col %'),
-        ('Age Group', '< 20', BLANK, BLANK, 'Row %'),
-        ('Age Group', '20-29', BLANK, BLANK, 'Freq'),
-        ('Age Group', '20-29', BLANK, BLANK, 'Col %'),
-        ('Age Group', '20-29', BLANK, BLANK, 'Row %'),
-        ('Age Group', '30-39', BLANK, BLANK, 'Freq'),
-        ('Age Group', '30-39', BLANK, BLANK, 'Col %'),
-        ('Age Group', '30-39', BLANK, BLANK, 'Row %'),
-        ('Age Group', '40-64', BLANK, BLANK, 'Freq'),
-        ('Age Group', '40-64', BLANK, BLANK, 'Col %'),
-        ('Age Group', '40-64', BLANK, BLANK, 'Row %'),
-        ('Age Group', '65+', BLANK, BLANK, 'Freq'),
-        ('Age Group', '65+', BLANK, BLANK, 'Col %'),
-        ('Age Group', '65+', BLANK, BLANK, 'Row %'),
-        ('Web Browser', 'Google Chrome', 'Car', 'BMW', 'Freq'),
-        ('Web Browser', 'Google Chrome', 'Car', 'Porsche', 'Freq'),
-        ('Web Browser', 'Google Chrome', 'Car', 'Audi', 'Freq'),
-        ('Web Browser', 'Firefox', 'Car', 'BMW', 'Freq'),
-        ('Web Browser', 'Firefox', 'Car', 'Porsche', 'Freq'),
-        ('Web Browser', 'Firefox', 'Car', 'Audi', 'Freq'),
-        ('Web Browser', 'Internet Explorer', 'Car', 'BMW', 'Freq'),
-        ('Web Browser', 'Internet Explorer', 'Car', 'Porsche', 'Freq'),
-        ('Web Browser', 'Internet Explorer', 'Car', 'Audi', 'Freq'),
-        ('Web Browser', 'Opera', 'Car', 'BMW', 'Freq'),
-        ('Web Browser', 'Opera', 'Car', 'Porsche', 'Freq'),
-        ('Web Browser', 'Opera', 'Car', 'Audi', 'Freq'),
-        ('Web Browser', 'Safari', 'Car', 'BMW', 'Freq'),
-        ('Web Browser', 'Safari', 'Car', 'Porsche', 'Freq'),
-        ('Web Browser', 'Safari', 'Car', 'Audi', 'Freq'),
+        ('Age Group', '< 20', BLANK, BLANK, Measure.FREQ),
+        ('Age Group', '< 20', BLANK, BLANK, Measure.COL_PCT),
+        ('Age Group', '< 20', BLANK, BLANK, Measure.ROW_PCT),
+        ('Age Group', '20-29', BLANK, BLANK, Measure.FREQ),
+        ('Age Group', '20-29', BLANK, BLANK, Measure.COL_PCT),
+        ('Age Group', '20-29', BLANK, BLANK, Measure.ROW_PCT),
+        ('Age Group', '30-39', BLANK, BLANK, Measure.FREQ),
+        ('Age Group', '30-39', BLANK, BLANK, Measure.COL_PCT),
+        ('Age Group', '30-39', BLANK, BLANK, Measure.ROW_PCT),
+        ('Age Group', '40-64', BLANK, BLANK, Measure.FREQ),
+        ('Age Group', '40-64', BLANK, BLANK, Measure.COL_PCT),
+        ('Age Group', '40-64', BLANK, BLANK, Measure.ROW_PCT),
+        ('Age Group', '65+', BLANK, BLANK, Measure.FREQ),
+        ('Age Group', '65+', BLANK, BLANK, Measure.COL_PCT),
+        ('Age Group', '65+', BLANK, BLANK, Measure.ROW_PCT),
+        ('Web Browser', 'Google Chrome', 'Car', 'BMW', Measure.FREQ),
+        ('Web Browser', 'Google Chrome', 'Car', 'Porsche', Measure.FREQ),
+        ('Web Browser', 'Google Chrome', 'Car', 'Audi', Measure.FREQ),
+        ('Web Browser', 'Firefox', 'Car', 'BMW', Measure.FREQ),
+        ('Web Browser', 'Firefox', 'Car', 'Porsche', Measure.FREQ),
+        ('Web Browser', 'Firefox', 'Car', 'Audi', Measure.FREQ),
+        ('Web Browser', 'Internet Explorer', 'Car', 'BMW', Measure.FREQ),
+        ('Web Browser', 'Internet Explorer', 'Car', 'Porsche', Measure.FREQ),
+        ('Web Browser', 'Internet Explorer', 'Car', 'Audi', Measure.FREQ),
+        ('Web Browser', 'Opera', 'Car', 'BMW', Measure.FREQ),
+        ('Web Browser', 'Opera', 'Car', 'Porsche', Measure.FREQ),
+        ('Web Browser', 'Opera', 'Car', 'Audi', Measure.FREQ),
+        ('Web Browser', 'Safari', 'Car', 'BMW', Measure.FREQ),
+        ('Web Browser', 'Safari', 'Car', 'Porsche', Measure.FREQ),
+        ('Web Browser', 'Safari', 'Car', 'Audi', Measure.FREQ),
     ]
     data = [
-        ('4', '50.0%', '11.8%', '6', '66.7%', '17.6%', '4', '36.4%', '11.8%', '11', '61.1%', '32.4%', '9', '47.4%', '26.5%', '3', '3', '6',	'7', '0', '2', '1',	'1', '6', '1', '0', '1', '1', '0', '2'),
-        ('4', '50.0%', '12.9%', '3', '33.3%', '9.7%', '7', '63.6%', '22.6%', '7', '38.9%', '22.6%', '10', '52.6%', '32.3%', '3', '3', '3', '4', '3', '3', '3', '2', '1', '1', '2', '1', '1', '1', '0'),
-        ('10', '66.7%', '34.5%', '2', '33.3%', '6.9%', '3', '37.5%', '10.3%', '8', '47.1%', '27.6%', '6', '46.2%', '20.7%', '1', '3', '2', '7', '3', '2', '4', '1', '0', '2', '1', '0', '2', '1', '0'),
-        ('5', '33.3%', '16.7%', '4', '66.7%', '13.3%', '5', '62.5%', '16.7%', '9', '52.9%', '30.0%', '7', '53.8%', '23.3%', '3', '1', '2', '6', '3', '1', '2', '1', '2', '0', '0', '0', '6', '0', '3'),
-        ('15', '39.5%', '17.0%', '12', '46.2%', '13.6%', '16', '64.0%', '18.2%', '24', '50.0%', '27.3%', '21', '40.4%', '23.9%', '7', '3', '7', '13', '6', '13', '9', '4', '8', '4', '0', '4', '3', '3', '4'),
-        ('23', '60.5%', '22.8%', '14', '53.8%', '13.9%', '9', '36.0%', '8.9%', '24', '50.0%', '23.8%', '31', '59.6%', '30.7%', '7', '2', '11', '13', '5', '16', '9', '7', '4', '6', '1', '6', '6', '2', '6'),
-        ('29', '47.5%', '19.2%', '20', '48.8%', '13.2%', '23', '52.3%', '15.2%', '43', '51.8%', '28.5%', '36', '42.9%', '23.8%', '11', '9', '15', '27', '9', '17', '14', '6', '14', '7', '1', '5', '6', '4', '6'),
-        ('32', '52.5%', '19.8%', '21', '51.2%', '13.0%', '21', '47.7%', '13.0%', '40', '48.2%', '24.7%', '48', '57.1%', '29.6%', '13', '6', '16', '23', '11', '20', '14', '10', '7', '7', '3', '7', '13', '3', '9'),
+        (4, 50.0, 11.8, 6, 66.7, 17.6, 4, 36.4, 11.8, 11, 61.1, 32.4, 9, 47.4, 26.5, 3, 3, 6, 7, 0, 2, 1, 1, 6, 1, 0, 1, 1, 0, 2),
+        (4, 50.0, 12.9, 3, 33.3, 9.7, 7, 63.6, 22.6, 7, 38.9, 22.6, 10, 52.6, 32.3, 3, 3, 3, 4, 3, 3, 3, 2, 1, 1, 2, 1, 1, 1, 0),
+        (10, 66.7, 34.5, 2, 33.3, 6.9, 3, 37.5, 10.3, 8, 47.1, 27.6, 6, 46.2, 20.7, 1, 3, 2, 7, 3, 2, 4, 1, 0, 2, 1, 0, 2, 1, 0),
+        (5, 33.3333333333333, 16.7, 4, 66.7, 13.3, 5, 62.5, 16.7, 9, 52.9, 30.0, 7, 53.8, 23.3, 3, 1, 2, 6, 3, 1, 2, 1, 2, 0, 0, 0, 6, 0, 3),
+        (15, 39.5, 17.0, 12, 46.2, 13.6, 16, 64.0, 18.2, 24, 50.0, 27.3, 21, 40.4, 23.9, 7, 3, 7, 13, 6, 13, 9, 4, 8, 4, 0, 4, 3, 3, 4),
+        (23, 60.5, 22.8, 14, 53.8, 13.9, 9, 36.0, 8.9, 24, 50.0, 23.8, 31, 59.6, 30.7, 7, 2, 11, 13, 5, 16, 9, 7, 4, 6, 1, 6, 6, 2, 6),
+        (29, 47.5, 19.2, 20, 48.8, 13.2, 23, 52.3, 15.2, 43, 51.8, 28.5, 36, 42.9, 23.8, 11, 9, 15, 27, 9, 17, 14, 6, 14, 7, 1, 5, 6, 4, 6),
+        (32, 52.5, 19.8, 21, 51.2, 13.0, 21, 47.7, 13.0, 40, 48.2, 24.7, 48, 57.1, 29.6, 13, 6, 16, 23, 11, 20, 14, 10, 7, 7, 3, 7, 13, 3, 9),
     ]
-    df = get_tbl_df(row_idx_tuples, col_idx_tuples, data, dp=dp)
+    df = get_tbl_df(row_idx_tuples, col_idx_tuples, data, dp=dp, debug=debug)
     print(df)
 
 

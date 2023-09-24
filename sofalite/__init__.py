@@ -1,5 +1,4 @@
 """
-TODO: fix get_tbl_df() (see demo) so takes floats and rounds and adds %s
 TODO: Then put other tbl demo code into proper places and call it in demo
 TODO: make conf.tables.misc.VarTrees and Measures
 TODO: Then make sql code to turn out dataclass CrossTabSpec from inputs VarTrees and Measures
