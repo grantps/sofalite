@@ -1,11 +1,13 @@
 """
-TODO: Then put other tbl demo code into proper places and call it in demo
-TODO: make conf.tables.misc.VarTrees and Measures
-TODO: Then make sql code to turn out dataclass CrossTabSpec from inputs VarTrees and Measures
+TODO: think through how pandas approach works with subtrees which have multiple sub-children e.g. [gender, [age_group, car]]
+
+TODO: go to store.table_dim_specs_experiment; make special dataset in sqlite which has
+gender vs country data but not gender vs age_group
+and we have a pattern which will display all nulls for one block
 
 Top-level package for sofalite.
 
-Big picture architecture of code pipeline:
+Big picture architecture of code pip eline:
 In short, how we get from config (perhaps from a GUI), and data in a database, to HTML output
 
 We don't want a big pile of spaghetti code, we need structure as we move through the pipeline.
@@ -141,4 +143,3 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 __author__ = """Grant Paton-Simpson"""
 __email__ = 'grant@sofastatistics.com'
 __version__ = '0.1.0'
-
