@@ -8,3 +8,24 @@
 #   with-sources: false
 
 -e file:.
+beautifulsoup4==4.12.3
+    # via sofalite
+jinja2==3.1.3
+    # via sofalite
+markupsafe==2.1.5
+    # via jinja2
+numpy==1.26.4
+    # via pandas
+    # via sofalite
+pandas==2.2.2
+    # via sofalite
+python-dateutil==2.9.0.post0
+    # via pandas
+pytz==2024.1
+    # via pandas
+six==1.16.0
+    # via python-dateutil
+soupsieve==2.5
+    # via beautifulsoup4
+tzdata==2024.1
+    # via pandas
