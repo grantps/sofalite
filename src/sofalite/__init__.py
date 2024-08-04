@@ -136,10 +136,6 @@ Pipeline Interface Configuration (sofalite.conf):
 Under each generally data and output although sometimes misc where it doesn't fit anywhere else.
 """
 
-import logging
-
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
-
 __author__ = """Grant Paton-Simpson"""
 __email__ = 'grant@sofastatistics.com'
 __version__ = '0.1.0'

@@ -13,7 +13,7 @@ pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
-def cross_tab_from_data():
+def cross_tab_from_data(*, debug=False):
     """
     TODO: JSON -> row_idx_tuples, col_idx_tuples, and data via SQL
     """
@@ -90,4 +90,4 @@ def cross_tab_from_data():
         print(tbl_html)
     display_tbl(tbl_html, 'high_complexity_live', style_name)
 
-cross_tab_from_data()
+cross_tab_from_data(debug=True)
