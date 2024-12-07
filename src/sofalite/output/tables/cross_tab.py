@@ -156,72 +156,68 @@ def apply_index_styles(df: pd.DataFrame, style_name: str, pd_styler: Styler, *, 
 def is_empty_th(th) -> bool:
     return th.string in (None, ' ', '\xa0')
 
-def fix_top_left_box(raw_tbl_html: str, style_name: str, *, debug=False) -> str:
+def fix_top_left_box(raw_tbl_html: str, style_name: str, *, debug=False, verbose=False) -> str:
     """
     Merge top-left cells.
+
+    We start with a grid in the top-left corner - it has some labels we don't need and even an extra row
+    depending on how pandas chooses, to display itself, possibly in a quirky way.
+
+                              measure    Freq ...
+    country_var    country     <====== pandas creates an extra row, including col labels, if, and only if, the entire column is the same
+
+    To merge the top-left corner we need several things:
+    1) the two numbers for n_rows and n_cols to span
+    2) how to identify the ths to delete
+    3) whether there is a row to delete (remove this first before working out total rows to span, or deleting ths)
 
     https://www.crummy.com/software/BeautifulSoup/bs4/doc/
 
     https://www.crummy.com/software/BeautifulSoup/bs4/doc/#changing-tag-names-and-attributes
 
-    E.g.
-    <tr>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th colspan="2" halign="left">gender</th>
-    <th colspan="6" halign="left">os</th>
-    </tr>
-    <tr>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th>male</th>
-    <th>female</th>
-    <th colspan="3" halign="left">ubuntu</th>
-    <th colspan="3" halign="left">macos</th>
-    </tr>
-    <tr>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th></th>
-    <th>freq</th>
-    <th>freq</th>
-    <th>freq</th>
-    <th>row %</th>
-    <th>col %</th>
-    <th>freq</th>
-    <th>row %</th>
-    <th>col %</th>
-    </tr>
-    Count total number of header rows.
-    Count empty header cells in first table row i.e. <th></th>
-    Replace first empty header cell with one that spans n cols and n rows
-    Remove all (remaining) empty table cells
+    Step 1 - look at the final tr and see if the last th is empty. If so, remove that tr.
+    Step 2 - use n_header_rows and n_header_cols to do spanning
+    Step 3 - remove all other ths in top-left corner (not all of which are empty)
     """
     soup = BeautifulSoup(raw_tbl_html, 'html.parser')
     trs = soup.table.thead.find_all('tr')
     n_header_rows = len(trs)
+    ## Step 1 Remove extraneous row (if present)
+    last_tr = trs[-1]
+    last_tr_ths = last_tr.find_all('th')
+    last_th_in_last_tr = last_tr_ths[-1]
+    last_th_in_last_tr_is_empty = is_empty_th(last_th_in_last_tr)
+    if last_th_in_last_tr_is_empty:
+        last_tr.decompose()  ## bye bye! Step 1 happens
+        n_header_rows -= 1
+        trs = soup.table.thead.find_all('tr')
+    ## Step 2 Make spanned / merged cell
     first_tr = trs[0]
     first_tr_ths = first_tr.find_all('th')
-    first_tr_empty_ths = [th for th in first_tr_ths if is_empty_th(th)]
-    n_empty = len(first_tr_empty_ths)
+    n_header_cols = 0
+    for first_tr_th in first_tr_ths:
+        if is_empty_th(first_tr_th):
+            n_header_cols += 1
+        else:
+            break
     if debug:
-        print(f"{n_header_rows=}; {n_empty=}")
+        print(f"{n_header_rows=}; {n_header_cols=}")
     tl_box_th = soup.new_tag('th')
-    tl_box_th['colspan'] = str(n_empty)
     tl_box_th['rowspan'] = str(n_header_rows)
+    tl_box_th['colspan'] = str(n_header_cols)
     tl_box_th['class'] = f"spaceholder-{style_name.replace('_', '-')}"
     first_tr_first_th = first_tr_ths[0]
-    first_tr_first_th.replace_with(tl_box_th)
-    ths = soup.table.thead.find_all('th')
-    for th in ths[1:]:
-        if is_empty_th(th):
-            th.decompose()  ## bye bye!
-    if debug:
+    first_tr_first_th.replace_with(tl_box_th)  ## Step 2 happens
+    ## Step 3 Remove redundant ths
+    ## for each header row, remove the first n_header_cols ths (except for first one in which case keep the first - the new spanned / merged th)
+    for i, tr in enumerate(trs):
+        first_header_row = (i == 0)
+        start_idx = 1 if first_header_row else 0
+        ths_in_header_row = tr.find_all('th')
+        ths2kill = ths_in_header_row[start_idx: n_header_cols]
+        for th2kill in ths2kill:
+            th2kill.decompose()  ## bye bye! Step 3 happens
+    if debug and verbose:
         print(soup)
     tbl_html = str(soup)
     return tbl_html
@@ -270,6 +266,9 @@ def merge_col_blank_rows(raw_tbl_html: str, *, debug=False) -> str:
 
 def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str:
     """
+    Note - cells in the header might already be row spanned (merged horizontally)
+    so number of items amd index positions will be altered from what would be the case if no merging.
+
     Start at second-to-last (penultimate) tr in thead.
     Working across, look for BLANK th's.
     For each encountered, move upward through rows in same idx position until encountering a non-BLANK i.e. a label
@@ -377,8 +376,8 @@ def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str
         blank_ths.extend(blank_row_ths)
         ths_dict = {col_idx: th for col_idx, th in enumerate(ths)}
         th_coords[row_idx] = ths_dict
-    penultimate_row = th_coords[1]
-    for col_idx, th in penultimate_row.items():
+    row_above_measures = th_coords[1]
+    for col_idx, th in row_above_measures.items():
         if th.string == BLANK:
             ## iterate upwards
             for hop_n in count(1):
