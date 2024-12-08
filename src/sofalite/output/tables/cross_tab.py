@@ -266,104 +266,47 @@ def merge_col_blank_rows(raw_tbl_html: str, *, debug=False) -> str:
 
 def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str:
     """
-    Note - cells in the header might already be row spanned (merged horizontally)
-    so number of items amd index positions will be altered from what would be the case if no merging.
+    We want to get from:
+                              Browser                                                       Age Group
+                Chrome                          Firefox                   <20        20-29       30-39      40-64        65+
+               Age Group                       Age Group                __blank__   __blank__   __blank__   __blank__   __blank__
+    <20   20-29  30-39  40-64  65+    <20  20-29  30-39  40-64  65+ 	__blank__ 	__blank__ 	__blank__ 	__blank__ 	__blank__    <========= row_above_measures (row index 0 counting upwards from bottom)
+    Freq  Freq   Freq   Freq  Freq   Freq  Freq   Freq   Freq   Freq      Freq        Freq        Freq        Freq        Freq       <========= measures row
 
-    Start at second-to-last (penultimate) tr in thead.
-    Working across, look for BLANK th's.
-    For each encountered, move upward through rows in same idx position until encountering a non-BLANK i.e. a label
-    Count hops, set rowspan.
+        To:
+                              Browser                                                       Age Group
+                Chrome                          Firefox                   <20        20-29       30-39      40-64        65+
+               Age Group                       Age Group                    |          |           |          |           |   <=== pipes represent row spanning
+    <20   20-29  30-39  40-64  65+    <20  20-29  30-39  40-64  65+ 	    |          |           |          |           |
+    Freq  Freq   Freq   Freq  Freq   Freq  Freq   Freq   Freq   Freq      Freq        Freq        Freq        Freq        Freq
+
+    We do this working upwards from the row_above_measures.
+    We make that row 0 and the rows above it are 1, 2, .... etc.
+    The outer process is to work across row_above_measures looking for BLANK (__blank__) th's.
+    For each of these we then want to work upwards through the same horizontal position
+    until we stop finding BLANKs in the th's and find an actual value in the th i.e. a label.
+    We then row-span that valued (non-BLANK) th so it covers all the BLANK th's in the rows below it
+    (we have kept track of the hops upwards).
+    Because of col-spanning to our left, staying in the same position as we move upwards
+    is not a simple matter of using the same th index position as in row_above_measures in the rows of th's above.
+    More details on how that can be achieved in next paragraph.
     At end, .decompose() all BLANK th's in thead.
 
-    To implement, start by creating dict of rows with 0 being the key for the bottom row, 1 for the one above it etc.
-    Each row will be a dict with left-to-right idxs as keys and ths as values.
-    Why? So it is easy to reference th's relative to the one we are looking at.
+    Make a dict with row idx 0 being row_above_measures, 1 being the row above, and so on.
+    Make the value a mapping from col_idx to th element. Because of col-spanning, some th col_idxs will not exist.
+    For example:
 
-    <thead>
-    <tr>
-    <th class="spaceholder-prestige-screen" colspan="4" rowspan="5"></th>
-    <th class="col_heading level0 col0" colspan="15" id="T_6ef30_level0_col0">Age Group</th>
-    <th class="col_heading level0 col15" colspan="15" id="T_6ef30_level0_col15">Web Browser</th>
-    </tr>
-    <tr>
-    <th class="col_heading level1 col0" colspan="3" id="T_6ef30_level1_col0">&lt; 20</th>
-    <th class="col_heading level1 col3" colspan="3" id="T_6ef30_level1_col3">20-29</th>
-    <th class="col_heading level1 col6" colspan="3" id="T_6ef30_level1_col6">30-39</th>
-    <th class="col_heading level1 col9" colspan="3" id="T_6ef30_level1_col9">40-64</th>
-    <th class="col_heading level1 col12" colspan="3" id="T_6ef30_level1_col12">65+</th>
-    <th class="col_heading level1 col15" colspan="3" id="T_6ef30_level1_col15">Google Chrome</th>
-    <th class="col_heading level1 col18" colspan="3" id="T_6ef30_level1_col18">Firefox</th>
-    <th class="col_heading level1 col21" colspan="3" id="T_6ef30_level1_col21">Internet Explorer</th>
-    <th class="col_heading level1 col24" colspan="3" id="T_6ef30_level1_col24">Opera</th>
-    <th class="col_heading level1 col27" colspan="3" id="T_6ef30_level1_col27">Safari</th>
-    </tr>
-    <tr>
-    <th class="col_heading level2 col0" colspan="3" id="T_6ef30_level2_col0">__blank__</th>  <== first 5 are BLANK
-    <th class="col_heading level2 col3" colspan="3" id="T_6ef30_level2_col3">__blank__</th>
-    <th class="col_heading level2 col6" colspan="3" id="T_6ef30_level2_col6">__blank__</th>
-    <th class="col_heading level2 col9" colspan="3" id="T_6ef30_level2_col9">__blank__</th>
-    <th class="col_heading level2 col12" colspan="3" id="T_6ef30_level2_col12">__blank__</th>
-    <th class="col_heading level2 col15" colspan="3" id="T_6ef30_level2_col15">Car</th>
-    <th class="col_heading level2 col18" colspan="3" id="T_6ef30_level2_col18">Car</th>
-    <th class="col_heading level2 col21" colspan="3" id="T_6ef30_level2_col21">Car</th>
-    <th class="col_heading level2 col24" colspan="3" id="T_6ef30_level2_col24">Car</th>
-    <th class="col_heading level2 col27" colspan="3" id="T_6ef30_level2_col27">Car</th>
-    </tr>
-    <tr>
-    <th class="col_heading level3 col0" colspan="3" id="T_6ef30_level3_col0">__blank__</th> <== first 5 are BLANK
-    <th class="col_heading level3 col3" colspan="3" id="T_6ef30_level3_col3">__blank__</th>
-    <th class="col_heading level3 col6" colspan="3" id="T_6ef30_level3_col6">__blank__</th>
-    <th class="col_heading level3 col9" colspan="3" id="T_6ef30_level3_col9">__blank__</th>
-    <th class="col_heading level3 col12" colspan="3" id="T_6ef30_level3_col12">__blank__</th>
-    <th class="col_heading level3 col15" id="T_6ef30_level3_col15">BMW</th>
-    <th class="col_heading level3 col16" id="T_6ef30_level3_col16">Porsche</th>
-    <th class="col_heading level3 col17" id="T_6ef30_level3_col17">Audi</th>
-    <th class="col_heading level3 col18" id="T_6ef30_level3_col18">BMW</th>
-    <th class="col_heading level3 col19" id="T_6ef30_level3_col19">Porsche</th>
-    <th class="col_heading level3 col20" id="T_6ef30_level3_col20">Audi</th>
-    <th class="col_heading level3 col21" id="T_6ef30_level3_col21">BMW</th>
-    <th class="col_heading level3 col22" id="T_6ef30_level3_col22">Porsche</th>
-    <th class="col_heading level3 col23" id="T_6ef30_level3_col23">Audi</th>
-    <th class="col_heading level3 col24" id="T_6ef30_level3_col24">BMW</th>
-    <th class="col_heading level3 col25" id="T_6ef30_level3_col25">Porsche</th>
-    <th class="col_heading level3 col26" id="T_6ef30_level3_col26">Audi</th>
-    <th class="col_heading level3 col27" id="T_6ef30_level3_col27">BMW</th>
-    <th class="col_heading level3 col28" id="T_6ef30_level3_col28">Porsche</th>
-    <th class="col_heading level3 col29" id="T_6ef30_level3_col29">Audi</th>
-    </tr>
-    <tr>
-    <th class="col_heading level4 col0" id="T_6ef30_level4_col0">Freq</th> <== none are BLANK
-    <th class="col_heading level4 col1" id="T_6ef30_level4_col1">Col %</th>
-    <th class="col_heading level4 col2" id="T_6ef30_level4_col2">Row %</th>
-    <th class="col_heading level4 col3" id="T_6ef30_level4_col3">Freq</th>
-    <th class="col_heading level4 col4" id="T_6ef30_level4_col4">Col %</th>
-    <th class="col_heading level4 col5" id="T_6ef30_level4_col5">Row %</th>
-    <th class="col_heading level4 col6" id="T_6ef30_level4_col6">Freq</th>
-    <th class="col_heading level4 col7" id="T_6ef30_level4_col7">Col %</th>
-    <th class="col_heading level4 col8" id="T_6ef30_level4_col8">Row %</th>
-    <th class="col_heading level4 col9" id="T_6ef30_level4_col9">Freq</th>
-    <th class="col_heading level4 col10" id="T_6ef30_level4_col10">Col %</th>
-    <th class="col_heading level4 col11" id="T_6ef30_level4_col11">Row %</th>
-    <th class="col_heading level4 col12" id="T_6ef30_level4_col12">Freq</th>
-    <th class="col_heading level4 col13" id="T_6ef30_level4_col13">Col %</th>
-    <th class="col_heading level4 col14" id="T_6ef30_level4_col14">Row %</th>
-    <th class="col_heading level4 col15" id="T_6ef30_level4_col15">Freq</th>
-    <th class="col_heading level4 col16" id="T_6ef30_level4_col16">Freq</th>
-    <th class="col_heading level4 col17" id="T_6ef30_level4_col17">Freq</th>
-    <th class="col_heading level4 col18" id="T_6ef30_level4_col18">Freq</th>
-    <th class="col_heading level4 col19" id="T_6ef30_level4_col19">Freq</th>
-    <th class="col_heading level4 col20" id="T_6ef30_level4_col20">Freq</th>
-    <th class="col_heading level4 col21" id="T_6ef30_level4_col21">Freq</th>
-    <th class="col_heading level4 col22" id="T_6ef30_level4_col22">Freq</th>
-    <th class="col_heading level4 col23" id="T_6ef30_level4_col23">Freq</th>
-    <th class="col_heading level4 col24" id="T_6ef30_level4_col24">Freq</th>
-    <th class="col_heading level4 col25" id="T_6ef30_level4_col25">Freq</th>
-    <th class="col_heading level4 col26" id="T_6ef30_level4_col26">Freq</th>
-    <th class="col_heading level4 col27" id="T_6ef30_level4_col27">Freq</th>
-    <th class="col_heading level4 col28" id="T_6ef30_level4_col28">Freq</th>
-    <th class="col_heading level4 col29" id="T_6ef30_level4_col29">Freq</th>
-    </tr>
-    </thead>
+                              Browser                                                       Age Group                            row_idx: {col_idx: th, ...}
+                Chrome                          Firefox                   <20        20-29       30-39      40-64        65+        2: {0: th(Chrome), 5: th(Firefox), 10: th(<20), 11: th(20-29), ...}
+               Age Group                       Age Group                __blank__   __blank__   __blank__   __blank__   __blank__   1: {0: th(Age Group), 5: th(Age Group), 10: th(__blank__), 11: th(__blank__), ...}
+    <20   20-29  30-39  40-64  65+    <20  20-29  30-39  40-64  65+ 	__blank__   __blank__   __blank__   __blank__   __blank__   0: {0: th(<20), 1: th(20-29), 2: th(30-39), ... 5: th(<20), ... 10: th(__blank__), 11: th(__blank__), ...}
+    Freq  Freq   Freq   Freq  Freq   Freq  Freq   Freq   Freq   Freq      Freq        Freq        Freq        Freq        Freq      Ignored
+
+    Using the example above, we work across row_above_measures until we eventually encounter a BLANK at col_idx 10.
+    In row_idx 1, col_idx 10 is still BLANK so we have 1 hop so far.
+    In row_idx 2, col_idx 10 is not BLANK so we have 2 hops total and we can set the rowspan for that label th
+    to the number of hops (2 in this case).
+    Then move onto next col in row_above_measures.
     """
     soup = BeautifulSoup(raw_tbl_html, 'html.parser')
     trs = soup.table.find('thead').find_all('tr')
