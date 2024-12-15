@@ -78,7 +78,7 @@ import sqlite3 as sqlite
 from sofalite.conf.tables.misc import BLANK, Measure
 from sofalite.output.tables.cross_tab import (
     apply_index_styles, display_tbl, fix_top_left_box, get_tbl_df,
-    merge_col_blank_rows, merge_row_blank_rows, set_table_styles)
+    merge_cols_of_blanks, merge_rows_of_blanks, set_table_styles)
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -469,8 +469,8 @@ def main(*, debug=False, verbose=False):
     ## Fix
     tbl_html = raw_tbl_html
     tbl_html = fix_top_left_box(tbl_html, style_name, debug=debug, verbose=verbose)
-    tbl_html = merge_col_blank_rows(tbl_html, debug=debug)
-    tbl_html = merge_row_blank_rows(tbl_html, debug=debug, verbose=verbose)
+    tbl_html = merge_cols_of_blanks(tbl_html, debug=debug)
+    tbl_html = merge_rows_of_blanks(tbl_html, debug=debug, verbose=verbose)
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)

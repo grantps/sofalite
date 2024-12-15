@@ -222,9 +222,11 @@ def fix_top_left_box(raw_tbl_html: str, style_name: str, *, debug=False, verbose
     tbl_html = str(soup)
     return tbl_html
 
-def merge_col_blank_rows(raw_tbl_html: str, *, debug=False) -> str:
+def merge_cols_of_blanks(raw_tbl_html: str, *, debug=False) -> str:
     """
     Male 	__blank__ 	__blank__ ==> Male colspan=3
+
+    We want to get from:
 
     <th class="row_heading level1 row6" id="T_d3b21_level1_row6">Male</th>
     <th class="row_heading level2 row6" id="T_d3b21_level2_row6">__blank__</th>
@@ -264,8 +266,53 @@ def merge_col_blank_rows(raw_tbl_html: str, *, debug=False) -> str:
     tbl_html = str(soup)
     return tbl_html
 
-def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str:
+def _get_upwards_row_to_col_idxs(trs_row_above_measures_first) -> dict[int: {int: str}]:
     """
+    For example, we want to get from the HTML on the left to the dict on the right:
+
+                              Browser                                                       Age Group                            row_idx: {col_idx: th, ...}
+                Chrome                          Firefox                   <20        20-29       30-39      40-64        65+        2: {0: th(Chrome), 5: th(Firefox), 10: th(<20), 11: th(20-29), ...}
+               Age Group                       Age Group                __blank__   __blank__   __blank__   __blank__   __blank__   1: {0: th(Age Group), 5: th(Age Group), 10: th(__blank__), 11: th(__blank__), ...}
+    <20   20-29  30-39  40-64  65+    <20  20-29  30-39  40-64  65+ 	__blank__   __blank__   __blank__   __blank__   __blank__   0: {0: th(<20), 1: th(20-29), 2: th(30-39), ... 5: th(<20), ... 10: th(__blank__), 11: th(__blank__), ...}
+    Freq  Freq   Freq   Freq  Freq   Freq  Freq   Freq   Freq   Freq      Freq        Freq        Freq        Freq        Freq      Ignored
+    """
+    upwards_row_to_col_idxs = {}
+    for row_idx, tr in enumerate(trs_row_above_measures_first):
+        col_idx_to_th = {}
+        ths = tr.find_all('th')
+        spans_to_add = 0
+        for raw_col_idx, th in enumerate(ths):
+            col_idx = raw_col_idx + spans_to_add
+            col_idx_to_th[col_idx] = th
+            extra_spans = int(th['colspan']) - 1 if th.get('colspan') is not None else 0  ## if a col spans 3 cols we only need to increment subsequent col_idxs by 2  TODO: check the attribute exists if 1 span
+            if extra_spans:
+                spans_to_add += extra_spans
+        upwards_row_to_col_idxs[row_idx] = col_idx_to_th
+    return upwards_row_to_col_idxs
+
+def _get_blank_ths(trs) -> list:
+    """
+    Get list of table header (th) elements that are blank. At the end these will all be removed.
+    """
+    blank_ths = []
+    for tr in trs:
+        ths = tr.find_all('th')
+        blank_ths_in_tr = [th for th in ths if th.string == BLANK]
+        blank_ths.extend(blank_ths_in_tr)
+    return blank_ths
+
+def merge_rows_of_blanks(raw_tbl_html: str, *, debug=False, verbose=True) -> str:
+    """
+      20-29
+    __blank__
+    __blank__
+
+    becomes
+
+      20-29 rowspan=3
+
+    etc
+
     We want to get from:
                               Browser                                                       Age Group
                 Chrome                          Firefox                   <20        20-29       30-39      40-64        65+
@@ -273,7 +320,7 @@ def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str
     <20   20-29  30-39  40-64  65+    <20  20-29  30-39  40-64  65+ 	__blank__ 	__blank__ 	__blank__ 	__blank__ 	__blank__    <========= row_above_measures (row index 0 counting upwards from bottom)
     Freq  Freq   Freq   Freq  Freq   Freq  Freq   Freq   Freq   Freq      Freq        Freq        Freq        Freq        Freq       <========= measures row
 
-        To:
+    -->
                               Browser                                                       Age Group
                 Chrome                          Firefox                   <20        20-29       30-39      40-64        65+
                Age Group                       Age Group                    |          |           |          |           |   <=== pipes represent row spanning
@@ -310,21 +357,15 @@ def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str
     """
     soup = BeautifulSoup(raw_tbl_html, 'html.parser')
     trs = soup.table.find('thead').find_all('tr')
-    trs = reversed(trs)
-    blank_ths = []
-    th_coords = {}
-    for row_idx, row in enumerate(trs):
-        ths = row.find_all('th')
-        blank_row_ths = [th for th in ths if th.string == BLANK]
-        blank_ths.extend(blank_row_ths)
-        ths_dict = {col_idx: th for col_idx, th in enumerate(ths)}
-        th_coords[row_idx] = ths_dict
-    row_above_measures = th_coords[1]
+    trs_row_above_measures_first = reversed(trs)
+    upwards_row_to_col_idxs = _get_upwards_row_to_col_idxs(trs_row_above_measures_first)
+    row_above_measures = upwards_row_to_col_idxs[1]
+    ## move rightwards across row_above_measures
     for col_idx, th in row_above_measures.items():
         if th.string == BLANK:
             ## iterate upwards
             for hop_n in count(1):
-                aligned_th = th_coords[1 + hop_n][col_idx]
+                aligned_th = upwards_row_to_col_idxs[1 + hop_n][col_idx]
                 if aligned_th.string == BLANK:
                     continue
                 else:
@@ -333,6 +374,7 @@ def merge_row_blank_rows(raw_tbl_html: str, *, debug=False, verbose=True) -> str
                     if debug and verbose:
                         print(f"{hop_n} {aligned_th}")
                     break
+    blank_ths = _get_blank_ths(trs)
     ## remove all blanks now from actual soup
     for blank_th in blank_ths:
         blank_th.decompose()
