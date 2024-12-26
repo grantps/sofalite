@@ -1,4 +1,7 @@
 """
+TODO: cope with location of 40-64 columns because missing in top so stuck on end by pandas
+Have to work out what is going to be in the columns later? Damn! I want Pandas to take care of all that properly by itself.
+
 Target Table
 ============
 
@@ -38,8 +41,6 @@ Country     NZ          Gender    Female          3.0   6.0   5.0  11.0  19.0   
             South Korea __blank__ __blank__      32.0  17.0  16.0  35.0  21.0      49.0  23.0  17.0  43.0  49.0        81        40        33        70      78.0
             U.S.A       __blank__ __blank__      18.0   8.0  10.0  27.0  30.0      35.0  25.0  24.0  51.0  55.0        53        33        34        85      78.0
 
-TODO: handle measure AND country_var / country columns when processing into HTML
-
 Notes on Target Table
 =====================
 
@@ -75,10 +76,11 @@ we'll need to extend to match so we can all be combined
 import pandas as pd
 import sqlite3 as sqlite
 
-from sofalite.conf.tables.misc import BLANK, Measure
-from sofalite.output.tables.cross_tab import (
-    apply_index_styles, display_tbl, fix_top_left_box, get_tbl_df,
-    merge_cols_of_blanks, merge_rows_of_blanks, set_table_styles)
+from sofalite.conf.tables.misc import BLANK
+from sofalite.demos.pandas_merging_poc.utils.misc import (
+    apply_index_styles, columns_multi_index_fixer, display_tbl, set_table_styles)
+from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
+    fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -102,7 +104,59 @@ class GetData:
 
     ## TOP df **********************************************************************************************************
 
-    ## TOP LEFT
+    ## TOP LEFT & RIGHT (reused to put more strain on row-spanning of columns and reuse of column names)
+    @staticmethod
+    def get_country_gender_by_age_group(*, debug=False) -> pd.DataFrame:
+        """
+        Wipe out agegroup 4 in the source data to confirm the combined table output
+        has agegroup 4 column anyway because it is in the country row table.
+
+        Needs two level column dimension columns because left df has two column dimension levels
+        i.e. browser and agegroup. So dummy variable needed.
+
+        LEFT has two levels:
+
+        browser    Chrome                        Firefox
+        agegroup   <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
+
+        so RIGHT needs two as well (so dummy filler needed):
+
+        agegroup  <20 20-29 30-39 65+
+        dummy
+        """
+        con = sqlite.connect('sofa_db')
+        cur = con.cursor()
+        sql = """\
+        SELECT country, gender, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE agegroup <> 4 
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY country, gender, agegroup
+        """
+        cur.execute(sql)
+        data = cur.fetchall()
+        cur.close()
+        con.close()
+        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'gender_val', 'age_group_val', 'n'])
+        df_pre_pivot['country_var'] = 'Country'
+        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
+        df_pre_pivot['gender_var'] = 'Gender'
+        df_pre_pivot['gender'] = df_pre_pivot['gender_val'].apply(lambda x: gender_map[x])
+        df_pre_pivot['age_group_var'] = 'Age Group'
+        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot['col_filler_var_0'] = BLANK
+        df_pre_pivot['col_filler_0'] = BLANK  ## add filler column which we'll nest under age_group as natural outcome of pivot step
+        df_pre_pivot['measure'] = 'Freq'
+        df = (df_pre_pivot
+            .pivot(
+                index=['country_var', 'country', 'gender_var', 'gender'],
+                columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
+                values='n')
+        )
+        if debug: print(f"\nTOP LEFT & RIGHT:\n{df}")
+        return df
+
+    ## TOP MIDDLE
     @staticmethod
     def get_country_gender_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
         """
@@ -184,102 +238,17 @@ class GetData:
                 columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
                 values='n')
         )
-        if debug: print(f"\nTOP LEFT:\n{df}")
-        return df
-
-    ## TOP RIGHT
-    @staticmethod
-    def get_country_gender_by_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Wipe out agegroup 4 in the source data to confirm the combined table output
-        has agegroup 4 column anyway because it is in the country row table.
-
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and agegroup. So dummy variable needed.
-
-        LEFT has two levels:
-
-        browser    Chrome                        Firefox
-        agegroup   <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
-
-        so RIGHT needs two as well (so dummy filler needed):
-
-        agegroup  <20 20-29 30-39 65+
-        dummy
-        """
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql = """\
-        SELECT country, gender, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, gender, agegroup
-        """
-        cur.execute(sql)
-        data = cur.fetchall()
-        cur.close()
-        con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'gender_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
-        df_pre_pivot['gender_var'] = 'Gender'
-        df_pre_pivot['gender'] = df_pre_pivot['gender_val'].apply(lambda x: gender_map[x])
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
-        df_pre_pivot['col_filler_var_0'] = BLANK
-        df_pre_pivot['col_filler_0'] = BLANK  ## add filler column which we'll nest under age_group as natural outcome of pivot step
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=['country_var', 'country', 'gender_var', 'gender'],
-                columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
-                values='n')
-        )
-        if debug: print(f"\nTOP RIGHT:\n{df}")
+        if debug: print(f"\nTOP MIDDLE:\n{df}")
         return df
 
     ## MIDDLE df *******************************************************************************************************
 
     """
-    Note - must have same columns for left as for TOP left df and for the right as for TOP right df
+    Note - must have same columns for left as for TOP left df, for middle as TOP middle df,
+    and for the right as for TOP right df
     """
 
-    ## MIDDLE LEFT
-    @staticmethod
-    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql = """\
-        SELECT country, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, browser, agegroup
-        """
-        cur.execute(sql)
-        data = cur.fetchall()
-        cur.close()
-        con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'browser_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
-        df_pre_pivot['row_filler_var_0'] = BLANK
-        df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot['browser_var'] = 'Browser'
-        df_pre_pivot['browser'] = df_pre_pivot['browser_val']
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'],
-                columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
-                values='n')
-        )
-        if debug: print(f"\nBOTTOM LEFT:\n{df}")
-        return df
-
-    ## MIDDLE RIGHT
+    ## MIDDLE LEFT & RIGHT
     @staticmethod
     def get_country_by_age_group(*, debug=False) -> pd.DataFrame:
         """
@@ -314,34 +283,27 @@ class GetData:
                 columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
-        if debug: print(f"\nBOTTOM RIGHT:\n{df}")
+        if debug: print(f"\nMIDDLE LEFT & RIGHT:\n{df}")
         return df
 
-    ## BOTTOM df *******************************************************************************************************
-
-    """
-    Note - must have same columns for left as for TOP left df and for the right as for TOP right df
-    """
-
-    ## BOTTOM LEFT
+    ## MIDDLE MIDDLE
     @staticmethod
-    def get_car_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
+    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
         sql = """\
-        SELECT car, browser, agegroup, COUNT(*) AS n
+        SELECT country, browser, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3)
-        GROUP BY car, browser, agegroup
+        GROUP BY country, browser, agegroup
         """
         cur.execute(sql)
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['car_val', 'browser_val', 'age_group_val', 'n'])
-        df_pre_pivot['car_var'] = 'Car'
-        df_pre_pivot['car'] = df_pre_pivot['car_val'].apply(lambda x: car_map[x])
+        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'browser_val', 'age_group_val', 'n'])
+        df_pre_pivot['country_var'] = 'Country'
+        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
         df_pre_pivot['row_filler_var_0'] = BLANK
         df_pre_pivot['row_filler_0'] = BLANK
         df_pre_pivot['browser_var'] = 'Browser'
@@ -351,14 +313,20 @@ class GetData:
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'],
+                index=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'],
                 columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
                 values='n')
         )
-        if debug: print(f"\nBOTTOM LEFT:\n{df}")
+        if debug: print(f"\nMIDDLE MIDDLE:\n{df}")
         return df
 
-    ## BOTTOM RIGHT
+    ## BOTTOM df *******************************************************************************************************
+
+    """
+    Note - must have same columns for left as for TOP left df and for the right as for TOP right df
+    """
+
+    ## BOTTOM LEFT & RIGHT
     @staticmethod
     def get_car_by_age_group(*, debug=False) -> pd.DataFrame:
         """
@@ -394,7 +362,42 @@ class GetData:
                 columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
-        if debug: print(f"\nBOTTOM RIGHT:\n{df}")
+        if debug: print(f"\nBOTTOM LEFT & RIGHT:\n{df}")
+        return df
+
+    ## BOTTOM MIDDLE
+    @staticmethod
+    def get_car_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
+        con = sqlite.connect('sofa_db')
+        cur = con.cursor()
+        sql = """\
+        SELECT car, browser, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        AND car IN (2, 3)
+        GROUP BY car, browser, agegroup
+        """
+        cur.execute(sql)
+        data = cur.fetchall()
+        cur.close()
+        con.close()
+        df_pre_pivot = pd.DataFrame(data, columns=['car_val', 'browser_val', 'age_group_val', 'n'])
+        df_pre_pivot['car_var'] = 'Car'
+        df_pre_pivot['car'] = df_pre_pivot['car_val'].apply(lambda x: car_map[x])
+        df_pre_pivot['row_filler_var_0'] = BLANK
+        df_pre_pivot['row_filler_0'] = BLANK
+        df_pre_pivot['browser_var'] = 'Browser'
+        df_pre_pivot['browser'] = df_pre_pivot['browser_val']
+        df_pre_pivot['age_group_var'] = 'Age Group'
+        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot['measure'] = 'Freq'
+        df = (df_pre_pivot
+            .pivot(
+                index=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'],
+                columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
+                values='n')
+        )
+        if debug: print(f"\nBOTTOM MIDDLE:\n{df}")
         return df
 
 
@@ -434,27 +437,40 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
+    raw_col_tree = ['root', ['Age Group', ], ['Browser', ['Age Group', ]], ['Age Group Repeated', ]]  ## we will retain this order even if not sorted alphabetically as pandas will post-JOINing
     ## TOP
-    df_top_left = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
-    df_top_right = GetData.get_country_gender_by_age_group(debug=debug)
+    df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
+    df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
     df_top = df_top_left.merge(df_top_right, how='outer', on=['country_var', 'country', 'gender_var', 'gender'])
+    df_top_repeat = df_top_left.copy()
+    df_top_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
+    df_top = df_top.merge(df_top_repeat, how='outer', on=['country_var', 'country', 'gender_var', 'gender'])  ## join again to test ability to  handle col-spanning offsets etc
     ## MIDDLE
-    df_middle_left = GetData.get_country_by_browser_and_age_group(debug=debug)
-    df_middle_right = GetData.get_country_by_age_group(debug=debug)
+    df_middle_left = GetData.get_country_by_age_group(debug=debug)
+    df_middle_right = GetData.get_country_by_browser_and_age_group(debug=debug)
     df_middle = df_middle_left.merge(df_middle_right, how='outer', on=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'])
-    if debug:
-        print(f"\nTOP:\n{df_top}\n\nBOTTOM:\n{df_middle}")
+    df_middle_repeat = df_middle_left.copy()
+    df_middle_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
+    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'])
     ## BOTTOM
-    df_bottom_left = GetData.get_car_by_browser_and_age_group(debug=debug)
-    df_bottom_right = GetData.get_car_by_age_group(debug=debug)
+    df_bottom_left = GetData.get_car_by_age_group(debug=debug)
+    df_bottom_right = GetData.get_car_by_browser_and_age_group(debug=debug)
     df_bottom = df_bottom_left.merge(df_bottom_right, how='outer', on=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'])
+    df_bottom_repeat = df_bottom_left.copy()
+    df_bottom_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
+    df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'])
     if debug:
-        print(f"\nTOP:\n{df_top}\n\nBOTTOM:\n{df_bottom}")
+        print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
     ## COMBINE
-    df = pd.concat([df_top, df_middle, df_bottom], axis=0)
-    # df = pd.concat([df_top, df_middle], axis=0)  ## only one var on left (albeit repeated) so pandas will add an extra header row to display them
+    ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
+    ## e.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
+    ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally
+    df_t = df_top.T.join(df_middle.T, how='outer')
+    df_t = df_t.join(df_bottom.T, how='outer')
+    df = df_t.T
     df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
+    df = columns_multi_index_fixer(df, raw_col_tree, debug=debug)
     return df
 
 def main(*, debug=False, verbose=False):

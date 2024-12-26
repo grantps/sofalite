@@ -11,4 +11,6 @@ of all the row and column sub-trees.
 Step 2) Afterwards, add totals for rows, then totals for columns.
 Step 3) Then calculate row and column percentages.
 Step 4) Simplify output/tables/cross_tab/get_tbl_df so accepts a raw df rather than the data to which we add the multi-indexes.
+
+TODO: what about the order of columns and rows e.b. by label, by value etc?
 """
