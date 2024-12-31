@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import partial
 from itertools import count
 from typing import Literal, Sequence
@@ -184,6 +185,17 @@ def display_tbl(tbl_html: str, tbl_name: str, style_name: str):
         f.write(html)
     open_new_tab(f"file://{fpath}")
 
+def nest_under_blank(item: list | str, *, n_levels: int) -> list:
+    """
+    e.g. 'Country' and 2 => ['__blank__', ['__blank__', ['Country', ]]]
+    """
+    nested = item.copy()
+    n = 0
+    while n < n_levels:
+        nested = ['__blank__', nested]
+        n += 1
+    return nested
+
 def fill_col_tree_to_longest_length(raw_col_tree: list, *, debug=False) -> list:
     """
                                a
@@ -224,21 +236,81 @@ def fill_col_tree_to_longest_length(raw_col_tree: list, *, debug=False) -> list:
         ['__blank__', ['Age Group Repeated', ]],
     ]
     """
-    max_sub_tree_len = max(len(item) for item in raw_col_tree[1:])
-    
+    sub_trees = raw_col_tree[1:]
+    max_sub_tree_len = max(len(sub_tree) for sub_tree in sub_trees)
+    filled_sub_trees = []
+    for sub_tree in sub_trees:
+        if len(sub_tree) < max_sub_tree_len:  ## e.g. ['Age Group', ] has len 1 whereas max is 2
+            n_levels_to_add = max_sub_tree_len - len(sub_tree)  ## 2 - 1 = 1
+            new_sub_tree = sub_tree.deepcopy()
+            raw_final_item = new_sub_tree[-1].copy()  ##
 
 
+    return ['root', *filled_sub_trees]
 
 def columns_multi_index_fixer(df: pd.DataFrame, raw_col_tree: tuple, *, debug=False) -> pd.DataFrame:
     """
+    The problem occurs when the columns of the first df don't include all items in final, concatenated df:
+
+                              root
+                               |
+            ------------------------------------------
+            |                                       |
+        Age Group                          Age Group Repeated
+
+    +
+                              root
+                               |
+            ------------------------------------------
+            |                  |                     |
+        Age Group          Browser         Age Group Repeated  <====== correct order
+
+    =
+                              root
+                               |
+            ------------------------------------------
+            |                  |                     |
+        Age Group     Age Group Repeated          Browser  <====== alphabetical order (the only safe way of doing this given possibility of multiple options)
+
+    The solution is to force the order as expressed in the original design (not from the dfs themselves).
+
+    How do you force order on a multi-index?
+    Well, a multi-index is basically a list of items e.g.
+    [
+        ['Age Group', '<20', ''],
+    ]
+
+    Sort it so variables are by design order;
+    values are by either numeric order (value), alphabetical order (label), or by measure underneath (if a final level);
+    metrics by a standard order e.g. freq, then (if present), col %, then (if present) row %.
+
+    TODO: this is not just about variable order! Value order is harder.
+
     Sorts are guaranteed to be stable. That means that when multiple records have the same key, their original order is preserved.
     https://docs.python.org/3/howto/sorting.html
     We can also assign sorted slices to slices e.g.
     a[2:4] = sorted(a[2:4])
-    Sort variable levels as in col_tree and value levels alphabetically.
-    How? Sort at level 1 by order in level 1. Then for each, filter, and sort alphabetically.
+    Sort sibling variables in the same order amongst siblings they appear with in the col_tree,
+    value levels alphabetically,
+    and metrics by some other sort rule (currently undefined).
+    How? Sort at level 1 by order amongst siblings on level 1. Then for each, filter, and sort alphabetically.
     """
     col_tree = fill_col_tree_to_longest_length(raw_col_tree, debug=debug)
     print(list(df.columns))
 
     return df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
