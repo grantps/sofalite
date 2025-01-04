@@ -46,7 +46,7 @@ class SortUtils:
         return df
 
     @staticmethod
-    def get_col_tree() -> dict:
+    def get_orders_for_col_tree() -> dict:
         return {
             ('age', ): (0, Sort.VAL),
             ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),
@@ -54,11 +54,12 @@ class SortUtils:
         }
 
     @staticmethod
-    def tuple2col_tree_key(orig_tuple: tuple, *, debug=False) -> tuple:
+    def tuple2branch_of_vars_key(orig_tuple: tuple, *, debug=False) -> tuple:
         """
         e.g. ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
         =>
         ('browser', 'car', )
+
         ('age', '20-29', BLANK, BLANK, Metric.FREQ)
         =>
         ('age', )
@@ -152,14 +153,50 @@ class SortUtils:
         =>
         (0, 5, 0, 0, 2)
         """
-        raw_df = SortUtils.get_raw_df(debug=debug)
-        col_tree = SortUtils.get_col_tree()
-        col_tree_key = SortUtils.tuple2col_tree_key(orig_tuple, debug=debug)
-        branch_dets = col_tree[col_tree_key]
+        max_idx = len(orig_tuple) - 1
+        metric_idx = max_idx
+        orders_for_col_tree = SortUtils.get_orders_for_col_tree()
+        branch_of_variables_key = SortUtils.tuple2branch_of_vars_key(orig_tuple, debug=debug)
+        orders_spec = orders_for_col_tree[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
         lbl2val = SortUtils.get_lbl2val(debug=debug)
-
-
-        return orig_tuple
+        list_for_sorting = []
+        variable_value_pairs = []
+        for idx in count():
+            if idx > max_idx:
+                break
+            variable = orig_tuple[idx]
+            ## get order for sorting
+            var_idx = (idx % 2 == 0 and idx != metric_idx)
+            val_idx = (idx != var_idx and idx != metric_idx)
+            if var_idx:
+                variable_order = orders_spec[idx]
+                if debug:
+                    print(f"{variable=}; {variable_order=}")
+                list_for_sorting.append(variable_order)
+            elif val_idx:
+                lbl = orig_tuple[idx]
+                value_order_spec = orders_spec[idx]
+                if value_order_spec == Sort.LBL:
+                    value_order = lbl
+                elif value_order_spec == Sort.VAL:
+                    value_order = lbl2val[lbl]
+                elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
+                    raw_df = SortUtils.get_raw_df(debug=debug)
+                    increasing = (value_order_spec == Sort.INCREASING)
+                    filts = tuple(variable_value_pairs)
+                    value_order = SortUtils.by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)
+                else:
+                    raise ValueError(f"Unexpected value order spec ({value_order_spec})")
+                variable_value_pairs.append((orig_tuple[idx - 1], orig_tuple[idx]))
+                list_for_sorting.append(value_order)
+            elif metric_idx:
+                metric = orig_tuple[idx]
+                metric_order = SortUtils.get_metric2order(metric)
+                list_for_sorting.append(metric_order)
+            else:
+                raise ValueError(f"Unexpected item index ({idx=}) when getting tuple for sorting")
+        tuple_for_sorting = tuple(list_for_sorting)
+        return tuple_for_sorting
 
 
 def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, debug=False) -> list[tuple]:
