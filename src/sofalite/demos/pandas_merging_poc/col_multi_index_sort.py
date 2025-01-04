@@ -1,5 +1,5 @@
 from enum import StrEnum
-from functools import cache
+from functools import cache, partial
 from itertools import count
 import sqlite3 as sqlite
 from typing import Any
@@ -49,8 +49,10 @@ class SortUtils:
     def get_orders_for_col_tree() -> dict:
         return {
             ('age', ): (0, Sort.VAL),
-            ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),
-            ('browser', 'car', ): (1, Sort.LBL, 1, Sort.DECREASING),
+            # ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),  ## TODO - will need to manually check what expected results should be (groan)
+            # ('browser', 'car', ): (1, Sort.LBL, 1, Sort.DECREASING),
+            ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
+            ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
         }
 
     @staticmethod
@@ -122,7 +124,6 @@ class SortUtils:
         return {Metric.FREQ: 1, Metric.ROW_PCT: 2, Metric.COL_PCT: 3}[metric]
 
     @staticmethod
-    @cache
     def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, str]] | None = None, *,
             increasing=True) -> float:
         df_filt = df.copy().loc[df[variable] == lbl]
@@ -161,33 +162,42 @@ class SortUtils:
         lbl2val = SortUtils.get_lbl2val(debug=debug)
         list_for_sorting = []
         variable_value_pairs = []
+        if debug:
+            print(f"{orig_tuple=}; {max_idx=}; {orders_spec=}")
         for idx in count():
             if idx > max_idx:
                 break
-            variable = orig_tuple[idx]
             ## get order for sorting
             var_idx = (idx % 2 == 0 and idx != metric_idx)
             val_idx = (idx != var_idx and idx != metric_idx)
             if var_idx:
-                variable_order = orders_spec[idx]
+                variable = orig_tuple[idx]
+                if variable == BLANK:
+                    variable_order = 0  ## never more than one so no order
+                else:
+                    variable_order = orders_spec[idx]
                 if debug:
                     print(f"{variable=}; {variable_order=}")
                 list_for_sorting.append(variable_order)
             elif val_idx:
+                variable = orig_tuple[idx - 1]
                 lbl = orig_tuple[idx]
-                value_order_spec = orders_spec[idx]
-                if value_order_spec == Sort.LBL:
-                    value_order = lbl
-                elif value_order_spec == Sort.VAL:
-                    value_order = lbl2val[lbl]
-                elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
-                    raw_df = SortUtils.get_raw_df(debug=debug)
-                    increasing = (value_order_spec == Sort.INCREASING)
-                    filts = tuple(variable_value_pairs)
-                    value_order = SortUtils.by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)
+                if lbl == BLANK:
+                    value_order = 0  ## never more than one so no order
                 else:
-                    raise ValueError(f"Unexpected value order spec ({value_order_spec})")
-                variable_value_pairs.append((orig_tuple[idx - 1], orig_tuple[idx]))
+                    value_order_spec = orders_spec[idx]
+                    if value_order_spec == Sort.LBL:
+                        value_order = lbl
+                    elif value_order_spec == Sort.VAL:
+                        value_order = lbl2val[(variable, lbl)]
+                    elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
+                        raw_df = SortUtils.get_raw_df(debug=debug)
+                        increasing = (value_order_spec == Sort.INCREASING)
+                        filts = tuple(variable_value_pairs)
+                        value_order = SortUtils.by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)  ## can't use df as arg for cached function
+                    else:
+                        raise ValueError(f"Unexpected value order spec ({value_order_spec})")
+                    variable_value_pairs.append((variable, lbl))
                 list_for_sorting.append(value_order)
             elif metric_idx:
                 metric = orig_tuple[idx]
@@ -200,24 +210,30 @@ class SortUtils:
 
 
 def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, debug=False) -> list[tuple]:
-    sorted_multi_index_list = sorted(unsorted_multi_index_list, key=SortUtils.get_tuple_for_sorting)
+    multi_index_sort_fn = partial(SortUtils.get_tuple_for_sorting, debug=debug)
+    sorted_multi_index_list = sorted(unsorted_multi_index_list, key=multi_index_sort_fn)
     if debug:
-        print(sorted_multi_index_list)
+        for row in sorted_multi_index_list:
+            print(row)
     return sorted_multi_index_list
 
 if __name__ == '__main__':
     unsorted_multi_index_list_a = [
+        ('browser', 'Google Chrome', 'car', 'BMW', Metric.FREQ),
+        ('browser', 'Google Chrome', 'car', 'PORSCHE', Metric.FREQ),
+        ('browser', 'Google Chrome', 'car', 'LAMBORGHINI', Metric.FREQ),
+        ('browser', 'Google Chrome', 'car', 'AUDI', Metric.FREQ),
         ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ),
         ('age', '20-29', BLANK, BLANK, Metric.FREQ),
         ('age', '65+', BLANK, BLANK, Metric.FREQ),
         ('age', '30-39', BLANK, BLANK, Metric.FREQ),
-        ('browser', 'Firefox', 'age', '<20', Metric.FREQ),
+        ('browser', 'Firefox', 'age', '< 20', Metric.FREQ),
         ('browser', 'Firefox', 'age', '20-29', Metric.FREQ),
         ('browser', 'Firefox', 'age', '30-39', Metric.FREQ),
         ('browser', 'Firefox', 'age', '40-64', Metric.FREQ),
-        ('age', '<20', BLANK, BLANK, Metric.FREQ),
+        ('age', '< 20', BLANK, BLANK, Metric.FREQ),
         ('browser', 'Firefox', 'age', '65+', Metric.FREQ),
-        ('browser', 'Google Chrome', 'age', '<20', Metric.FREQ),
+        ('browser', 'Google Chrome', 'age', '< 20', Metric.FREQ),
         ('browser', 'Google Chrome', 'age', '20-29', Metric.FREQ),
         ('age', '40-64', BLANK, BLANK, Metric.FREQ),
         ('browser', 'Firefox', 'car', 'PORSCHE', Metric.FREQ),
