@@ -1,5 +1,4 @@
 """
-TODO: cope with location of 40-64 columns because missing in top so stuck on end by pandas
 Have to work out what is going to be in the columns later? Damn! I want Pandas to take care of all that properly by itself.
 
 Target Table
@@ -72,15 +71,16 @@ but needs country > placeholder vs age_group > placeholder to enable it to merge
 Note - use multi-indexes in df wherever more than one level. Note if a block from any direction has more levels than us
 we'll need to extend to match so we can all be combined
 """
-
+from functools import cache
 import pandas as pd
 import sqlite3 as sqlite
+from typing import Any
 
-from sofalite.conf.tables.misc import BLANK
-from sofalite.demos.pandas_merging_poc.utils.misc import (
-    apply_index_styles, columns_multi_index_fixer, display_tbl, set_table_styles)
+from sofalite.conf.tables.misc import BLANK, Sort
 from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
+from sofalite.demos.pandas_merging_poc.utils.misc import apply_index_styles, display_tbl, set_table_styles
+from sofalite.demos.pandas_merging_poc.utils.multi_index_sort import get_sorted_multi_index_list
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -91,6 +91,72 @@ age_group_map = {1: '<20', 2: '20-29', 3: '30-39', 4: '40-64', 5: '65+'}
 car_map = {2: 'Porsche', 3: 'Audi'}
 country_map = {1: 'NZ', 2: 'South Korea', 3: 'U.S.A'}
 gender_map = {1: 'Male', 2: 'Female'}
+
+
+class DataSpecificCheats:
+
+    @staticmethod
+    @cache
+    def get_raw_df(*, debug=False) -> pd.DataFrame:
+        con = sqlite.connect('sofa_db')
+        cur = con.cursor()
+        sql = """\
+        SELECT id, agegroup as age, browser, car
+        FROM demo_tbl
+        """
+        cur.execute(sql)
+        data = cur.fetchall()
+        cur.close()
+        con.close()
+        df = pd.DataFrame(data, columns=['id', 'age', 'browser', 'car', ])
+        df['browser'] = df['browser'].apply(lambda s: 'Google Chrome' if s == 'Chrome' else s)
+        if debug:
+            print(df)
+        return df
+
+    @staticmethod
+    def get_orders_for_col_tree() -> dict:
+        return {
+            ('age', ): (0, Sort.VAL),
+            # ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),  ## TODO - will need to manually check what expected results should be (groan)
+            # ('browser', 'car', ): (1, Sort.LBL, 1, Sort.DECREASING),
+            ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
+            ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
+        }
+
+    @staticmethod
+    def get_lbl2val(*, debug=False) -> dict[tuple[str, str], Any]:
+        age = {1: '< 20', 2: '20-29', 3: '30-39', 4: '40-64', 5: '65+'}
+        car = {
+            1: 'BMW',
+            2: 'PORSCHE',
+            3: 'AUDI',
+            4: 'MERCEDES',
+            5: 'VOLKSWAGEN',
+            6: 'FERRARI',
+            7: 'FIAT',
+            8: 'LAMBORGHINI',
+            9: 'MASERATI',
+            10: 'HONDA',
+            11: 'TOYOTA',
+            12: 'MITSUBISHI',
+            13: 'NISSAN',
+            14: 'MAZDA',
+            15: 'SUZUKI',
+            16: 'DAIHATSU',
+            17: 'ISUZU',
+        }
+        lbl_mapping = {}
+        age_lbl2val = {('age', lbl): val for val, lbl in age.items()}
+        browser_lbl2val = {('browser', lbl): lbl for lbl in ['Google Chrome', 'Firefox', 'Internet Explorer', 'Opera', 'Safari', ]}
+        browser_lbl2val[('browser', 'Google Chrome')] = 'Chrome'
+        car_lbl2val = {('car', lbl): val for val, lbl in car.items()}
+        lbl_mapping.update(age_lbl2val)
+        lbl_mapping.update(browser_lbl2val)
+        lbl_mapping.update(car_lbl2val)
+        if debug:
+            print(lbl_mapping)
+        return lbl_mapping
 
 
 class GetData:
@@ -437,7 +503,6 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
-    raw_col_tree = ['root', ['Age Group', ], ['Browser', ['Age Group', ]], ['Age Group Repeated', ]]  ## we will retain this order even if not sorted alphabetically as pandas will post-JOINing
     ## TOP
     df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
     df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
@@ -470,7 +535,11 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     df = df_t.T
     df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
-    df = columns_multi_index_fixer(df, raw_col_tree, debug=debug)
+    unsorted_multi_index_list = list(df.columns)
+    sorted_multi_index_list = get_sorted_multi_index_list(unsorted_multi_index_list,
+        orders_for_col_tree=orders_for_col_tree, lbl2val=lbl2val, raw_df=raw_df, debug=debug)
+    sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+    df.columns = sorted_multi_index
     return df
 
 def main(*, debug=False, verbose=False):

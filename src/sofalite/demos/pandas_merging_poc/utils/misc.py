@@ -1,4 +1,3 @@
-from copy import deepcopy
 from functools import partial
 from itertools import count
 from typing import Literal, Sequence
@@ -8,7 +7,7 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 import numpy as np
 
-from sofalite.conf.tables.misc import PCT_MEASURES, Measure
+from sofalite.conf.tables.misc import PCT_METRICS, Metric
 from sofalite.output.styles.misc import get_generic_css, get_placeholder_css, get_style_spec
 
 def get_tbl_df(
@@ -30,7 +29,7 @@ def get_tbl_df(
     rows_index = pd.MultiIndex.from_tuples(row_idx_tuples)
     bad_cols = []
     for n, col_idx_tuple in enumerate(col_idx_tuples, 1):
-        if col_idx_tuple[-1] not in list(Measure):
+        if col_idx_tuple[-1] not in list(Metric):
             bad_cols.append(str(col_idx_tuple))
     if bad_cols:
         msg = '\n'.join(bad_cols)
@@ -54,7 +53,7 @@ def get_tbl_df(
     df = df.map(str)
     ## add % symbol where appropriate
     measure_cols = np.array([col_idx_tuple[-1] for col_idx_tuple in col_idx_tuples])
-    pct_idx_mask = list(np.where(np.isin(measure_cols, PCT_MEASURES))[0])
+    pct_idx_mask = list(np.where(np.isin(measure_cols, PCT_METRICS))[0])
     df.iloc[:, pct_idx_mask] = df.iloc[:, pct_idx_mask].applymap(lambda s: s + '%')
     return df
 
@@ -184,133 +183,3 @@ def display_tbl(tbl_html: str, tbl_name: str, style_name: str):
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(f"file://{fpath}")
-
-def nest_under_blank(item: list | str, *, n_levels: int) -> list:
-    """
-    e.g. 'Country' and 2 => ['__blank__', ['__blank__', ['Country', ]]]
-    """
-    nested = item.copy()
-    n = 0
-    while n < n_levels:
-        nested = ['__blank__', nested]
-        n += 1
-    return nested
-
-def fill_col_tree_to_longest_length(raw_col_tree: list, *, debug=False) -> list:
-    """
-                               a
-                               |
-                ------------------------------
-                |                            |
-                b                            |
-                |                            |
-    -----------------------                  |
-    |                     |                  |
-    c                     d                  e
-
-    [a, [b, [c, ], [d, ], ], [e, ]]
-
-    becomes:
-                               a
-                               |
-                ------------------------------
-                |                            |
-                b                        __blank__ <== fillers always at end before final item (see HTML table examples)
-                |                            |
-    -----------------------                  |
-    |                     |                  |
-    c                     d                  e
-
-    [a, [b, [c, ], [d, ], ], [__blank__, [e, ]]]
-
-    e.g. raw_col_tree ==> col_tree
-    ['root',
-        ['Age Group', ],
-        ['Browser', ['Age Group', ]],
-        ['Age Group Repeated', ],
-    ]
-    ==>
-    ['root',
-        ['__blank__', ['Age Group', ]],
-        ['Browser', ['Age Group', ]],
-        ['__blank__', ['Age Group Repeated', ]],
-    ]
-    """
-    sub_trees = raw_col_tree[1:]
-    max_sub_tree_len = max(len(sub_tree) for sub_tree in sub_trees)
-    filled_sub_trees = []
-    for sub_tree in sub_trees:
-        if len(sub_tree) < max_sub_tree_len:  ## e.g. ['Age Group', ] has len 1 whereas max is 2
-            n_levels_to_add = max_sub_tree_len - len(sub_tree)  ## 2 - 1 = 1
-            new_sub_tree = sub_tree.deepcopy()
-            raw_final_item = new_sub_tree[-1].copy()  ##
-
-
-    return ['root', *filled_sub_trees]
-
-def columns_multi_index_fixer(df: pd.DataFrame, raw_col_tree: tuple, *, debug=False) -> pd.DataFrame:
-    """
-    The problem occurs when the columns of the first df don't include all items in final, concatenated df:
-
-                              root
-                               |
-            ------------------------------------------
-            |                                       |
-        Age Group                          Age Group Repeated
-
-    +
-                              root
-                               |
-            ------------------------------------------
-            |                  |                     |
-        Age Group          Browser         Age Group Repeated  <====== correct order
-
-    =
-                              root
-                               |
-            ------------------------------------------
-            |                  |                     |
-        Age Group     Age Group Repeated          Browser  <====== alphabetical order (the only safe way of doing this given possibility of multiple options)
-
-    The solution is to force the order as expressed in the original design (not from the dfs themselves).
-
-    How do you force order on a multi-index?
-    Well, a multi-index is basically a list of items e.g.
-    [
-        ['Age Group', '<20', ''],
-    ]
-
-    Sort it so variables are by design order;
-    values are by either numeric order (value), alphabetical order (label), or by measure underneath (if a final level);
-    metrics by a standard order e.g. freq, then (if present), col %, then (if present) row %.
-
-    TODO: this is not just about variable order! Value order is harder.
-
-    Sorts are guaranteed to be stable. That means that when multiple records have the same key, their original order is preserved.
-    https://docs.python.org/3/howto/sorting.html
-    We can also assign sorted slices to slices e.g.
-    a[2:4] = sorted(a[2:4])
-    Sort sibling variables in the same order amongst siblings they appear with in the col_tree,
-    value levels alphabetically,
-    and metrics by some other sort rule (currently undefined).
-    How? Sort at level 1 by order amongst siblings on level 1. Then for each, filter, and sort alphabetically.
-    """
-    col_tree = fill_col_tree_to_longest_length(raw_col_tree, debug=debug)
-    print(list(df.columns))
-
-    return df
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
