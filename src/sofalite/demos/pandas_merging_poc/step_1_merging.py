@@ -1,76 +1,7 @@
 """
-Have to work out what is going to be in the columns later? Damn! I want Pandas to take care of all that properly by itself.
-
-Target Table
-============
-
-Example of real df (with different but similar structure) ready to make into HTML table (proven to work already in demo_tables.py)
-Below is from pd.MultiIndex.from_tuples
-
-                                    Age Group                                                                                     ... Web Browser
-                                         < 20                      20-29                 30-39                 40-64              ...     Firefox              Internet Explorer              Opera              Safari
-                                    __blank__                  __blank__             __blank__             __blank__              ...         Car                            Car                Car                 Car
-                                    __blank__                  __blank__             __blank__             __blank__              ...         BMW Porsche Audi               BMW Porsche Audi   BMW Porsche Audi    BMW Porsche Audi
-                                         Freq      Col % Row %      Freq Col % Row %      Freq Col % Row %      Freq Col % Row %  ...        Freq    Freq Freq              Freq    Freq Freq  Freq    Freq Freq   Freq    Freq Freq
-Country Japan   Gender    Male              4  50.000000  11.8         6  66.7  17.6         4  36.4  11.8        11  61.1  32.4  ...           7       0    2                 1       1    6     1       0    1      1       0    2
-                          Female            4  50.000000  12.9         3  33.3   9.7         7  63.6  22.6         7  38.9  22.6  ...           4       3    3                 3       2    1     1       2    1      1       1    0
-        Italy   Gender    Male             10  66.700000  34.5         2  33.3   6.9         3  37.5  10.3         8  47.1  27.6  ...           7       3    2                 4       1    0     2       1    0      2       1    0
-                          Female            5  33.333333  16.7         4  66.7  13.3         5  62.5  16.7         9  52.9  30.0  ...           6       3    1                 2       1    2     0       0    0      6       0    3
-        Germany Gender    Male             15  39.500000  17.0        12  46.2  13.6        16  64.0  18.2        24  50.0  27.3  ...          13       6   13                 9       4    8     4       0    4      3       3    4
-                          Female           23  60.500000  22.8        14  53.8  13.9         9  36.0   8.9        24  50.0  23.8  ...          13       5   16                 9       7    4     6       1    6      6       2    6
-Gender  Male    __blank__ __blank__        29  47.500000  19.2        20  48.8  13.2        23  52.3  15.2        43  51.8  28.5  ...          27       9   17                14       6   14     7       1    5      6       4    6
-        Female  __blank__ __blank__        32  52.500000  19.8        21  51.2  13.0        21  47.7  13.0        40  48.2  24.7  ...          23      11   20                14      10    7     7       3    7     13       3    9
-
-
-Actual table made in this step from real data:
-
-                                              Browser                                                           Age Group
-                                               Chrome                           Firefox                               <20     20-29     30-39       65+     40-64
-                                            Age Group                         Age Group                         __blank__ __blank__ __blank__ __blank__ __blank__
-                                                  <20 20-29 30-39 40-64   65+       <20 20-29 30-39 40-64   65+ __blank__ __blank__ __blank__ __blank__ __blank__
-measure                                          Freq  Freq  Freq  Freq  Freq      Freq  Freq  Freq  Freq  Freq      Freq      Freq      Freq      Freq      Freq
-country_var country
-Country     NZ          Gender    Female          3.0   6.0   5.0  11.0  19.0      13.0  10.0   6.0  22.0  20.0        16        16        11        39       0.0
-                                  Male            7.0  13.0  12.0  17.0  25.0      12.0  16.0   8.0  16.0  28.0        19        29        20        53       0.0
-            South Korea Gender    Female         14.0   7.0   5.0  12.0  10.0      27.0  16.0   8.0  18.0  21.0        41        23        13        31       0.0
-                                  Male           18.0  10.0  11.0  23.0  11.0      22.0   7.0   9.0  25.0  28.0        40        17        20        39       0.0
-            U.S.A       Gender    Female          7.0   4.0   5.0  16.0  15.0      18.0  14.0   8.0  28.0  31.0        25        18        13        46       0.0
-                                  Male            0.0   0.0   0.0   0.0   0.0       0.0   0.0   0.0   0.0   0.0        28        15        21        39       0.0
-            NZ          __blank__ __blank__      10.0  19.0  17.0  28.0  44.0      25.0  26.0  14.0  38.0  48.0        35        45        31        92      66.0
-            South Korea __blank__ __blank__      32.0  17.0  16.0  35.0  21.0      49.0  23.0  17.0  43.0  49.0        81        40        33        70      78.0
-            U.S.A       __blank__ __blank__      18.0   8.0  10.0  27.0  30.0      35.0  25.0  24.0  51.0  55.0        53        33        34        85      78.0
-
-Notes on Target Table
-=====================
-
-Divides into 4 sub-blocks:
-* top-left: country > gender vs browser > age_group
-* bottom-left: country vs browser > age_group
-* top-right: country > gender vs age_group
-* bottom-right: country vs age_group
-
-We consolidate into one table in two steps:
-* consolidate into top and bottom
-* consolidate into single table
-
-Challenges
-----------
-
-Nested levels / multi-indexes:
-
-e.g. country > gender
-
-Different indexes:
-
-e.g. country > gender on top and just country below
-
-Implication: need to have blank placeholders in some blocks to enable consolidation with other blocks.
-In the example above, the bottom-right block only needs country vs age_group for itself,
-but needs country > placeholder vs age_group > placeholder to enable it to merge with the other blocks.
-
-Note - use multi-indexes in df wherever more than one level. Note if a block from any direction has more levels than us
-we'll need to extend to match so we can all be combined
+TODO: decide how to handle intermediate column naming rules e.g. country -> country_val etc
 """
+
 from functools import cache
 import pandas as pd
 import sqlite3 as sqlite
@@ -536,6 +467,9 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
     unsorted_multi_index_list = list(df.columns)
+    raw_df = DataSpecificCheats.get_raw_df(debug=debug)
+    orders_for_col_tree = DataSpecificCheats.get_orders_for_col_tree()
+    lbl2val = DataSpecificCheats.get_lbl2val(debug=debug)
     sorted_multi_index_list = get_sorted_multi_index_list(unsorted_multi_index_list,
         orders_for_col_tree=orders_for_col_tree, lbl2val=lbl2val, raw_df=raw_df, debug=debug)
     sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html

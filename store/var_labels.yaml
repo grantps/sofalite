@@ -1,0 +1,48 @@
+# Based on original demo table in SOFA Statistics
+---
+age_group:
+  var_lbl: Age Group
+  var_comment: Standard age groupings for SOFA
+  val_lbls:
+    1: "< 20"
+    2: "20-29"
+    3: "30-39"
+    4: "40-64"
+    5: "65+"
+browser:
+  var_lbl: Web Browser
+  var_lbls:
+    "Google Chrome": "Chrome"
+car:
+  var_lbl: Car
+  val_lbls:
+    1: BMW
+    2: PORSCHE
+    3: AUDI
+    4: MERCEDES
+    5: VOLKSWAGEN
+    6: FERRARI
+    7: FIAT
+    8: LAMBORGHINI
+    9: MASERATI
+    10: HONDA
+    11: TOYOTA
+    12: MITSUBISHI
+    13: NISSAN
+    14: MAZDA
+    15: SUZUKI
+    16: DAIHATSU
+    17: ISUZU'
+country:
+  var_lbl: Country
+  var_comment: A few countries only
+  var_lbls:
+    1: NZ
+    2: South Korea
+    3: U.S.A
+gender:
+  var_lbl: Gender
+  var_lbls:
+    1: Male
+    2: Female
+
