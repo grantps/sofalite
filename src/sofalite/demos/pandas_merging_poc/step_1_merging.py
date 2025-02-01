@@ -1,22 +1,36 @@
 """
-TODO: decide how to handle intermediate column naming rules e.g. country -> country_val etc
+When creating SQL queries we need to use variable names.
+When displaying results we will use (often different) variable labels, and also value labels.
+When sorting items, we may need to sort by the cell contents themselves, but other times by something associated instead.
+If we choose to sort by values, for example, we can't just sort of value labels.
+We might want
+< 20  [1]
+20-29 [2]
+...
+rather than what we might get by sorting on the visible content.
+Using VarLabels dcs makes this a lot easier to work with.
 """
-
 from functools import cache
-import pandas as pd
+from pathlib import Path
 import sqlite3 as sqlite
 from typing import Any
+
+import pandas as pd
 
 from sofalite.conf.tables.misc import BLANK, Sort
 from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.demos.pandas_merging_poc.utils.misc import apply_index_styles, display_tbl, set_table_styles
 from sofalite.demos.pandas_merging_poc.utils.multi_index_sort import get_sorted_multi_index_list
+from sofalite.utils.labels import yaml2varlabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
+
+yaml_fpath = Path(__file__).parent.parent.parent.parent / 'store' / 'var_labels.yaml'
+var_labels = yaml2varlabels(yaml_fpath, debug=True)  ## TODO: put this to use everywhere
 
 age_group_map = {1: '<20', 2: '20-29', 3: '30-39', 4: '40-64', 5: '65+'}
 car_map = {2: 'Porsche', 3: 'Audi'}
@@ -32,15 +46,15 @@ class DataSpecificCheats:
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
         sql = """\
-        SELECT id, agegroup as age, browser, car
+        SELECT id, agegroup, browser, car
         FROM demo_tbl
         """
         cur.execute(sql)
         data = cur.fetchall()
         cur.close()
         con.close()
-        df = pd.DataFrame(data, columns=['id', 'age', 'browser', 'car', ])
-        df['browser'] = df['browser'].apply(lambda s: 'Google Chrome' if s == 'Chrome' else s)
+        df = pd.DataFrame(data, columns=['id', 'agegroup', 'browser', 'car', ])
+        df['browser'] = df['browser'].apply(lambda s: 'Google Chrome' if s == 'Chrome' else s)  ## so we can apply Google Chrome as a label to prove labels work
         if debug:
             print(df)
         return df
@@ -48,10 +62,10 @@ class DataSpecificCheats:
     @staticmethod
     def get_orders_for_col_tree() -> dict:
         return {
-            ('age', ): (0, Sort.VAL),
+            ('agegroup', ): (0, Sort.VAL),
             # ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),  ## TODO - will need to manually check what expected results should be (groan)
             # ('browser', 'car', ): (1, Sort.LBL, 1, Sort.DECREASING),
-            ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
+            ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
         }
 
@@ -78,7 +92,7 @@ class DataSpecificCheats:
             17: 'ISUZU',
         }
         lbl_mapping = {}
-        age_lbl2val = {('age', lbl): val for val, lbl in age.items()}
+        age_lbl2val = {('agegroup', lbl): val for val, lbl in age.items()}
         browser_lbl2val = {('browser', lbl): lbl for lbl in ['Google Chrome', 'Firefox', 'Internet Explorer', 'Opera', 'Safari', ]}
         browser_lbl2val[('browser', 'Google Chrome')] = 'Chrome'
         car_lbl2val = {('car', lbl): val for val, lbl in car.items()}

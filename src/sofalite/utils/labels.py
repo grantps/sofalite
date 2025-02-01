@@ -12,7 +12,7 @@ from ruamel.yaml import YAML
 yaml = YAML(typ='safe')   # default, if not specified, is 'rt' (round-trip)
 
 @dataclass(kw_only=True)
-class VarLabels:
+class VarLabelSpec:
     name: str
     lbl: str
     comment: str | None = None
@@ -37,9 +37,29 @@ class VarLabels:
         val2lbls_if_any = f"\n  value to labels: {self.val2lbl}" if self.val2lbl else ''
         return f"name: {self.name}\n  label: {self.lbl}{val2lbls_if_any}{comment_if_any}"
 
-def yaml2varlabels(yaml_fpath: Path, *, debug=False) -> dict[str, VarLabels]:
+@dataclass(frozen=True)
+class VarLabels:
+    var_label_specs: list[VarLabelSpec]
+
+    def get_lbl2val(self) -> dict[tuple[str, str], int | str]:
+        lbl2val = {}
+        for var_label_spec in self.var_label_specs:
+            for val, val_lbl in var_label_spec.val2lbl.items():
+                lbl2val[(var_label_spec.name, val_lbl)] = val
+        return lbl2val
+
+    def get_var2var_label_spec(self) -> dict[str, VarLabelSpec]:
+        var2var_label_spec = {}
+        for var_label_spec in self.var_label_specs:
+            var2var_label_spec[var_label_spec.name] = var_label_spec
+        return var2var_label_spec
+
+    def __str__(self) -> str:
+        return '\n'.join(str(var_lbl_spec) for var_lbl_spec in self.var_label_specs)
+
+def yaml2varlabels(yaml_fpath: Path, *, debug=False) -> VarLabels:
     raw_yaml = yaml.load(yaml_fpath)
-    var_labels = {}
+    var_label_specs = []
     for var, var_spec in raw_yaml.items():
         kwargs = {
             'name': var,
@@ -48,15 +68,14 @@ def yaml2varlabels(yaml_fpath: Path, *, debug=False) -> dict[str, VarLabels]:
         }
         if var_spec.get('var_comment'):
             kwargs['comment'] = var_spec.get('var_comment')
-        var_labels_spec = VarLabels(**kwargs)
-        var_labels[var] = var_labels_spec
+        var_labels_spec = VarLabelSpec(**kwargs)
+        var_label_specs.append(var_labels_spec)
+    var_labels = VarLabels(var_label_specs)
     if debug:
         print(raw_yaml)
-        for var, var_lbls in var_labels.items():
-            print(f"{var}:\n  {var_lbls}")
-        print()
+        print(var_labels)
     return var_labels
 
 if __name__ == '__main__':
-    yaml_fpath = Path(__file__).parent.parent.parent.parent / 'store' / 'var_labels.yaml'
-    yaml2varlabels(yaml_fpath, debug=True)
+    my_yaml_fpath = Path(__file__).parent.parent.parent.parent / 'store' / 'var_labels.yaml'
+    yaml2varlabels(my_yaml_fpath, debug=True)
