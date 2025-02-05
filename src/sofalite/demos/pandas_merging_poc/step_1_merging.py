@@ -13,7 +13,6 @@ Using VarLabels dcs makes this a lot easier to work with.
 from functools import cache
 from pathlib import Path
 import sqlite3 as sqlite
-from typing import Any
 
 import pandas as pd
 
@@ -29,13 +28,8 @@ pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
-yaml_fpath = Path(__file__).parent.parent.parent.parent / 'store' / 'var_labels.yaml'
+yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
 var_labels = yaml2varlabels(yaml_fpath, debug=True)  ## TODO: put this to use everywhere
-
-age_group_map = {1: '<20', 2: '20-29', 3: '30-39', 4: '40-64', 5: '65+'}
-car_map = {2: 'Porsche', 3: 'Audi'}
-country_map = {1: 'NZ', 2: 'South Korea', 3: 'U.S.A'}
-gender_map = {1: 'Male', 2: 'Female'}
 
 
 class DataSpecificCheats:
@@ -61,6 +55,9 @@ class DataSpecificCheats:
 
     @staticmethod
     def get_orders_for_col_tree() -> dict:
+        """
+        Should come from a GUI via an interface ad thence into the code using this.
+        """
         return {
             ('agegroup', ): (0, Sort.VAL),
             # ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),  ## TODO - will need to manually check what expected results should be (groan)
@@ -68,40 +65,6 @@ class DataSpecificCheats:
             ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
         }
-
-    @staticmethod
-    def get_lbl2val(*, debug=False) -> dict[tuple[str, str], Any]:
-        age = {1: '< 20', 2: '20-29', 3: '30-39', 4: '40-64', 5: '65+'}
-        car = {
-            1: 'BMW',
-            2: 'PORSCHE',
-            3: 'AUDI',
-            4: 'MERCEDES',
-            5: 'VOLKSWAGEN',
-            6: 'FERRARI',
-            7: 'FIAT',
-            8: 'LAMBORGHINI',
-            9: 'MASERATI',
-            10: 'HONDA',
-            11: 'TOYOTA',
-            12: 'MITSUBISHI',
-            13: 'NISSAN',
-            14: 'MAZDA',
-            15: 'SUZUKI',
-            16: 'DAIHATSU',
-            17: 'ISUZU',
-        }
-        lbl_mapping = {}
-        age_lbl2val = {('agegroup', lbl): val for val, lbl in age.items()}
-        browser_lbl2val = {('browser', lbl): lbl for lbl in ['Google Chrome', 'Firefox', 'Internet Explorer', 'Opera', 'Safari', ]}
-        browser_lbl2val[('browser', 'Google Chrome')] = 'Chrome'
-        car_lbl2val = {('car', lbl): val for val, lbl in car.items()}
-        lbl_mapping.update(age_lbl2val)
-        lbl_mapping.update(browser_lbl2val)
-        lbl_mapping.update(car_lbl2val)
-        if debug:
-            print(lbl_mapping)
-        return lbl_mapping
 
 
 class GetData:
@@ -148,20 +111,25 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'gender_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
-        df_pre_pivot['gender_var'] = 'Gender'
-        df_pre_pivot['gender'] = df_pre_pivot['gender_val'].apply(lambda x: gender_map[x])
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+
+        country_val_labels = var_labels.var2var_label_spec['country']
+        gender_val_labels = var_labels.var2var_label_spec['gender']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, gender_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
+        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[gender_val_labels.pandas_var] = gender_val_labels.lbl
+        df_pre_pivot[gender_val_labels.name] = df_pre_pivot[gender_val_labels.pandas_val].apply(lambda x: gender_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['col_filler_var_0'] = BLANK
         df_pre_pivot['col_filler_0'] = BLANK  ## add filler column which we'll nest under age_group as natural outcome of pivot step
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['country_var', 'country', 'gender_var', 'gender'],
-                columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
+                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
+                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
         if debug: print(f"\nTOP LEFT & RIGHT:\n{df}")
@@ -233,20 +201,27 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'gender_val', 'browser_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
-        df_pre_pivot['gender_var'] = 'Gender'
-        df_pre_pivot['gender'] = df_pre_pivot['gender_val'].apply(lambda x: gender_map[x])
-        df_pre_pivot['browser_var'] = 'Browser'
-        df_pre_pivot['browser'] = df_pre_pivot['browser_val']
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+
+        country_val_labels = var_labels.var2var_label_spec['country']
+        browser_val_labels = var_labels.var2var_label_spec['browser']
+        gender_val_labels = var_labels.var2var_label_spec['gender']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, gender_val_labels.pandas_val,
+            browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
+        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[gender_val_labels.pandas_var] = gender_val_labels.lbl
+        df_pre_pivot[gender_val_labels.name] = df_pre_pivot[gender_val_labels.pandas_val].apply(lambda x: gender_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
+        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.pandas_val
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['country_var', 'country', 'gender_var', 'gender'],
-                columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
+                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
+                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
                 values='n')
         )
         if debug: print(f"\nTOP MIDDLE:\n{df}")
@@ -278,20 +253,24 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
+
+        country_val_labels = var_labels.var2var_label_spec['country']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
+        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['row_filler_var_0'] = BLANK
         df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['col_filler_var_0'] = BLANK
         df_pre_pivot['col_filler_0'] = BLANK
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'],
-                columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
+                index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
+                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
         if debug: print(f"\nMIDDLE LEFT & RIGHT:\n{df}")
@@ -312,20 +291,25 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['country_val', 'browser_val', 'age_group_val', 'n'])
-        df_pre_pivot['country_var'] = 'Country'
-        df_pre_pivot['country'] = df_pre_pivot['country_val'].apply(lambda x: country_map[x])
+
+        country_val_labels = var_labels.var2var_label_spec['country']
+        browser_val_labels = var_labels.var2var_label_spec['browser']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
+        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['row_filler_var_0'] = BLANK
         df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot['browser_var'] = 'Browser'
-        df_pre_pivot['browser'] = df_pre_pivot['browser_val']
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
+        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'],
-                columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
+                index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
+                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
                 values='n')
         )
         if debug: print(f"\nMIDDLE MIDDLE:\n{df}")
@@ -357,20 +341,24 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['car_val', 'age_group_val', 'n'])
-        df_pre_pivot['car_var'] = 'Car'
-        df_pre_pivot['car'] = df_pre_pivot['car_val'].apply(lambda x: car_map[x])
+
+        car_val_labels = var_labels.var2var_label_spec['car']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[car_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[car_val_labels.pandas_var] = car_val_labels.lbl
+        df_pre_pivot[car_val_labels.name] = df_pre_pivot[car_val_labels.pandas_val].apply(lambda x: car_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['row_filler_var_0'] = BLANK
         df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['col_filler_var_0'] = BLANK
         df_pre_pivot['col_filler_0'] = BLANK
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'],
-                columns=['age_group_var', 'age_group', 'col_filler_var_0', 'col_filler_0', 'measure'],
+                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
+                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
         if debug: print(f"\nBOTTOM LEFT & RIGHT:\n{df}")
@@ -392,20 +380,25 @@ class GetData:
         data = cur.fetchall()
         cur.close()
         con.close()
-        df_pre_pivot = pd.DataFrame(data, columns=['car_val', 'browser_val', 'age_group_val', 'n'])
-        df_pre_pivot['car_var'] = 'Car'
-        df_pre_pivot['car'] = df_pre_pivot['car_val'].apply(lambda x: car_map[x])
+
+        car_val_labels = var_labels.var2var_label_spec['car']
+        browser_val_labels = var_labels.var2var_label_spec['browser']
+        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+
+        df_pre_pivot = pd.DataFrame(data, columns=[car_val_labels.pandas_val, browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
+        df_pre_pivot[car_val_labels.pandas_var] = car_val_labels.lbl
+        df_pre_pivot[car_val_labels.name] = df_pre_pivot[car_val_labels.pandas_val].apply(lambda x: car_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['row_filler_var_0'] = BLANK
         df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot['browser_var'] = 'Browser'
-        df_pre_pivot['browser'] = df_pre_pivot['browser_val']
-        df_pre_pivot['age_group_var'] = 'Age Group'
-        df_pre_pivot['age_group'] = df_pre_pivot['age_group_val'].apply(lambda x: age_group_map[x])
+        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
+        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
+        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
             .pivot(
-                index=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'],
-                columns=['browser_var', 'browser', 'age_group_var', 'age_group', 'measure'],
+                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
+                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
                 values='n')
         )
         if debug: print(f"\nBOTTOM MIDDLE:\n{df}")
@@ -448,27 +441,32 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
+    agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
+    browser_val_labels = var_labels.var2var_label_spec['browser']
+    car_val_labels = var_labels.var2var_label_spec['car']
+    country_val_labels = var_labels.var2var_label_spec['country']
+    gender_val_labels = var_labels.var2var_label_spec['gender']
     ## TOP
     df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
     df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
-    df_top = df_top_left.merge(df_top_right, how='outer', on=['country_var', 'country', 'gender_var', 'gender'])
+    df_top = df_top_left.merge(df_top_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])
     df_top_repeat = df_top_left.copy()
-    df_top_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
-    df_top = df_top.merge(df_top_repeat, how='outer', on=['country_var', 'country', 'gender_var', 'gender'])  ## join again to test ability to  handle col-spanning offsets etc
+    df_top_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_top = df_top.merge(df_top_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])  ## join again to test ability to  handle col-spanning offsets etc
     ## MIDDLE
     df_middle_left = GetData.get_country_by_age_group(debug=debug)
     df_middle_right = GetData.get_country_by_browser_and_age_group(debug=debug)
-    df_middle = df_middle_left.merge(df_middle_right, how='outer', on=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'])
+    df_middle = df_middle_left.merge(df_middle_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     df_middle_repeat = df_middle_left.copy()
-    df_middle_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
-    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=['country_var', 'country', 'row_filler_var_0', 'row_filler_0'])
+    df_middle_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     ## BOTTOM
     df_bottom_left = GetData.get_car_by_age_group(debug=debug)
     df_bottom_right = GetData.get_car_by_browser_and_age_group(debug=debug)
-    df_bottom = df_bottom_left.merge(df_bottom_right, how='outer', on=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'])
+    df_bottom = df_bottom_left.merge(df_bottom_right, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     df_bottom_repeat = df_bottom_left.copy()
-    df_bottom_repeat.rename(columns={'Age Group': 'Age Group Repeated'}, inplace=True)
-    df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=['car_var', 'car', 'row_filler_var_0', 'row_filler_0'])
+    df_bottom_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     if debug:
         print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
     ## COMBINE
@@ -483,7 +481,7 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     unsorted_multi_index_list = list(df.columns)
     raw_df = DataSpecificCheats.get_raw_df(debug=debug)
     orders_for_col_tree = DataSpecificCheats.get_orders_for_col_tree()
-    lbl2val = DataSpecificCheats.get_lbl2val(debug=debug)
+    lbl2val = var_labels.get_lbl2val()
     sorted_multi_index_list = get_sorted_multi_index_list(unsorted_multi_index_list,
         orders_for_col_tree=orders_for_col_tree, lbl2val=lbl2val, raw_df=raw_df, debug=debug)
     sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html

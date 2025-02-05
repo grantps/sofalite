@@ -1,4 +1,96 @@
-from functools import cache, partial
+"""
+Central idea - multi-indexes need sorting. Multi-indexes are basically lists so sorting is simple at one level.
+We should be able to use sorting or .sort() with a clever sort function as the key argument.
+Basically we convert a row into a tuple that, when sorted upon as the key, orders the multi-index rows as configured.
+
+E.g. imagine we start with an index like this:
+[
+  ['a', 'cat', 'banana', 123],
+  ['b', 'dog', 'apple', 989],
+]
+
+We then apply a function to the list to create a sorting-ready tuple. E.g.:
+
+['a', 'cat', 'banana', 123]
+=>
+(1, 12, 2, 5)  ## Note - not necessarily alphabetical - might be based on the values underlying the labels or something
+and
+['b', 'dog', 'apple', 989]
+=> (0, 3, 6, 12)  ## also, just for the purposes of illustration, imagine if this were the result of the same function
+
+Simple sorting would put (0, 3, 6, 12) before (1, 12, 2, 5) and so we would end up with the following sorted multi-index:
+[
+  ['b', 'dog', 'apple', 989],
+  ['a', 'cat', 'banana', 123],
+]
+
+So how should sorting occur?
+
+There are two things being sorted. Variables and values e.g. agegroup and '< 20', '20-29' etc.
+Variables get their sort order from the order in which they are configured in the table design.
+For example, if we have the following variable design:
+
+      agegroup                    browser
+         |                           |
+         |              ----------------------------
+         |              |                          |
+         |          agegroup                      car
+
+we end up with a df like:
+
+     Age Group                                       Web Browser
+Young  Middle  Old                       Firefox                                      Chrome
+                           Age Group               Car                   Age Group               Car
+                      Young  Middle  Old    Tesla  Mini  Porsche    Young  Middle  Old    Tesla  Mini  Porsche
+Freq   Freq    Freq   Freq   Freq   Freq    Freq   Freq  Freq       Freq   Freq   Freq    Freq   Freq  Freq
+--------------------------------------------------------------------------------------------------------------
+
+and a multi-index like:
+[
+  ...
+  ('Age Group', 'Middle', '__blank__', '__blank__', 'Freq'),
+  ...
+  ('Web Browser', 'Chrome', 'Age Group', 'Young', 'Freq'),
+  ...
+]
+
+We need to first configure the sort order:
+
+Remember, there are two parts - variables, and their values. The variables are simple index values based on the order
+they were configured. E.g. at the top level, agegroup is 0 and browser 1.
+Under browser, agegroup is 0, and car is 1.
+For values, we have three sort order options - by value e.g. 1 then 2 then 3 etc.;
+by label e.g. 'Apple', then 'Banana' etc.; or by frequency (subdivided into either increasing or decreasing).
+We also have the measure / metric where Freq then Row % then Col %.
+
+So ... we might have:
+
+               age   age  (no need to define sort order for measures - standard and fixed)
+               var   val
+                |     |
+{               v     v
+    ('age', ): (0, Sort.VAL),
+                               browser  browser   age   age
+                                 var      val     var   val
+                                  |        |       |    |
+                                  v        v       v    v
+    ('browser', 'age', ):        (1,    Sort.LBL,  0, Sort.VAL),
+
+                               browser  browser   car   car
+                                 var      val     var   val
+                                  |        |       |    |
+                                  v        v       v    v
+    ('browser', 'car', ):        (1, Sort.LBL, 1, Sort.LBL),
+}
+
+Then apply the sort order knowing it is var, val, ... (skipping __blank__ - leave it as is), measure:
+
+('Age Group', 'Middle', '__blank__', '__blank__', 'Freq'),
+
+TODO: assumption - Variable labels must always be different for different variables. No duplicates.
+
+"""
+from functools import partial
 from itertools import count
 from typing import Any
 
@@ -60,7 +152,7 @@ def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, s
 
 def get_tuple_for_sorting(orig_tuple: tuple, *, orders_for_col_tree: dict, lbl2val: dict[tuple[str, str], Any], raw_df: pd.DataFrame, debug=False) -> tuple:
     """
-    Use this method for they key arg for sorting
+    Use this method for the key arg for sorting
     such as sorting(unsorted_multi_index_list, key=SortUtils.get_tuple_for_sorting)
 
     E.g.
@@ -133,17 +225,18 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *,
             ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
         }
-    :param lbl2val: e.g.
+    :param lbl2val: so we can get from label to value when all we have is the label. Used when we need to sort by value
+     even though the cell content is the label. E.g.
         {
-            ('age', 1): '< 20',
-            ('age', 2): '20-29',
+            ('age', '< 20'): 1,
+            ('age', '20-29'): 2,
             ...
-            ('car', 1): 'BMW',
-            ('car', 2): 'PORSCHE',
+            ('car', 'BMW'): 1,
+            ('car', 'PORSCHE'): 2,
             ...
         }
     :param raw_df: e.g.
-                    id  age            browser  car
+                id  age            browser  car
         0        1    5            Firefox    7
         ...    ...  ...                ...  ...
         1499  1500    4  Internet Explorer    8

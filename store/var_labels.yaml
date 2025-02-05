@@ -1,6 +1,6 @@
 # Based on original demo table in SOFA Statistics
 ---
-age_group:
+agegroup:
   var_lbl: Age Group
   var_comment: Standard age groupings for SOFA
   val_lbls:

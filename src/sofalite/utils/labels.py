@@ -5,6 +5,7 @@ You want a label for a variable, a value, or even the Pandas variable name to us
 inside intermediate tables, you come here.
 """
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 from ruamel.yaml import YAML
@@ -48,11 +49,17 @@ class VarLabels:
                 lbl2val[(var_label_spec.name, val_lbl)] = val
         return lbl2val
 
-    def get_var2var_label_spec(self) -> dict[str, VarLabelSpec]:
+    @cached_property
+    def var2var_label_spec(self) -> dict[str, VarLabelSpec]:
         var2var_label_spec = {}
         for var_label_spec in self.var_label_specs:
             var2var_label_spec[var_label_spec.name] = var_label_spec
         return var2var_label_spec
+
+    def __post_init__(self):
+        """
+        Prevent duplicate labels for variables e.g. you can't have age => Age and agegroup => Age
+        """
 
     def __str__(self) -> str:
         return '\n'.join(str(var_lbl_spec) for var_lbl_spec in self.var_label_specs)
