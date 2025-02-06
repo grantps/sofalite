@@ -481,9 +481,9 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     unsorted_multi_index_list = list(df.columns)
     raw_df = DataSpecificCheats.get_raw_df(debug=debug)
     orders_for_col_tree = DataSpecificCheats.get_orders_for_col_tree()
-    lbl2val = var_labels.get_lbl2val()
+    var_and_val_lbl2val = var_labels.get_var_and_val_lbl2val()
     sorted_multi_index_list = get_sorted_multi_index_list(unsorted_multi_index_list,
-        orders_for_col_tree=orders_for_col_tree, lbl2val=lbl2val, raw_df=raw_df, debug=debug)
+        orders_for_col_tree=orders_for_col_tree, var_and_val_lbl2val=var_and_val_lbl2val, raw_df=raw_df, debug=debug)
     sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     df.columns = sorted_multi_index
     return df

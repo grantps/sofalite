@@ -59,13 +59,15 @@ We need to first configure the sort order:
 Remember, there are two parts - variables, and their values. The variables are simple index values based on the order
 they were configured. E.g. at the top level, agegroup is 0 and browser 1.
 Under browser, agegroup is 0, and car is 1.
-For values, we have three sort order options - by value e.g. 1 then 2 then 3 etc.;
-by label e.g. 'Apple', then 'Banana' etc.; or by frequency (subdivided into either increasing or decreasing).
-We also have the measure / metric where Freq then Row % then Col %.
+For values, we have three sort order options:
+ * by value e.g. 1 then 2 then 3 etc.
+ * by label e.g. 'Apple', then 'Banana' etc.
+ * or by frequency (subdivided into either increasing or decreasing).
+We also have the metric where Freq then Row % then Col %.
 
 So ... we might have:
 
-               age   age  (no need to define sort order for measures - standard and fixed)
+               age   age  (no need to define sort order for metrics - standard and fixed)
                var   val
                 |     |
 {               v     v
@@ -87,8 +89,31 @@ Then apply the sort order knowing it is var, val, ... (skipping __blank__ - leav
 
 ('Age Group', 'Middle', '__blank__', '__blank__', 'Freq'),
 
-TODO: assumption - Variable labels must always be different for different variables. No duplicates.
+Note - assumed variable labels will always be different for different variables. No duplicates.
+Also assumed no value labels are repeated within a variable.
+Both assumptions are enforced in labels.VarLabels.
+Duplicates would make it impossible to route from label to value or variable
+and we need to do this to know how to sort something.
 
+1) Convert variable labels to variables. E.g.
+'Web Browser' => 'browser'
+'Car' => 'car'
+
+so
+
+('Web Browser', 'Firefox', 'Car', 'AUDI', Metric.FREQ)
+=>
+('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
+
+2) Get from the index row tuple to the branch of variable keys e.g.
+('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
+=>
+('browser', 'car', )
+
+3) Find the matching sort order for that branch of variables key
+(in this case, a branch from browser to car).
+
+4) Apply that sort order to the original index row.
 """
 from functools import partial
 from itertools import count
@@ -103,12 +128,18 @@ pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
-def tuple2branch_of_vars_key(orig_tuple: tuple, *, debug=False) -> tuple:
+def index_row2branch_of_vars_key(orig_tuple: tuple, *, debug=False) -> tuple:
     """
+    We need this so we can look up the sorting required for this variable sequence.
+
+             |                    |
+             v                    v
     e.g. ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
     =>
     ('browser', 'car', )
 
+      |
+      v
     ('age', '20-29', BLANK, BLANK, Metric.FREQ)
     =>
     ('age', )
@@ -150,23 +181,25 @@ def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, s
             sort_val = 1.1  ## so always at end after lbls with freq of at least one (given we are decreasing)
     return sort_val
 
-def get_tuple_for_sorting(orig_tuple: tuple, *, orders_for_col_tree: dict, lbl2val: dict[tuple[str, str], Any], raw_df: pd.DataFrame, debug=False) -> tuple:
+def get_tuple_for_sorting(orig_tuple: tuple, *,
+        orders_for_col_tree: dict, var_and_val_lbl2val: dict[tuple[str, str], Any],
+        raw_df: pd.DataFrame, debug=False) -> tuple:
     """
     Use this method for the key arg for sorting
     such as sorting(unsorted_multi_index_list, key=SortUtils.get_tuple_for_sorting)
 
     E.g.
-    ('age', '<20', '__blank__', '__blank__', 'freq')
-    =>
-    (0, 1, 0, 0, 1)
+    ('Age Group', '<20', '__blank__', '__blank__', 'Freq')
+    => (we get key to branch of variables key ('age, ) and then lookup sorting e.g. (0, Sort.VAL))
+    (0, 1, 0, 0, 1) given 1 is the val for '< 20' and 0 is our index for Freq (cf Row % and Col %)
 
-    ('age', '65+', '__blank__', '__blank__', 'row pct')
+    ('Age Group', '65+', '__blank__', '__blank__', 'Row %')
     =>
-    (0, 5, 0, 0, 2)
+    (0, 5, 0, 0, 1) given 5 is the val for '65+' and 1 is our index for Row %
     """
     max_idx = len(orig_tuple) - 1
     metric_idx = max_idx
-    branch_of_variables_key = tuple2branch_of_vars_key(orig_tuple, debug=debug)
+    branch_of_variables_key = index_row2branch_of_vars_key(orig_tuple, debug=debug)
     orders_spec = orders_for_col_tree[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
     list_for_sorting = []
     variable_value_pairs = []
@@ -181,7 +214,7 @@ def get_tuple_for_sorting(orig_tuple: tuple, *, orders_for_col_tree: dict, lbl2v
         if var_idx:
             variable = orig_tuple[idx]
             if variable == BLANK:
-                variable_order = 0  ## never more than one so no order
+                variable_order = 0  ## never more than one BLANK below a parent so no sorting occurs - so 0 as good as anything else
             else:
                 variable_order = orders_spec[idx]
             if debug:
@@ -197,7 +230,7 @@ def get_tuple_for_sorting(orig_tuple: tuple, *, orders_for_col_tree: dict, lbl2v
                 if value_order_spec == Sort.LBL:
                     value_order = lbl
                 elif value_order_spec == Sort.VAL:
-                    value_order = lbl2val[(variable, lbl)]
+                    value_order = var_and_val_lbl2val[(variable, lbl)]
                 elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
                     increasing = (value_order_spec == Sort.INCREASING)
                     filts = tuple(variable_value_pairs)
@@ -216,17 +249,37 @@ def get_tuple_for_sorting(orig_tuple: tuple, *, orders_for_col_tree: dict, lbl2v
     return tuple_for_sorting
 
 def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *,
-        orders_for_col_tree: dict, lbl2val: dict[tuple[str, str], Any], raw_df: pd.DataFrame,
+        orders_for_col_tree: dict, var_and_val_lbl2val: dict[tuple[str, str], Any], raw_df: pd.DataFrame,
         debug=False) -> list[tuple]:
     """
+    1) Convert variable labels to variables. E.g.
+    'Web Browser' => 'browser'
+    'Car' => 'car'
+
+    so
+
+    ('Web Browser', 'Firefox', 'Car', 'AUDI', Metric.FREQ)
+    =>
+    ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
+
+    2) Get from the index row tuple to the branch of variable keys e.g.
+    ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
+    =>
+    ('browser', 'car', )
+
+    3) Find the matching sort order for that branch of variables key
+    (in this case, a branch from browser to car).
+
+    4) Apply that sort order to the original index row.
+
     :param orders_for_col_tree: e.g.
         {
             ('age', ): (0, Sort.VAL),
             ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
         }
-    :param lbl2val: so we can get from label to value when all we have is the label. Used when we need to sort by value
-     even though the cell content is the label. E.g.
+    :param var_and_val_lbl2val: so we can get from label to value when all we have is the label.
+     Used when we need to sort by value even though the cell content is the label. E.g.
         {
             ('age', '< 20'): 1,
             ('age', '20-29'): 2,
@@ -241,8 +294,15 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *,
         ...    ...  ...                ...  ...
         1499  1500    4  Internet Explorer    8
     """
+    unsorted_multi_index_list_with_vars = []
+    for i, item in enumerate(unsorted_multi_index_list):
+        is_a_variable = (i % 2 == 0)
+        if is_a_variable:
+            # item -> var not var_lbl TODO:
+        else:
+            unsorted_multi_index_list_with_vars.append(item)
     multi_index_sort_fn = partial(get_tuple_for_sorting,
-        orders_for_col_tree=orders_for_col_tree, lbl2val=lbl2val, raw_df=raw_df, debug=debug)
+        orders_for_col_tree=orders_for_col_tree, var_and_val_lbl2val=var_and_val_lbl2val, raw_df=raw_df, debug=debug)
     sorted_multi_index_list = sorted(unsorted_multi_index_list, key=multi_index_sort_fn)
     if debug:
         for row in sorted_multi_index_list:
