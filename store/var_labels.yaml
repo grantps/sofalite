@@ -11,7 +11,7 @@ agegroup:
     5: "65+"
 browser:
   var_lbl: Web Browser
-  var_lbls:
+  val_lbls:
     "Google Chrome": "Chrome"
 car:
   var_lbl: Car
@@ -32,17 +32,25 @@ car:
     14: MAZDA
     15: SUZUKI
     16: DAIHATSU
-    17: ISUZU'
+    17: ISUZU
 country:
   var_lbl: Country
   var_comment: A few countries only
-  var_lbls:
+  val_lbls:
     1: NZ
     2: South Korea
     3: U.S.A
 gender:
   var_lbl: Gender
-  var_lbls:
+  val_lbls:
     1: Male
     2: Female
+std_agegroup:
+  var_lbl: Std Age Group
+  val_lbls:
+    1: "< 20"
+    2: "20-29"
+    3: "30-39"
+    4: "40-64"
+    5: "65+"
 

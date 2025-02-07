@@ -29,7 +29,8 @@ pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
 yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
-var_labels = yaml2varlabels(yaml_fpath, debug=True)  ## TODO: put this to use everywhere
+var_labels = yaml2varlabels(yaml_fpath,
+    vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'std_agegroup'], debug=True)
 
 
 class DataSpecificCheats:
@@ -40,14 +41,14 @@ class DataSpecificCheats:
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
         sql = """\
-        SELECT id, agegroup, browser, car
+        SELECT id, agegroup, browser, car, agegroup as std_agegroup
         FROM demo_tbl
         """
         cur.execute(sql)
         data = cur.fetchall()
         cur.close()
         con.close()
-        df = pd.DataFrame(data, columns=['id', 'agegroup', 'browser', 'car', ])
+        df = pd.DataFrame(data, columns=['id', 'agegroup', 'browser', 'car', 'std_agegroup'])
         df['browser'] = df['browser'].apply(lambda s: 'Google Chrome' if s == 'Chrome' else s)  ## so we can apply Google Chrome as a label to prove labels work
         if debug:
             print(df)
@@ -57,13 +58,13 @@ class DataSpecificCheats:
     def get_orders_for_col_tree() -> dict:
         """
         Should come from a GUI via an interface ad thence into the code using this.
+        Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
         """
         return {
             ('agegroup', ): (0, Sort.VAL),
-            # ('browser', 'age', ): (1, Sort.LBL, 0, Sort.INCREASING),  ## TODO - will need to manually check what expected results should be (groan)
-            # ('browser', 'car', ): (1, Sort.LBL, 1, Sort.DECREASING),
             ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
+            ('std_agegroup', ): (2, Sort.VAL),
         }
 
 
@@ -215,7 +216,7 @@ class GetData:
         df_pre_pivot[gender_val_labels.name] = df_pre_pivot[gender_val_labels.pandas_val].apply(lambda x: gender_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
         df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.pandas_val
+        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
         df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
         df = (df_pre_pivot
@@ -334,7 +335,7 @@ class GetData:
         SELECT car, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3)
+        AND car IN (2, 3, 11)
         GROUP BY car, agegroup
         """
         cur.execute(sql)
@@ -373,7 +374,7 @@ class GetData:
         SELECT car, browser, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3)
+        AND car IN (2, 3, 11)
         GROUP BY car, browser, agegroup
         """
         cur.execute(sql)
@@ -442,7 +443,6 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
     agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-    browser_val_labels = var_labels.var2var_label_spec['browser']
     car_val_labels = var_labels.var2var_label_spec['car']
     country_val_labels = var_labels.var2var_label_spec['country']
     gender_val_labels = var_labels.var2var_label_spec['gender']
@@ -451,21 +451,21 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
     df_top = df_top_left.merge(df_top_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])
     df_top_repeat = df_top_left.copy()
-    df_top_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_top_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)  ## as if there were a real variable - but we'll need to add that fake variable to the VarLabels we use
     df_top = df_top.merge(df_top_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])  ## join again to test ability to  handle col-spanning offsets etc
     ## MIDDLE
     df_middle_left = GetData.get_country_by_age_group(debug=debug)
     df_middle_right = GetData.get_country_by_browser_and_age_group(debug=debug)
     df_middle = df_middle_left.merge(df_middle_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     df_middle_repeat = df_middle_left.copy()
-    df_middle_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_middle_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)
     df_middle = df_middle.merge(df_middle_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     ## BOTTOM
     df_bottom_left = GetData.get_car_by_age_group(debug=debug)
     df_bottom_right = GetData.get_car_by_browser_and_age_group(debug=debug)
     df_bottom = df_bottom_left.merge(df_bottom_right, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     df_bottom_repeat = df_bottom_left.copy()
-    df_bottom_repeat.rename(columns={agegroup_val_labels.lbl: 'Age Group Repeated'}, inplace=True)
+    df_bottom_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)
     df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     if debug:
         print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
@@ -481,9 +481,10 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     unsorted_multi_index_list = list(df.columns)
     raw_df = DataSpecificCheats.get_raw_df(debug=debug)
     orders_for_col_tree = DataSpecificCheats.get_orders_for_col_tree()
-    var_and_val_lbl2val = var_labels.get_var_and_val_lbl2val()
-    sorted_multi_index_list = get_sorted_multi_index_list(unsorted_multi_index_list,
-        orders_for_col_tree=orders_for_col_tree, var_and_val_lbl2val=var_and_val_lbl2val, raw_df=raw_df, debug=debug)
+    sorted_multi_index_list = get_sorted_multi_index_list(
+        unsorted_multi_index_list, orders_for_col_tree=orders_for_col_tree,
+        var_lbl2var=var_labels.var_lbl2var, var_and_val_lbl2val=var_labels.var_and_val_lbl2val,
+        raw_df=raw_df, debug=debug)
     sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     df.columns = sorted_multi_index
     return df

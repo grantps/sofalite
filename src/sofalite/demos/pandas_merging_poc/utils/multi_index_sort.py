@@ -125,8 +125,8 @@ from sofalite.conf.tables.misc import BLANK, Metric, Sort
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
-pd.set_option('display.max_columns', 25)
-pd.set_option('display.width', 500)
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.width', 750)
 
 def index_row2branch_of_vars_key(orig_tuple: tuple, *, debug=False) -> tuple:
     """
@@ -181,8 +181,39 @@ def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, s
             sort_val = 1.1  ## so always at end after lbls with freq of at least one (given we are decreasing)
     return sort_val
 
-def get_tuple_for_sorting(orig_tuple: tuple, *,
-        orders_for_col_tree: dict, var_and_val_lbl2val: dict[tuple[str, str], Any],
+def get_branch_of_variables_key(
+        index_with_lbls: tuple, var_lbl2var: dict[str, int | str], *, debug=False) -> tuple:
+    """
+    How should we sort the multi-index? The details are configured against variable branch trees. E.g.
+    {
+        ('age', ): (0, Sort.VAL),
+        ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
+        ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
+    }
+    So we need to extract the key (in the form of a branch of variables) from the multi-index
+    so we can read the sort configuration for it. E.g.
+    ('browser', 'Firefox', 'car', 'AUDI', Metric.FREQ)
+    =>
+    ('browser', 'car', )
+    """
+    index_with_vars = []
+    for i, item in enumerate(index_with_lbls):
+        vars_finished = ((item == BLANK) or i == len(index_with_lbls) - 1)
+        if vars_finished:
+            index_with_vars.append(item)
+            continue
+        is_a_variable = (i % 2 == 0)
+        if is_a_variable:
+            print(var_lbl2var, item, index_with_lbls)
+            var = var_lbl2var[item]
+            index_with_vars.append(var)
+        else:
+            index_with_vars.append(item)
+    branch_of_variables_key = index_row2branch_of_vars_key(tuple(index_with_vars), debug=debug)
+    return branch_of_variables_key
+
+def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_col_tree: dict,
+        var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], Any],
         raw_df: pd.DataFrame, debug=False) -> tuple:
     """
     Use this method for the key arg for sorting
@@ -196,15 +227,19 @@ def get_tuple_for_sorting(orig_tuple: tuple, *,
     ('Age Group', '65+', '__blank__', '__blank__', 'Row %')
     =>
     (0, 5, 0, 0, 1) given 5 is the val for '65+' and 1 is our index for Row %
+
+    Params:
+        multi_index_tuple: needed so we can create the sorting tuple from the actual content of the multi-index row
+        multi_index_tuple_with_vars_not_lbls: needed only so we can get to sort config (which is by variables not labels)
     """
-    max_idx = len(orig_tuple) - 1
+    max_idx = len(orig_index_tuple) - 1
     metric_idx = max_idx
-    branch_of_variables_key = index_row2branch_of_vars_key(orig_tuple, debug=debug)
+    branch_of_variables_key = get_branch_of_variables_key(index_with_lbls=orig_index_tuple, var_lbl2var=var_lbl2var)
     orders_spec = orders_for_col_tree[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
     list_for_sorting = []
     variable_value_pairs = []
     if debug:
-        print(f"{orig_tuple=}; {max_idx=}; {orders_spec=}")
+        print(f"{orig_index_tuple=}; {max_idx=}; {orders_spec=}")
     for idx in count():
         if idx > max_idx:
             break
@@ -212,20 +247,21 @@ def get_tuple_for_sorting(orig_tuple: tuple, *,
         var_idx = (idx % 2 == 0 and idx != metric_idx)
         val_idx = (idx != var_idx and idx != metric_idx)
         if var_idx:
-            variable = orig_tuple[idx]
-            if variable == BLANK:
+            variable_lbl = orig_index_tuple[idx]
+            if variable_lbl == BLANK:
                 variable_order = 0  ## never more than one BLANK below a parent so no sorting occurs - so 0 as good as anything else
             else:
                 variable_order = orders_spec[idx]
             if debug:
-                print(f"{variable=}; {variable_order=}")
+                print(f"{variable_lbl=}; {variable_order=}")
             list_for_sorting.append(variable_order)
         elif val_idx:
-            variable = orig_tuple[idx - 1]
-            lbl = orig_tuple[idx]
+            lbl = orig_index_tuple[idx]
             if lbl == BLANK:
                 value_order = 0  ## never more than one so no order
             else:
+                variable_lbl = orig_index_tuple[idx - 1]
+                variable = var_lbl2var[variable_lbl]
                 value_order_spec = orders_spec[idx]
                 if value_order_spec == Sort.LBL:
                     value_order = lbl
@@ -240,7 +276,7 @@ def get_tuple_for_sorting(orig_tuple: tuple, *,
                 variable_value_pairs.append((variable, lbl))
             list_for_sorting.append(value_order)
         elif metric_idx:
-            metric = orig_tuple[idx]
+            metric = orig_index_tuple[idx]
             metric_order = get_metric2order(metric)
             list_for_sorting.append(metric_order)
         else:
@@ -248,9 +284,9 @@ def get_tuple_for_sorting(orig_tuple: tuple, *,
     tuple_for_sorting = tuple(list_for_sorting)
     return tuple_for_sorting
 
-def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *,
-        orders_for_col_tree: dict, var_and_val_lbl2val: dict[tuple[str, str], Any], raw_df: pd.DataFrame,
-        debug=False) -> list[tuple]:
+def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, orders_for_col_tree: dict,
+        var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], int | str],
+        raw_df: pd.DataFrame, debug=False) -> list[tuple]:
     """
     1) Convert variable labels to variables. E.g.
     'Web Browser' => 'browser'
@@ -294,15 +330,9 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *,
         ...    ...  ...                ...  ...
         1499  1500    4  Internet Explorer    8
     """
-    unsorted_multi_index_list_with_vars = []
-    for i, item in enumerate(unsorted_multi_index_list):
-        is_a_variable = (i % 2 == 0)
-        if is_a_variable:
-            # item -> var not var_lbl TODO:
-        else:
-            unsorted_multi_index_list_with_vars.append(item)
-    multi_index_sort_fn = partial(get_tuple_for_sorting,
-        orders_for_col_tree=orders_for_col_tree, var_and_val_lbl2val=var_and_val_lbl2val, raw_df=raw_df, debug=debug)
+    multi_index_sort_fn = partial(get_tuple_for_sorting, orders_for_col_tree=orders_for_col_tree,
+        var_lbl2var=var_lbl2var, var_and_val_lbl2val=var_and_val_lbl2val,
+        raw_df=raw_df, debug=debug)
     sorted_multi_index_list = sorted(unsorted_multi_index_list, key=multi_index_sort_fn)
     if debug:
         for row in sorted_multi_index_list:

@@ -5,7 +5,7 @@ You want a label for a variable, a value, or even the Pandas variable name to us
 inside intermediate tables, you come here.
 """
 from collections.abc import Collection
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import groupby
 from pathlib import Path
@@ -17,12 +17,14 @@ yaml = YAML(typ='safe')   # default, if not specified, is 'rt' (round-trip)
 @dataclass(kw_only=True)
 class VarLabelSpec:
     name: str
-    lbl: str
+    lbl: str | None = None
     comment: str | None = None
-    val2lbl: dict[int | str, str]  ## OK to have missing mappings (even an empty dict is OK) - in which case the lbl will be the str representation of the value. But no duplicates.
+    val2lbl: dict[int | str, str] = field(default_factory=dict)  ## OK to have missing mappings (even an empty dict is OK) - in which case the lbl will be the str representation of the value. But no duplicates.
 
     def __post_init__(self):
-        val_lbls = sorted(val_lbl for val, val_lbl in self.val2lbl)
+        if self.lbl is None:
+            self.lbl = self.name.title()
+        val_lbls = sorted(val_lbl for val, val_lbl in self.val2lbl.items())
         duplicate_lbls = [k for k, g in groupby(val_lbls) if len(list(g)) > 1]
         if duplicate_lbls:
             raise ValueError("Different values cannot share the same label. "
@@ -51,7 +53,7 @@ class VarLabelSpec:
 class VarLabels:
     var_label_specs: list[VarLabelSpec]
 
-    def __post_init__(self):
+    def validate(self):
         """
         Prevent duplicate labels for variables e.g. you can't have age => Age and agegroup => Age
         If your YAML has duplicates like this, you'll need to specify vars2include
@@ -63,16 +65,27 @@ class VarLabels:
             raise ValueError("Variables cannot coexist in the Variable Label Details if they share the same label. "
                 f"The following labels are used more than once: {duplicate_lbls}")
 
-    def get_var_and_val_lbl2val(self) -> dict[tuple[str, str], int | str]:
+    def __post_init__(self):
+        self.validate()
+
+    @cached_property
+    def var_and_val_lbl2val(self) -> dict[tuple[str, str], int | str]:
         """
         {(var, lbl): val, ...}
         for all variables (and their labels).
         """
-        lbl2val = {}
+        var_and_val_lbl2val = {}
         for var_label_spec in self.var_label_specs:
             for val, val_lbl in var_label_spec.val2lbl.items():
-                lbl2val[(var_label_spec.name, val_lbl)] = val
-        return lbl2val
+                var_and_val_lbl2val[(var_label_spec.name, val_lbl)] = val
+        return var_and_val_lbl2val
+
+    @cached_property
+    def var_lbl2var(self) -> dict[str, int | str]:
+        var_lbl2var = {}
+        for var_label_spec in self.var_label_specs:
+            var_lbl2var[var_label_spec.lbl] = var_label_spec.name
+        return var_lbl2var
 
     @cached_property
     def var2var_label_spec(self) -> dict[str, VarLabelSpec]:
@@ -84,20 +97,26 @@ class VarLabels:
     def __str__(self) -> str:
         return '\n'.join(str(var_lbl_spec) for var_lbl_spec in self.var_label_specs)
 
-def yaml2varlabels(yaml_fpath: Path, vars2include: Collection[str] | None = None, *, debug=False) -> VarLabels:
+def yaml2varlabels(yaml_fpath: Path, vars2include: Collection[str], *, debug=False) -> VarLabels:
     raw_yaml = yaml.load(yaml_fpath)
     var_label_specs = []
     for var, var_spec in raw_yaml.items():
         if var not in vars2include:
             continue
-        kwargs = {
-            'name': var,
-            'lbl': var_spec.get('var_lbl', var.title()),
-            'val2lbl': var_spec.get('val_lbls', {}),
-        }
-        if var_spec.get('var_comment'):
-            kwargs['comment'] = var_spec.get('var_comment')
-        var_labels_spec = VarLabelSpec(**kwargs)
+        else:
+            kwargs = {
+                'name': var,
+                'lbl': var_spec.get('var_lbl', var.title()),
+                'val2lbl': var_spec.get('val_lbls', {}),
+            }
+            if var_spec.get('var_comment'):
+                kwargs['comment'] = var_spec.get('var_comment')
+            var_labels_spec = VarLabelSpec(**kwargs)
+        var_label_specs.append(var_labels_spec)
+    missing_vars = set(vars2include) - set(raw_yaml.keys())
+    for missing_var in missing_vars:
+        print(type(VarLabelSpec))
+        var_labels_spec = VarLabelSpec(name=missing_var)
         var_label_specs.append(var_labels_spec)
     var_labels = VarLabels(var_label_specs)
     if debug:
