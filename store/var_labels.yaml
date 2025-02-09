@@ -37,14 +37,21 @@ country:
   var_lbl: Country
   var_comment: A few countries only
   val_lbls:
-    1: NZ
+    1: USA
     2: South Korea
-    3: U.S.A
+    3: NZ
 gender:
   var_lbl: Gender
   val_lbls:
     1: Male
     2: Female
+home_country:
+  var_lbl: Home Country
+  var_comment: Country of Origin
+  val_lbls:
+    1: USA
+    2: South Korea
+    3: NZ
 std_agegroup:
   var_lbl: Std Age Group
   val_lbls:

@@ -9,6 +9,10 @@ We might want
 ...
 rather than what we might get by sorting on the visible content.
 Using VarLabels dcs makes this a lot easier to work with.
+
+TODO: prevent reuse of same variables at top-level of rows or columns
+Otherwise pandas merges them together (as you would expect given how JOIN is mean to work)
+and everything is broken given we were trying to keep them separate.
 """
 from functools import cache
 from pathlib import Path
@@ -30,7 +34,7 @@ pd.set_option('display.width', 500)
 
 yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
 var_labels = yaml2varlabels(yaml_fpath,
-    vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'std_agegroup'], debug=True)
+    vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country', 'std_agegroup'], debug=True)
 
 
 class DataSpecificCheats:
@@ -55,16 +59,20 @@ class DataSpecificCheats:
         return df
 
     @staticmethod
-    def get_orders_for_col_tree() -> dict:
+    def get_orders_for_multi_index_branches() -> dict:
         """
         Should come from a GUI via an interface ad thence into the code using this.
         Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
         """
         return {
+            ## columns
             ('agegroup', ): (0, Sort.VAL),
             ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
-            ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
             ('std_agegroup', ): (2, Sort.VAL),
+            ## rows
+            ('country', 'gender', ): (0, Sort.VAL, 0, Sort.LBL),
+            ('home_country', ): (1, Sort.LBL),
+            ('car', ): (2, Sort.VAL),
         }
 
 
@@ -233,6 +241,7 @@ class GetData:
     """
     Note - must have same columns for left as for TOP left df, for middle as TOP middle df,
     and for the right as for TOP right df
+    Note - can't have country twice at top-level but OK if different variable name.
     """
 
     ## MIDDLE LEFT & RIGHT
@@ -245,7 +254,7 @@ class GetData:
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
         sql = """\
-        SELECT country, agegroup, COUNT(*) AS n
+        SELECT country as home_country, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         GROUP BY country, agegroup
@@ -255,7 +264,7 @@ class GetData:
         cur.close()
         con.close()
 
-        country_val_labels = var_labels.var2var_label_spec['country']
+        country_val_labels = var_labels.var2var_label_spec['home_country']
         agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
 
         df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
@@ -283,7 +292,7 @@ class GetData:
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
         sql = """\
-        SELECT country, browser, agegroup, COUNT(*) AS n
+        SELECT country as home_country, browser, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         GROUP BY country, browser, agegroup
@@ -293,7 +302,7 @@ class GetData:
         cur.close()
         con.close()
 
-        country_val_labels = var_labels.var2var_label_spec['country']
+        country_val_labels = var_labels.var2var_label_spec['home_country']
         browser_val_labels = var_labels.var2var_label_spec['browser']
         agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
 
@@ -446,6 +455,7 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     car_val_labels = var_labels.var2var_label_spec['car']
     country_val_labels = var_labels.var2var_label_spec['country']
     gender_val_labels = var_labels.var2var_label_spec['gender']
+    home_country_val_labels = var_labels.var2var_label_spec['home_country']
     ## TOP
     df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
     df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
@@ -456,10 +466,10 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     ## MIDDLE
     df_middle_left = GetData.get_country_by_age_group(debug=debug)
     df_middle_right = GetData.get_country_by_browser_and_age_group(debug=debug)
-    df_middle = df_middle_left.merge(df_middle_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_middle = df_middle_left.merge(df_middle_right, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     df_middle_repeat = df_middle_left.copy()
     df_middle_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)
-    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     ## BOTTOM
     df_bottom_left = GetData.get_car_by_age_group(debug=debug)
     df_bottom_right = GetData.get_car_by_browser_and_age_group(debug=debug)
@@ -469,24 +479,37 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     if debug:
         print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
-    ## COMBINE
+    ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
+    ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does - and there is a bug (from my point of view)
+    ## whenever tables are merged with the same variables at the top level. To prevent this we have to disallow variable re-use at top-level.
     ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
-    ## e.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
+    ## E.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
     ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally
     df_t = df_top.T.join(df_middle.T, how='outer')
     df_t = df_t.join(df_bottom.T, how='outer')
-    df = df_t.T
+    df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
     df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
-    unsorted_multi_index_list = list(df.columns)
+    ## Sorting indexes
     raw_df = DataSpecificCheats.get_raw_df(debug=debug)
-    orders_for_col_tree = DataSpecificCheats.get_orders_for_col_tree()
-    sorted_multi_index_list = get_sorted_multi_index_list(
-        unsorted_multi_index_list, orders_for_col_tree=orders_for_col_tree,
+    orders_for_multi_index_branches = DataSpecificCheats.get_orders_for_multi_index_branches()
+    ## COLS
+    unsorted_col_multi_index_list = list(df.columns)
+    sorted_col_multi_index_list = get_sorted_multi_index_list(
+        unsorted_col_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
         var_lbl2var=var_labels.var_lbl2var, var_and_val_lbl2val=var_labels.var_and_val_lbl2val,
-        raw_df=raw_df, debug=debug)
-    sorted_multi_index = pd.MultiIndex.from_tuples(sorted_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
-    df.columns = sorted_multi_index
+        raw_df=raw_df, has_metrics=True, debug=debug)
+    sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+    df.columns = sorted_col_multi_index
+    ## ROWS
+    unsorted_row_multi_index_list = list(df.index)
+    sorted_row_multi_index_list = get_sorted_multi_index_list(
+        unsorted_row_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
+        var_lbl2var=var_labels.var_lbl2var, var_and_val_lbl2val=var_labels.var_and_val_lbl2val,
+        raw_df=raw_df, has_metrics=False, debug=debug)
+    sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+    df.index = sorted_row_multi_index
+    if debug: print(f"\nORDERED:\n{df}")
     return df
 
 def main(*, debug=False, verbose=False):
