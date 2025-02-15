@@ -2,6 +2,7 @@
 from enum import StrEnum
 
 BLANK = '__blank__'
+TOTAL = 'TOTAL'
 
 class Metric(StrEnum):
     FREQ = 'Freq'

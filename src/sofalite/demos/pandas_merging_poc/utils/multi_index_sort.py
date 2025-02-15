@@ -121,7 +121,7 @@ from typing import Any
 
 import pandas as pd
 
-from sofalite.conf.tables.misc import BLANK, Metric, Sort
+from sofalite.conf.tables.misc import BLANK, TOTAL, Metric, Sort
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -167,18 +167,22 @@ def get_metric2order(metric: Metric) -> int:
     return {Metric.FREQ: 1, Metric.ROW_PCT: 2, Metric.COL_PCT: 3}[metric]
 
 def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, str]] | None = None, *,
-        increasing=True) -> float:
-    df_filt = df.copy().loc[df[variable] == lbl]
-    for filt_variable, filt_lbl in filts:
-        df_filt = df_filt.loc[df_filt[filt_variable] == filt_lbl]
-    freq = len(df_filt)
-    if increasing:
-        sort_val = freq
+        increasing=True) -> tuple[int, float]:
+    if lbl == TOTAL:
+        sort_val = (1, 'anything ;-)')
     else:
-        try:
-            sort_val = 1 / freq
-        except ZeroDivisionError as e:
-            sort_val = 1.1  ## so always at end after lbls with freq of at least one (given we are decreasing)
+        df_filt = df.copy().loc[df[variable] == lbl]
+        for filt_variable, filt_lbl in filts:
+            df_filt = df_filt.loc[df_filt[filt_variable] == filt_lbl]
+        freq = len(df_filt)
+        if increasing:
+            sort_val = freq
+        else:
+            try:
+                sort_val = 1 / freq
+            except ZeroDivisionError as e:
+                sort_val = 1.1  ## so always at end after lbls with freq of at least one (given we are decreasing)
+        sort_val = (0, sort_val)
     return sort_val
 
 def get_branch_of_variables_key(
@@ -236,7 +240,7 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_multi_index_bra
     branch_of_variables_key = get_branch_of_variables_key(index_with_lbls=orig_index_tuple, var_lbl2var=var_lbl2var)
     orders_spec = orders_for_multi_index_branches[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
     list_for_sorting = []
-    variable_value_pairs = []
+    variable_value_pairs = []  ## so we know what filters apply depending on how far across the index we have come e.g. if we have passed Gender Female then we need to filter to that
     if debug:
         print(f"{orig_index_tuple=}; {max_idx=}; {orders_spec=}")
     for idx in count():
@@ -264,13 +268,17 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_multi_index_bra
                 variable = var_lbl2var[variable_lbl]
                 value_order_spec = orders_spec[idx]
                 if value_order_spec == Sort.LBL:
-                    value_order = lbl
+                    value_order = (1, lbl) if lbl == TOTAL else (0, lbl)  ## want TOTAL last
                 elif value_order_spec == Sort.VAL:
-                    value_order = var_and_val_lbl2val[(variable, lbl)]
+                    raw_val_order = var_and_val_lbl2val.get((variable, lbl))
+                    if raw_val_order is None:  ## want TOTAL last
+                        value_order = (1, 'anything ;-)')
+                    else:
+                        value_order = (0, raw_val_order)
                 elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
                     increasing = (value_order_spec == Sort.INCREASING)
                     filts = tuple(variable_value_pairs)
-                    value_order = by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)  ## can't use df as arg for cached function
+                    value_order = by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)  ## can't use df as arg for cached function  ## want TOTAL last
                 else:
                     raise ValueError(f"Unexpected value order spec ({value_order_spec})")
                 variable_value_pairs.append((variable, lbl))
