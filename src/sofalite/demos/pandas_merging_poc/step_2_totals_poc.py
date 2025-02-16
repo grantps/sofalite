@@ -1,5 +1,5 @@
 """
-TODO: Add totals for rows and columns
+TODO: Add NESTED totals for rows and columns
 
 When creating SQL queries we need to use variable names.
 When displaying results we will use (often different) variable labels, and also value labels.
@@ -111,6 +111,7 @@ class GetData:
         """
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
+        ## main
         sql_main = """\
         SELECT country, gender, agegroup, COUNT(*) AS n
         FROM demo_tbl
@@ -120,6 +121,17 @@ class GetData:
         """
         cur.execute(sql_main)
         data_main = cur.fetchall()
+        ## country
+        sql_total_country = f"""\
+        SELECT "{TOTAL}" AS country, gender, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY gender, agegroup
+        """
+        cur.execute(sql_total_country)
+        data_total_country = cur.fetchall()
+        ## gender
         sql_total_gender = f"""\
         SELECT country, "{TOTAL}" AS gender, agegroup, COUNT(*) AS n
         FROM demo_tbl
@@ -129,6 +141,7 @@ class GetData:
         """
         cur.execute(sql_total_gender)
         data_total_gender = cur.fetchall()
+        ## agegroup
         sql_total_agegroup = f"""\
         SELECT country, gender, "{TOTAL}" AS agegroup, COUNT(*) AS n
         FROM demo_tbl
@@ -138,19 +151,52 @@ class GetData:
         """
         cur.execute(sql_total_agegroup)
         data_total_agegroup = cur.fetchall()
-        sql_total_all = f"""\
+        ## country, gender
+        sql_total_country_gender = f"""\
+        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY agegroup
+        """
+        cur.execute(sql_total_country_gender)
+        data_total_country_gender = cur.fetchall()
+        ## country, agegroup
+        sql_total_country_agegroup = f"""\
+        SELECT "{TOTAL}" AS country, gender, "{TOTAL}" AS agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY gender
+        """
+        cur.execute(sql_total_country_agegroup)
+        data_total_country_agegroup = cur.fetchall()
+        ## gender, agegroup
+        sql_total_gender_agegroup = f"""\
         SELECT country, "{TOTAL}" AS gender, "{TOTAL}" AS agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE agegroup <> 4
         AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         GROUP BY country
         """
-        cur.execute(sql_total_all)
-        data_total_all = cur.fetchall()
+        cur.execute(sql_total_gender_agegroup)
+        data_total_gender_agegroup = cur.fetchall()
+        ## country, gender, agegroup
+        sql_total_country_gender_agegroup = f"""\
+        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, "{TOTAL}" AS agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        """
+        cur.execute(sql_total_country_gender_agegroup)
+        data_total_country_gender_agegroup = cur.fetchall()
         cur.close()
         con.close()
 
-        data = data_main + data_total_gender + data_total_agegroup + data_total_all
+        data = (data_main
+            + data_total_country + data_total_gender + data_total_agegroup
+            + data_total_country_gender + data_total_country_agegroup + data_total_gender_agegroup
+            + data_total_country_gender_agegroup)
 
         country_val_labels = var_labels.var2var_label_spec['country']
         gender_val_labels = var_labels.var2var_label_spec['gender']
@@ -249,10 +295,28 @@ class GetData:
         """
         cur.execute(sql_total_gender)
         data_total_gender = cur.fetchall()
+        sql_total_country = f"""\
+        SELECT "{TOTAL}" AS country, gender, browser, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE NOT (country = 3 AND gender = 1)
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY gender, browser, agegroup
+        """
+        cur.execute(sql_total_country)
+        data_total_country = cur.fetchall()
+        sql_total_all = f"""\
+        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, browser, agegroup, COUNT(*) AS n
+        FROM demo_tbl
+        WHERE NOT (country = 3 AND gender = 1)
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        GROUP BY browser, agegroup
+        """
+        cur.execute(sql_total_all)
+        data_total_all = cur.fetchall()
         cur.close()
         con.close()
 
-        data = data_main + data_total_gender
+        data = data_main + data_total_gender + data_total_country + data_total_all
 
         country_val_labels = var_labels.var2var_label_spec['country']
         browser_val_labels = var_labels.var2var_label_spec['browser']
