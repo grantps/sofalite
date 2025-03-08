@@ -1,6 +1,4 @@
 """
-TODO: Add row and col percentages
-
 When creating SQL queries we need to use variable names.
 When displaying results we will use (often different) variable labels, and also value labels.
 When sorting items, we may need to sort by the cell contents themselves, but other times by something associated instead.
@@ -16,6 +14,7 @@ TODO: prevent reuse of same variables at top-level of rows or columns
 Otherwise pandas merges them together (as you would expect given how JOIN is mean to work)
 and everything is broken given we were trying to keep them separate.
 """
+from enum import StrEnum
 from functools import cache
 from pathlib import Path
 import sqlite3 as sqlite
@@ -33,6 +32,10 @@ pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1_000)
+
+class PctType(StrEnum):
+    ROW_PCT = 'Row %'
+    COL_PCT = 'Col %'
 
 yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
 var_labels = yaml2varlabels(yaml_fpath,
@@ -76,6 +79,110 @@ class DataSpecificCheats:
             ('home_country', ): (1, Sort.LBL),
             ('car', ): (2, Sort.VAL),
         }
+
+
+def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *, pct_type: PctType, debug=False) -> pd.DataFrame:
+    """
+    Strategy - we have multi-indexes so let's use them!
+    Note - exact same approach works if you work from the df (for rows and Row %) or from a transposed df (for cols and Col %)
+
+browser_var                                                 Web Browser
+browser                                                          Chrome                          Firefox                           Chrome   Firefox     TOTAL
+agegroup_var                                                  Age Group                        Age Group                        Age Group Age Group Age Group
+agegroup                                                           < 20 20-29 30-39 40-64  65+      < 20 20-29 30-39 40-64  65+     TOTAL     TOTAL      < 20 20-29 30-39 40-64  65+ TOTAL
+measure                                                            Freq  Freq  Freq  Freq Freq      Freq  Freq  Freq  Freq Freq      Freq      Freq      Freq  Freq  Freq  Freq Freq  Freq
+home_country_var home_country row_filler_var_0 row_filler_0
+Home Country     NZ           __blank__        __blank__             18     8    10    27   30        35    25    24    51   55        93       190        53    33    34    78   85   283
+             South Korea  __blank__        __blank__             32    17    16    35   21        49    23    17    43   49       121       181        81    40    33    78   70   302
+             TOTAL        __blank__        __blank__             60    44    43    90   95       109    74    55   132  152       332       522       169   118    98   222  247   854
+             USA          __blank__        __blank__             10    19    17    28   44        25    26    14    38   48       118       151        35    45    31    66   92   269
+
+    Row %s are taken row (per column block e.g. Under Chrome, or under Firefox) per row.
+    We have all the numbers we need so surely there must be some way to calculate it (spoiler - there is!).
+    We can do it row by row if we have the information required available in the row. So do we? Let's look at a row:
+
+    Each row is a Series with a multi-index on the left and the values on the right. E.g.:
+
+    browser_var  browser  agegroup_var  agegroup  measure
+Web Browser  Chrome   Age Group     < 20      Freq        18
+                                20-29     Freq         8
+                                30-39     Freq        10
+                                40-64     Freq        27
+                                65+       Freq        30
+         Firefox  Age Group     < 20      Freq        35
+                                20-29     Freq        25
+                                30-39     Freq        24
+                                40-64     Freq        51
+                                65+       Freq        55
+         Chrome   Age Group     TOTAL     Freq        93
+         Firefox  Age Group     TOTAL     Freq       190
+         TOTAL    Age Group     < 20      Freq        53
+                                20-29     Freq        33
+                                30-39     Freq        34
+                                40-64     Freq        78
+                                65+       Freq        85
+                                TOTAL     Freq       283
+
+    Looking at it like this, we can see a way of using aggregation and broadcasting to get row %s.
+    In the case above, if we can group by Web Browser,
+    and broadcast the total within each group as the denominator of every value in the group,
+    (multiply by 100, of course, so a percentage not a fraction).
+    One more complication: if TOTAL is included, need to divide the percentage by 2
+    because the inclusion of TOTAL doubles it.
+    One more complication: have to do the aggregation slightly differently if no variable to group by.
+
+    OK - let's do a worked example using the row Series.
+    In Chrome we have a total of 18+8+10+27+30+93 (you nearly forgot the TOTAL row didn't you!).
+    So that's 93x2 i.e. 186.
+    (100 * 18) / (186 / 2) = 19.35% Correct! :-)
+    (100 * 93) / (186 / 2) = 100% of course! Brilliant!
+
+    The rest of the logic is about working out whether or not we have variables to group by;
+    getting variable to group by (if any);
+    and seeing if there is a TOTAL (so we can tell if we have to divide by 2);
+
+    Finally, we have to gather the results into the same structure as the pre-pivot source data
+    BUT with Row % or Col % as the measure not Freq.
+    Note - OK if we don't include columns not used in pivot, and OK if the cols are not in the correct order.
+    The appending is by col_name so it Just Works™ :-).
+    Why? Because if we can get to that structure, we can just append the different dfs-by-measure together,
+    and pivot the resulting combined df to get a column per measure.
+    Trivial if we can get to that point - it Just Works™!
+    """
+    if pct_type == PctType.COL_PCT:
+        df = df.T  ## if unpivoted, each row has values for the Row % calculation; otherwise has values for Col % calculation. If pivoted, it is the reverse. But still rows refers to rows and cols to cols in the df we're working through here either way.
+    col_names = [col for col in df.columns.names if
+        not col.endswith('_var') and not col.startswith(('col_filler_', 'row_filler_')) and col != 'measure']
+    if debug: print(col_names)
+    col_names_for_grouping = col_names[:-1]
+    use_groupby = bool(col_names_for_grouping)
+    ## divide by 2 to handle doubling caused by inclusion of already-calculated value in TOTAL row in summing
+    name_of_final_col = col_names[-1]
+    row_0 = df.iloc[0]
+    var_names = row_0.index.names
+    idx_of_final_col = var_names.index(name_of_final_col)
+    vals_in_final_col = [list(inner_index)[idx_of_final_col] for inner_index in row_0.index]
+    if debug: print(vals_in_final_col)
+    has_total = TOTAL in vals_in_final_col
+    divide_by = 2 if has_total else 1
+    df_pre_pivot_inc_pct = pd.DataFrame(data=[], columns=list(df.index.names + var_names + ['n']))  ## order doesn't matter - it will append based on col names, so both row % and col % work fine as long as original Freq df_pre_pivot comes first
+    for i, row in df.iterrows():
+        ## do calculations
+        if use_groupby:
+            s_row_pcts = (100 * row) / (row.groupby(col_names_for_grouping).agg('sum') / divide_by)
+        else:
+            s_row_pcts = (100 * row) / (sum(row) / divide_by)
+        if debug: print(s_row_pcts)
+        ## create rows ready to append to df_pre_pivot before re-pivoting but with additional measure type
+        for sub_index, val in s_row_pcts.items():
+            values = list(row.name) + list(sub_index) + [val]
+            s = pd.Series(values, index=list(df.index.names + var_names + ['n']))  ## order doesn't matter - see comment earlier
+            s['measure'] = pct_type
+            if debug: print(s)
+            ## add to new df_pre_pivot
+            df_pre_pivot_inc_pct = pd.concat([df_pre_pivot_inc_pct, s.to_frame().T])
+    if debug: print(df_pre_pivot_inc_pct)
+    return df_pre_pivot_inc_pct
 
 
 class GetData:
@@ -215,23 +322,13 @@ class GetData:
         df_pre_pivot['col_filler_var_0'] = BLANK
         df_pre_pivot['col_filler_0'] = BLANK  ## add filler column which we'll nest under age_group as natural outcome of pivot step
         df_pre_pivot['measure'] = 'Freq'
-
         print(df_pre_pivot)
-
         df = (df_pre_pivot
             .pivot(
                 index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
                 columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
                 values='n')
         )
-
-        # print(df_pre_pivot)
-        # for i, row in df.iterrows():  ## ROWS: not flattened
-        #     print(i, row)
-        #     for j, row_inner in row.items():  ## finally flattened (guaranteed?)
-        #         print(j, row_inner)
-        #     raise
-
         if debug: print(f"\nTOP LEFT & RIGHT:\n{df}")
         return df
 
@@ -243,6 +340,8 @@ class GetData:
         when some value combinations are empty in one block but not in another.
         Wipe out gender 1 from country 3 in the source data to confirm that the final combined table output
         has gender 1 from country 3 anyway because it is in the agegroup table.
+
+        Warning - NO MALES IN NZ! ;-)
 
         Note - when multi-level, every column is a tuple e.g. a row dimension column (once index reset)
         might be ('country', '') and a column dimension column ('Firefox', '20-29').
@@ -460,14 +559,22 @@ class GetData:
         df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
 
-        print(df_pre_pivot)
-
         df = (df_pre_pivot
             .pivot(
                 index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
                 columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
                 values='n')
         )
+
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
+        df = (df_pre_pivot.pivot(
+                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
+                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
+                values='n')
+        )
+
         if debug: print(f"\nTOP MIDDLE:\n{df}")
         return df
 
@@ -548,10 +655,10 @@ class GetData:
 
     ## MIDDLE MIDDLE
     @staticmethod
-    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
+    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:  ## TODO: automate and soft-wire this splaying and gathering
         con = sqlite.connect('sofa_db')
         cur = con.cursor()
-        sql_main = """\
+        sql_main = """\r
         SELECT country AS home_country, browser, agegroup, COUNT(*) AS n
         FROM demo_tbl
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
@@ -643,39 +750,9 @@ class GetData:
                 values='n')
         )
 
-        ## which method for calculating row %s?
-        print(df_pre_pivot)
-        col_names = [col for col in df.columns.names if not col.endswith('_var') and not col.startswith('col_filler_') and col != 'measure']
-        print(col_names)
-        col_names_for_grouping = col_names[:-1]
-        use_groupby = bool(col_names_for_grouping)
-        ## divide by 2 to handle doubling caused by inclusion of already-calculated value in TOTAL row in summing
-        name_of_final_col = col_names[-1]
-        row_0 = df.iloc[0]
-        var_names = row_0.index.names
-        idx_of_final_col = var_names.index(name_of_final_col)
-        vals_in_final_col = [list(inner_index)[idx_of_final_col] for inner_index in row_0.index]
-        print(vals_in_final_col)
-        has_total = TOTAL in vals_in_final_col
-        divide_by = 2 if has_total else 1
-        df_pre_pivot_inc_row_pct = pd.DataFrame(data=[], columns=list(df.index.names + var_names + ['n']))
-        for i, row in df.iterrows():
-            ## do calculations
-            if use_groupby:
-                s_row_pcts = (100 * row) / (row.groupby(col_names_for_grouping).agg('sum') / divide_by)
-            else:
-                s_row_pcts = (100 * row) / (sum(row) / divide_by)
-            if debug: print(s_row_pcts)
-            ## create rows ready to append to df_pre_pivot before re-pivoting but with additional measure type
-            for sub_index, val in s_row_pcts.items():
-                values = list(row.name) + list(sub_index) + [val]
-                s = pd.Series(values, index=list(df.index.names + var_names + ['n']))
-                s['measure'] = 'Row %'
-                if debug: print(s)
-                ## add to new df_pre_pivot
-                df_pre_pivot_inc_row_pct = pd.concat([df_pre_pivot_inc_row_pct, s.to_frame().T])
-        if debug: print(df_pre_pivot_inc_row_pct)
-        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct])
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
         df = (df_pre_pivot.pivot(
                 index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
                 columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
@@ -814,6 +891,15 @@ class GetData:
         df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
         df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
         df_pre_pivot['measure'] = 'Freq'
+        df = (df_pre_pivot
+            .pivot(
+                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
+                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
+                values='n')
+        )
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
         df = (df_pre_pivot
             .pivot(
                 index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
