@@ -406,160 +406,13 @@ class GetData:
 
         Note - working with indexes not data values until final flattening step
         """
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql_main = """\
-        SELECT country, gender, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, gender, browser, agegroup
-        """
-        cur.execute(sql_main)
-        data_main = cur.fetchall()
-        sql_total_gender = f"""\
-        SELECT country, "{TOTAL}" AS gender, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, browser, agegroup
-        """
-        cur.execute(sql_total_gender)
-        data_total_gender = cur.fetchall()
-        sql_total_country = f"""\
-        SELECT "{TOTAL}" AS country, gender, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY gender, browser, agegroup
-        """
-        cur.execute(sql_total_country)
-        data_total_country = cur.fetchall()
-        sql_total_country_gender = f"""\
-        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY browser, agegroup
-        """
-        cur.execute(sql_total_country_gender)
-        data_total_country_gender = cur.fetchall()
-        sql_total_agegroup = f"""\
-        SELECT country, gender, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, gender, browser
-        """
-        cur.execute(sql_total_agegroup)
-        data_total_agegroup = cur.fetchall()
-        sql_total_browser = f"""\
-        SELECT country, gender, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, gender, agegroup
-        """
-        cur.execute(sql_total_browser)
-        data_total_browser = cur.fetchall()
-        sql_total_browser_agegroup = f"""\
-        SELECT country, gender, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, gender
-        """
-        cur.execute(sql_total_browser_agegroup)
-        data_total_browser_agegroup = cur.fetchall()
-        sql_total_gender_agegroup = f"""\
-        SELECT country, "{TOTAL}" AS gender, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, browser
-        """
-        cur.execute(sql_total_gender_agegroup)
-        data_total_gender_agegroup = cur.fetchall()
-        sql_total_gender_browser_agegroup = f"""\
-        SELECT country, "{TOTAL}" AS gender, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country
-        """
-        cur.execute(sql_total_gender_browser_agegroup)
-        data_total_gender_browser_agegroup = cur.fetchall()
-        sql_total_gender_browser = f"""\
-        SELECT country, "{TOTAL}" AS gender, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, agegroup
-        """
-        cur.execute(sql_total_gender_browser)
-        data_total_gender_browser = cur.fetchall()
-        sql_total_country_agegroup = f"""\
-        SELECT "{TOTAL}" AS country, gender, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY gender, browser
-        """
-        cur.execute(sql_total_country_agegroup)
-        data_total_country_agegroup = cur.fetchall()
-        sql_total_country_browser = f"""\
-        SELECT "{TOTAL}" AS country, gender, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY gender, agegroup
-        """
-        cur.execute(sql_total_country_browser)
-        data_total_country_browser = cur.fetchall()
-        sql_total_country_browser_agegroup = f"""\
-        SELECT "{TOTAL}" AS country, gender, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY gender
-        """
-        cur.execute(sql_total_country_browser_agegroup)
-        data_total_country_browser_agegroup = cur.fetchall()
-        sql_total_country_gender_agegroup = f"""\
-        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY browser
-        """
-        cur.execute(sql_total_country_gender_agegroup)
-        data_total_country_gender_agegroup = cur.fetchall()
-        sql_total_country_gender_browser = f"""\
-        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE NOT (country = 3 AND gender = 1)
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY agegroup
-        """
-        cur.execute(sql_total_country_gender_browser)
-        data_total_country_gender_browser = cur.fetchall()
-        sql_total_country_gender_browser_agegroup = f"""\
-        SELECT "{TOTAL}" AS country, "{TOTAL}" AS gender, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
+        all_variables = ['country', 'gender', 'browser', 'agegroup']
+        totalled_variables = ['country', 'gender', 'browser', 'agegroup']
+        filter = """\
         WHERE NOT (country = 3 AND gender = 1)
         AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        cur.execute(sql_total_country_gender_browser_agegroup)
-        data_total_country_gender_browser_agegroup = cur.fetchall()
-        ##
-        cur.close()
-        con.close()
-
-        data = (data_main + data_total_agegroup + data_total_browser + data_total_browser_agegroup
-            + data_total_gender + data_total_gender_agegroup + data_total_gender_browser + data_total_gender_browser_agegroup
-            + data_total_country + data_total_country_agegroup + data_total_country_browser + data_total_country_browser_agegroup
-            + data_total_country_gender + data_total_country_gender_agegroup + data_total_country_gender_browser + data_total_country_gender_browser_agegroup
-        )
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
 
         country_val_labels = var_labels.var2var_label_spec['country']
         browser_val_labels = var_labels.var2var_label_spec['browser']
@@ -612,43 +465,12 @@ class GetData:
         Needs two level column dimension columns because left df has two column dimension levels
         i.e. browser and age_group. So filler variable needed.
         """
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql_main = """\
-        SELECT country as home_country, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, agegroup
-        """
-        cur.execute(sql_main)
-        data_main = cur.fetchall()
-        sql_total_agegroup = f"""\
-        SELECT country AS home_country, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country
-        """
-        cur.execute(sql_total_agegroup)
-        data_total_agegroup = cur.fetchall()
-        sql_total_home_country = f"""\
-        SELECT "{TOTAL}" AS home_country, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY agegroup
-        """
-        cur.execute(sql_total_home_country)
-        data_total_home_country = cur.fetchall()
-        sql_total_all = f"""\
-        SELECT "{TOTAL}" AS home_country, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
+        all_variables = ['country', 'agegroup']
+        totalled_variables = ['country', 'agegroup']
+        filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        cur.execute(sql_total_all)
-        data_total_all = cur.fetchall()
-        cur.close()
-        con.close()
-
-        data = data_main + data_total_agegroup + data_total_home_country + data_total_all
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
 
         country_val_labels = var_labels.var2var_label_spec['home_country']
         agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
@@ -675,78 +497,12 @@ class GetData:
     ## MIDDLE MIDDLE
     @staticmethod
     def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:  ## TODO: automate and soft-wire this splaying and gathering
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql_main = """\r
-        SELECT country AS home_country, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, browser, agegroup
-        """
-        cur.execute(sql_main)
-        data_main = cur.fetchall()
-        sql_total_country = f"""\
-        SELECT "{TOTAL}" AS home_country, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY browser, agegroup
-        """
-        cur.execute(sql_total_country)
-        data_total_country = cur.fetchall()
-        sql_total_agegroup = f"""\
-        SELECT country AS home_country, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, browser
-        """
-        cur.execute(sql_total_agegroup)
-        data_total_agegroup = cur.fetchall()
-        sql_total_browser = f"""\
-        SELECT country AS home_country, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country, agegroup
-        """
-        cur.execute(sql_total_browser)
-        data_total_browser = cur.fetchall()
-        sql_total_browser_agegroup = f"""\
-        SELECT country AS home_country, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY country
-        """
-        cur.execute(sql_total_browser_agegroup)
-        data_total_browser_agegroup = cur.fetchall()
-        sql_total_country_agegroup = f"""\
-        SELECT "{TOTAL}" AS home_country, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY browser
-        """
-        cur.execute(sql_total_country_agegroup)
-        data_total_country_agegroup = cur.fetchall()
-        sql_total_country_browser = f"""\
-        SELECT "{TOTAL}" AS home_country, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        GROUP BY agegroup
-        """
-        cur.execute(sql_total_country_browser)
-        data_total_country_browser = cur.fetchall()
-        sql_total_country_browser_agegroup = f"""\
-        SELECT "{TOTAL}" AS home_country, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
+        all_variables = ['country', 'browser', 'agegroup']
+        totalled_variables = ['country', 'browser', 'agegroup']
+        filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        cur.execute(sql_total_country_browser_agegroup)
-        data_total_country_browser_agegroup = cur.fetchall()
-        ##
-        cur.close()
-        con.close()
-
-        data = (data_main + data_total_agegroup + data_total_browser + data_total_browser_agegroup
-            + data_total_country + data_total_country_agegroup + data_total_country_browser + data_total_country_browser_agegroup
-        )
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
 
         country_val_labels = var_labels.var2var_label_spec['home_country']
         browser_val_labels = var_labels.var2var_label_spec['browser']
@@ -793,30 +549,13 @@ class GetData:
         Needs two level column dimension columns because left df has two column dimension levels
         i.e. browser and age_group. So filler variable needed.
         """
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql_main = """\
-        SELECT car, agegroup, COUNT(*) AS n
-        FROM demo_tbl
+        all_variables = ['car', 'agegroup']
+        totalled_variables = ['agegroup']
+        filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         AND car IN (2, 3, 11)
-        GROUP BY car, agegroup
         """
-        cur.execute(sql_main)
-        data_main = cur.fetchall()
-        sql_total_agegroup = f"""\
-        SELECT car, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        GROUP BY car
-        """
-        cur.execute(sql_total_agegroup)
-        data_total_agegroup = cur.fetchall()
-        cur.close()
-        con.close()
-
-        data = data_main + data_total_agegroup
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
 
         car_val_labels = var_labels.var2var_label_spec['car']
         agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
@@ -843,58 +582,13 @@ class GetData:
     ## BOTTOM MIDDLE
     @staticmethod
     def get_car_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql = """\
-        SELECT car, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
+        all_variables = ['car', 'browser', 'agegroup']
+        totalled_variables = ['browser', 'agegroup']
+        filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         AND car IN (2, 3, 11)
-        GROUP BY car, browser, agegroup
         """
-        cur.execute(sql)
-        data_main = cur.fetchall()
-        sql_total_agegroup = f"""\
-        SELECT car, browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        GROUP BY car, browser
-        """
-        cur.execute(sql_total_agegroup)
-        data_total_agegroup = cur.fetchall()
-        sql_total_browser = f"""\
-        SELECT car, "{TOTAL}" AS browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        GROUP BY car, agegroup
-        """
-        cur.execute(sql_total_browser)
-        data_total_browser = cur.fetchall()
-        sql_total_browser_agegroup = f"""\
-        SELECT car, "{TOTAL}" AS browser, "{TOTAL}" AS agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        GROUP BY car
-        """
-        cur.execute(sql_total_browser_agegroup)
-        data_total_browser_agegroup = cur.fetchall()
-        sql_total_car = f"""\
-        SELECT "{TOTAL}" AS car, browser, agegroup, COUNT(*) AS n
-        FROM demo_tbl
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        GROUP BY browser, agegroup
-        """
-        cur.execute(sql_total_car)
-        ##
-        cur.close()
-        con.close()
-
-        data = (data_main + data_total_agegroup + data_total_browser + data_total_browser_agegroup
-        )
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
 
         car_val_labels = var_labels.var2var_label_spec['car']
         browser_val_labels = var_labels.var2var_label_spec['browser']
