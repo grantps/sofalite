@@ -1023,7 +1023,7 @@ def main(*, debug=False, verbose=False):
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)
-    display_tbl(tbl_html, 'step_1_from_real_data', style_name)
+    display_tbl(tbl_html, 'step_3_from_real_data', style_name)
 
 if __name__ == '__main__':
     """

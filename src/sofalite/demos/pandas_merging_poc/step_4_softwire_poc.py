@@ -11,6 +11,8 @@ rather than what we might get by sorting on the visible content.
 Using VarLabels dcs makes this a lot easier to work with.
 
 TODO: prevent reuse of same variables at top-level of rows or columns
+TODO: make home_country an actual variable in the source table pandas_merging_poc_tbl
+TODO: control each GetData function by row + col spec settings (loosely at first)
 Otherwise pandas merges them together (as you would expect given how JOIN is mean to work)
 and everything is broken given we were trying to keep them separate.
 """
@@ -23,7 +25,7 @@ import sqlite3 as sqlite
 
 import pandas as pd
 
-from sofalite.conf.tables.misc import BLANK, TOTAL, Sort
+from sofalite.conf.tables.misc import BLANK, TOTAL, Metric, Sort
 from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.demos.pandas_merging_poc.utils.misc import apply_index_styles, display_tbl, set_table_styles
@@ -286,6 +288,57 @@ def get_data_from_spec(all_variables: Collection[str], totalled_variables: Colle
             print(row)
     return data
 
+def get_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
+        n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], debug=False) -> pd.DataFrame:
+    all_variables = row_vars + col_vars
+    columns = []
+    for var in all_variables:
+        columns.append(var_labels.var2var_label_spec[var].pandas_val)  ## e.g. agegroup_val
+    columns.append('n')
+    df_pre_pivot = pd.DataFrame(data, columns=columns)
+    index_cols = []
+    column_cols = []
+    for var in all_variables:
+        var2var_label_spec = var_labels.var2var_label_spec[var]
+        ## var set to lbl e.g. "Age Group" goes into cells
+        df_pre_pivot[var2var_label_spec.pandas_var] = var2var_label_spec.lbl
+        ## val set to val lbl e.g. 1 => '< 20'
+        df_pre_pivot[var2var_label_spec.name] = df_pre_pivot[var2var_label_spec.pandas_val].apply(
+            lambda x: var2var_label_spec.val2lbl.get(x, str(x)))
+        cols2add = [var2var_label_spec.pandas_var, var2var_label_spec.name]
+        if var in row_vars:
+            index_cols.extend(cols2add)
+        elif var in col_vars:
+            column_cols.extend(cols2add)
+        else:
+            raise Exception(f"{var=} not found in either {row_vars=} or {col_vars=}")
+    ## only add what is needed to fill gaps
+    for i in range(n_row_fillers):
+        df_pre_pivot[f'row_filler_var_{i}'] = BLANK
+        df_pre_pivot[f'row_filler_{i}'] = BLANK
+        index_cols.extend([f'row_filler_var_{i}', f'row_filler_{i}'])
+    for i in range(n_col_fillers):
+        df_pre_pivot[f'col_filler_var_{i}'] = BLANK
+        df_pre_pivot[f'col_filler_{i}'] = BLANK
+        column_cols.extend([f'col_filler_var_{i}', f'col_filler_{i}'])
+    column_cols.append('measure')  ## TODO: change to metric
+    df_pre_pivot['measure'] = 'Freq'
+    print(df_pre_pivot)
+    df_pre_pivots = [df_pre_pivot, ]
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    if Metric.ROW_PCT in pct_metrics:
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+        df_pre_pivots.append(df_pre_pivot_inc_row_pct)
+    if Metric.COL_PCT in pct_metrics:
+        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+        df_pre_pivots.append(df_pre_pivot_inc_col_pct)
+    df_pre_pivot = pd.concat(df_pre_pivots)
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    return df
+
+N_ROWS_IN_TOTAL_TBL = 2
+N_COLS_IN_TOTAL_TBL = 2
+
 
 class GetData:
 
@@ -296,157 +349,44 @@ class GetData:
     Left and right must share same row variables.
     """
 
+
     ## TOP df **********************************************************************************************************
 
     ## TOP LEFT & RIGHT (reused to put more strain on row-spanning of columns and reuse of column names)
     @staticmethod
     def get_country_gender_by_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Wipe out agegroup 4 in the source data to confirm the combined table output
-        has agegroup 4 column anyway because it is in the country row table.
-
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and agegroup. So dummy variable needed.
-
-        LEFT has two levels:
-
-        browser    Chrome                        Firefox
-        agegroup   <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
-
-        so RIGHT needs two as well (so dummy filler needed):
-
-        agegroup  <20 20-29 30-39 65+
-        dummy
-        """
-        all_variables = ['country', 'gender', 'agegroup']
+        row_vars = ['country', 'gender', ]
+        col_vars = ['agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'gender', 'agegroup']
         filter = """\
         WHERE agegroup <> 4
         AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        country_val_labels = var_labels.var2var_label_spec['country']
-        gender_val_labels = var_labels.var2var_label_spec['gender']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data,
-            columns=[country_val_labels.pandas_val, gender_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
-        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[gender_val_labels.pandas_var] = gender_val_labels.lbl
-        df_pre_pivot[gender_val_labels.name] = df_pre_pivot[gender_val_labels.pandas_val].apply(lambda x: gender_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['col_filler_var_0'] = BLANK
-        df_pre_pivot['col_filler_0'] = BLANK  ## add filler column which we'll nest under age_group as natural outcome of pivot step
-        df_pre_pivot['measure'] = 'Freq'
-        print(df_pre_pivot)
-        df = (df_pre_pivot
-            .pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
-                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
-                values='n')
-        )
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
         if debug: print(f"\nTOP LEFT & RIGHT:\n{df}")
         return df
 
     ## TOP MIDDLE
     @staticmethod
     def get_country_gender_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Special step to test whether this merging approach works correctly
-        when some value combinations are empty in one block but not in another.
-        Wipe out gender 1 from country 3 in the source data to confirm that the final combined table output
-        has gender 1 from country 3 anyway because it is in the agegroup table.
-
-        Warning - NO MALES IN NZ! ;-)
-
-        Note - when multi-level, every column is a tuple e.g. a row dimension column (once index reset)
-        might be ('country', '') and a column dimension column ('Firefox', '20-29').
-        There will be empty string items padding out row dimension columns so that there will be as many
-        tuple items as column dimension levels.
-
-        GET RAW DATA
-
-            country  gender  browser age_group   n
-        0         1       1   Chrome       <20   7
-        1         1       1   Chrome     20-29  13
-        ...
-        5         1       1  Firefox       <20  12
-        ...
-        10        1       2   Chrome       <20   3
-
-        ADD LABELLED CATEGORY COLS AND VAL COLS
-
-            country_var  country  gender_var  gender   browser_var  browser  age_group_var  age_group   n
-        0             1       NZ           1    Male        Chrome   Chrome              1        <20   7
-        1             1       NZ           1    Male        Chrome   Chrome              2      20-29  13
-        ...
-        5             1       NZ           1    Male       Firefox  Firefox              1        <20  12
-        ...
-        10            1       NZ           2  Female        Chrome   Chrome              1        <20   3
-
-        PIVOT so ['country', 'gender'] => rows, and ['browser', 'age_group'] => columns
-
-                   row 0      row 1
-                     |          |
-                     |          |
-        col 0 -->  browser      |      |  Chrome                        Firefox
-        col 1 -->  age_group    |      |  <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
-        -------------------------------|--------------------------------------------------------
-                     |          |
-                     V          V
-                   country     gender  |
-                   NZ          Female  |   3     6     5    11  19      13    10     6    22  20
-                               Male    |   7    13    12    17  25      12    16     8    16  28
-                   South Korea Female  |  14     7     5    12  10      27    16     8    18  21
-                               Male    |  18    10    11    23  11      22     7     9    25  28
-                   U.S.A       Female  |   7     4     5    16  15      18    14     8    28  31
-
-        Note - working with indexes not data values until final flattening step
-        """
-        all_variables = ['country', 'gender', 'browser', 'agegroup']
+        row_vars = ['country', 'gender', ]
+        col_vars = ['browser', 'agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'gender', 'browser', 'agegroup']
         filter = """\
         WHERE NOT (country = 3 AND gender = 1)
         AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        country_val_labels = var_labels.var2var_label_spec['country']
-        browser_val_labels = var_labels.var2var_label_spec['browser']
-        gender_val_labels = var_labels.var2var_label_spec['gender']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, gender_val_labels.pandas_val,
-            browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
-        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[gender_val_labels.pandas_var] = gender_val_labels.lbl
-        df_pre_pivot[gender_val_labels.name] = df_pre_pivot[gender_val_labels.pandas_val].apply(lambda x: gender_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
-        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['measure'] = 'Freq'
-
-        df = (df_pre_pivot
-            .pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
-
-        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
-        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
-        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
-        df = (df_pre_pivot.pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
-
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
         if debug: print(f"\nTOP MIDDLE:\n{df}")
         return df
 
@@ -465,74 +405,38 @@ class GetData:
         Needs two level column dimension columns because left df has two column dimension levels
         i.e. browser and age_group. So filler variable needed.
         """
-        all_variables = ['country', 'agegroup']
+        row_vars = ['country']
+        col_vars = ['agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        country_val_labels = var_labels.var2var_label_spec['home_country']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
-        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['row_filler_var_0'] = BLANK
-        df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['col_filler_var_0'] = BLANK
-        df_pre_pivot['col_filler_0'] = BLANK
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
-                values='n')
-        )
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        row_vars = ['home_country']  ## TODO: country is the data but I want to pretend it is home_country so I can repeat the variable
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
         if debug: print(f"\nMIDDLE LEFT & RIGHT:\n{df}")
         return df
 
     ## MIDDLE MIDDLE
     @staticmethod
-    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:  ## TODO: automate and soft-wire this splaying and gathering
-        all_variables = ['country', 'browser', 'agegroup']
+    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
+        row_vars = ['country']
+        col_vars = ['browser', 'agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'browser', 'agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        country_val_labels = var_labels.var2var_label_spec['home_country']
-        browser_val_labels = var_labels.var2var_label_spec['browser']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data, columns=[country_val_labels.pandas_val, browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[country_val_labels.pandas_var] = country_val_labels.lbl
-        df_pre_pivot[country_val_labels.name] = df_pre_pivot[country_val_labels.pandas_val].apply(lambda x: country_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['row_filler_var_0'] = BLANK
-        df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
-        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
-
-        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
-        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
-        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
-        df = (df_pre_pivot.pivot(
-                index=[country_val_labels.pandas_var, country_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        row_vars = ['home_country']  ## TODO: country is the data but I want to pretend it is home_country so I can repeat the variable
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
         if debug: print(f"\nMIDDLE MIDDLE:\n{df}")
         return df
 
@@ -549,83 +453,45 @@ class GetData:
         Needs two level column dimension columns because left df has two column dimension levels
         i.e. browser and age_group. So filler variable needed.
         """
-        all_variables = ['car', 'agegroup']
+        row_vars = ['car']
+        col_vars = ['agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         AND car IN (2, 3, 11)
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        car_val_labels = var_labels.var2var_label_spec['car']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data, columns=[car_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[car_val_labels.pandas_var] = car_val_labels.lbl
-        df_pre_pivot[car_val_labels.name] = df_pre_pivot[car_val_labels.pandas_val].apply(lambda x: car_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['row_filler_var_0'] = BLANK
-        df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['col_filler_var_0'] = BLANK
-        df_pre_pivot['col_filler_0'] = BLANK
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'col_filler_var_0', 'col_filler_0', 'measure'],
-                values='n')
-        )
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
         if debug: print(f"\nBOTTOM LEFT & RIGHT:\n{df}")
         return df
 
     ## BOTTOM MIDDLE
     @staticmethod
     def get_car_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        all_variables = ['car', 'browser', 'agegroup']
+        row_vars = ['car']
+        col_vars = ['browser', 'agegroup']
+        all_variables = row_vars + col_vars
         totalled_variables = ['browser', 'agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         AND car IN (2, 3, 11)
         """
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-
-        car_val_labels = var_labels.var2var_label_spec['car']
-        browser_val_labels = var_labels.var2var_label_spec['browser']
-        agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
-
-        df_pre_pivot = pd.DataFrame(data, columns=[car_val_labels.pandas_val, browser_val_labels.pandas_val, agegroup_val_labels.pandas_val, 'n'])
-        df_pre_pivot[car_val_labels.pandas_var] = car_val_labels.lbl
-        df_pre_pivot[car_val_labels.name] = df_pre_pivot[car_val_labels.pandas_val].apply(lambda x: car_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['row_filler_var_0'] = BLANK
-        df_pre_pivot['row_filler_0'] = BLANK
-        df_pre_pivot[browser_val_labels.pandas_var] = browser_val_labels.lbl
-        df_pre_pivot[browser_val_labels.name] = df_pre_pivot[browser_val_labels.pandas_val].apply(lambda x: browser_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot[agegroup_val_labels.pandas_var] = agegroup_val_labels.lbl
-        df_pre_pivot[agegroup_val_labels.name] = df_pre_pivot[agegroup_val_labels.pandas_val].apply(lambda x: agegroup_val_labels.val2lbl.get(x, str(x)))
-        df_pre_pivot['measure'] = 'Freq'
-        df = (df_pre_pivot
-            .pivot(
-                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
-        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
-        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
-        df_pre_pivot = pd.concat([df_pre_pivot, df_pre_pivot_inc_row_pct, df_pre_pivot_inc_col_pct])
-        df = (df_pre_pivot
-            .pivot(
-                index=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'],
-                columns=[browser_val_labels.pandas_var, browser_val_labels.name, agegroup_val_labels.pandas_var, agegroup_val_labels.name, 'measure'],
-                values='n')
-        )
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
         if debug: print(f"\nBOTTOM MIDDLE:\n{df}")
         return df
 
 
 ## COMBINED - TOP + BOTTOM
 
-def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
+def get_tbl_df(*, debug=False) -> pd.DataFrame:
     """
     Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
     to avoid repeating the row dimension columns e.g. country and gender.
@@ -720,7 +586,7 @@ def get_step_1_tbl_df(*, debug=False) -> pd.DataFrame:
     return df
 
 def main(*, debug=False, verbose=False):
-    df = get_step_1_tbl_df(debug=True)
+    df = get_tbl_df(debug=True)
     style_name = 'prestige_screen'
     pd_styler = set_table_styles(df.style)
     pd_styler = apply_index_styles(df, style_name, pd_styler, axis='rows')
@@ -736,20 +602,11 @@ def main(*, debug=False, verbose=False):
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)
-    display_tbl(tbl_html, 'step_1_from_real_data', style_name)
+    display_tbl(tbl_html, 'step_4_from_real_data', style_name)
 
 if __name__ == '__main__':
     """
     TODO: Redo the fixing and merging so it works with new inputs
     """
     pass
-    # df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=True)
     main(debug=True, verbose=False)
-    # all_variables = ['country', 'gender', 'agegroup']
-    # totalled_variables = ['country', 'gender', 'agegroup']
-    # filter = """\
-    #     WHERE agegroup <> 4
-    #     AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-    #     """
-    # data = get_data_from_spec(
-    #     all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=True)
