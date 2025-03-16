@@ -10,18 +10,19 @@ We might want
 rather than what we might get by sorting on the visible content.
 Using VarLabels dcs makes this a lot easier to work with.
 
-TODO: prevent reuse of same variables at top-level of rows or columns
-TODO: make home_country an actual variable in the source table pandas_merging_poc_tbl
 TODO: control each GetData function by row + col spec settings (loosely at first)
+
 Otherwise pandas merges them together (as you would expect given how JOIN is mean to work)
 and everything is broken given we were trying to keep them separate.
 """
 from collections.abc import Collection
+from dataclasses import dataclass
 from enum import StrEnum
 from functools import cache
 from itertools import combinations, count
 from pathlib import Path
 import sqlite3 as sqlite
+from typing import Self
 
 import pandas as pd
 
@@ -37,14 +38,77 @@ pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1_000)
 
+DEMO_CROSS_TAB_NAME = 'demo_cross_tab'
+
 class PctType(StrEnum):
     ROW_PCT = 'Row %'
     COL_PCT = 'Col %'
+
+@dataclass(frozen=False)
+class DimSpec:
+    var: str
+    has_total: bool = False
+    is_col: bool = False
+    pct_metrics: Collection[Metric] | None = None
+    children: list[Self] | None = None
+
+    def __post_init__(self):
+        if self.pct_metrics:
+            if self.children:
+                raise ValueError(f"Metrics are only for terminal dimension specs e.g. a > b > c (can have metrics)")
+            if not self.is_col:
+                raise ValueError(f"Metrics are only for terminal column specs, yet this is a row spec")
+        if self.children:
+            for child in self.children:
+                if not self.is_col == child.is_col:
+                    raise ValueError(f"This dim has a child that is inconsistent e.g. a col parent having a row child")
+
+@dataclass(frozen=True, kw_only=True)
+class TblSpec:
+    row_specs: list[DimSpec]
+    col_specs: list[DimSpec]
+
+    @staticmethod
+    def _get_dupes(_vars: Collection[str]) -> set[str]:
+        dupes = set()
+        seen = set()
+        for var in _vars:
+            if var in seen:
+                dupes.add(var)
+            else:
+                seen.add(var)
+        return dupes
+
+    def __post_init__(self):
+        row_dupes = TblSpec._get_dupes([spec.var for spec in self.row_specs])
+        if row_dupes:
+            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
+        col_dupes = TblSpec._get_dupes([spec.var for spec in self.col_specs])
+        if col_dupes:
+            raise ValueError(f"Duplicate top-level variable(s) detected in column dimension - {sorted(col_dupes)}")
 
 yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
 var_labels = yaml2varlabels(yaml_fpath,
     vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country', 'std_agegroup'], debug=True)
 
+row_spec_0 = DimSpec(var='country', has_total=True,
+    children=[
+        DimSpec(var='gender', has_total=True),
+    ])
+row_spec_1 = DimSpec(var='home_country', has_total=True)
+row_spec_2 = DimSpec(var='car')
+
+col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
+col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
+    children=[
+        DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]
+    )])
+col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
+
+tbl_spec = TblSpec(
+    row_specs=[row_spec_0, row_spec_1, row_spec_2],
+    col_specs=[col_spec_0, col_spec_1, col_spec_2],
+)
 
 class DataSpecificCheats:
 
@@ -84,6 +148,166 @@ class DataSpecificCheats:
             ('car', ): (2, Sort.VAL),
         }
 
+
+def make_special_tbl():
+    con = sqlite.connect('sofa_db')
+    cur = con.cursor()
+    sql = f"""\
+    CREATE TABLE {DEMO_CROSS_TAB_NAME} AS
+    SELECT *, country AS home_country, agegroup AS std_agegroup
+    FROM demo_tbl
+    """
+    cur.execute(sql)
+    con.commit()
+    cur.close()
+    con.close()
+    print(f"Finished making {DEMO_CROSS_TAB_NAME}")
+
+def get_data_from_spec(all_variables: Collection[str], totalled_variables: Collection[str], filter: str,
+        *, debug=False) -> list[list]:
+    """
+    TODO: change to a dc
+    rows: country (TOTAL) > gender (TOTAL)
+    cols: agegroup (TOTAL, Freq)
+    filter: WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+
+    Needed:
+    data_main + data_total_agegroup
+        + data_total_gender + data_total_gender_agegroup
+        + data_total_country + data_total_country_agegroup
+        + data_total_country_gender + data_total_country_gender_agegroup
+
+    main = the row + col fields (filtered) and count
+    totals for each var with a TOTAL = "{TOTAL}" AS totalled var, other vars, filter, group by non-totalled
+    two-way combos
+
+    For more complex situation - e.g. country_gender_by_browser_and_age_group
+    data = (
+        All - every variable, group by every variable
+        data_main
+        Then, for all the totalled variables:
+        1s - each var gets TOTAL version
+        + data_total_agegroup + data_total_browser + data_total_gender + data_total_country
+        2s - a,b a,c a,d   b,c b,d   c,d (every 2-way combination)
+        + data_total_browser_agegroup + data_total_country_browser + data_total_gender_browser
+        + data_total_gender_agegroup + data_total_country_gender
+        + data_total_country_agegroup
+        3s - a,b,c a,b,d a,c,d   b,c,d  (every 3-way combination)
+        + data_total_gender_browser_agegroup + data_total_country_gender_browser
+        + data_total_country_browser_agegroup + data_total_country_gender_agegroup
+        4s - a,b,c,d (every 4-way combination)
+        + data_total_country_gender_browser_agegroup
+        if we had N variables we want all combos with N, all combos with N-1, ... all combos with 1
+    )
+
+    Note - order matters
+
+    Step 0 - get all variables that are to be totalled
+        (if any - and note, their order, place in the variable hierarchy, or row vs col, is irrelevant)
+        and all non-totalled variables (if any)
+    Step 1 - select and group by all variables
+    Step 2 - for any totalled variables, get every combination from 1 to N
+        (where N is the total number of totalled variables) and then generate the SQL and data (lists of col-val lists)
+    Step 3 - concat all data (data + ...)
+    """
+    data = []
+    con = sqlite.connect('sofa_db')
+    cur = con.cursor()
+    ## Step 0 - variable lists
+    n_totalled = len(totalled_variables)
+    ## Step 1 - group by all
+    main_flds = ', '.join(all_variables)
+    sql_main = f"""\
+    SELECT {main_flds}, COUNT(*) AS n
+    FROM {DEMO_CROSS_TAB_NAME}
+    {filter}
+    GROUP BY {main_flds}
+    """
+    cur.execute(sql_main)
+    data.extend(cur.fetchall())
+    ## Step 2 - combos
+    totalled_combinations = []
+    for n in count(1):
+        totalled_combinations_for_n = combinations(totalled_variables, n)
+        totalled_combinations.extend(totalled_combinations_for_n)
+        if n == n_totalled:
+            break
+    if debug: print(f"{totalled_combinations=}")
+    for totalled_combination in totalled_combinations:  ## there might not be any, of course
+        if debug: print(totalled_combination)
+        ## have to preserve order of variables - follow order of all_variables
+        select_clauses = []
+        group_by_vars = []
+        for var in all_variables:
+            if var in totalled_combination:
+                select_clauses.append(f'"{TOTAL}" AS {var}')
+            else:
+                select_clauses.append(var)
+                group_by_vars.append(var)
+        select_str = "SELECT " + ', '.join(select_clauses) + ", COUNT(*) AS n"
+        group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
+        sql_totalled = f"""\
+        {select_str}
+        FROM {DEMO_CROSS_TAB_NAME}
+        {filter}
+        {group_by}
+        """
+        if debug: print(f"sql_totalled={sql_totalled}")
+        cur.execute(sql_totalled)
+        data.extend(cur.fetchall())
+    if debug:
+        for row in data:
+            print(row)
+    return data
+
+def get_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
+        n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], debug=False) -> pd.DataFrame:
+    all_variables = row_vars + col_vars
+    columns = []
+    for var in all_variables:
+        columns.append(var_labels.var2var_label_spec[var].pandas_val)  ## e.g. agegroup_val
+    columns.append('n')
+    df_pre_pivot = pd.DataFrame(data, columns=columns)
+    index_cols = []
+    column_cols = []
+    for var in all_variables:
+        var2var_label_spec = var_labels.var2var_label_spec[var]
+        ## var set to lbl e.g. "Age Group" goes into cells
+        df_pre_pivot[var2var_label_spec.pandas_var] = var2var_label_spec.lbl
+        ## val set to val lbl e.g. 1 => '< 20'
+        df_pre_pivot[var2var_label_spec.name] = df_pre_pivot[var2var_label_spec.pandas_val].apply(
+            lambda x: var2var_label_spec.val2lbl.get(x, str(x)))
+        cols2add = [var2var_label_spec.pandas_var, var2var_label_spec.name]
+        if var in row_vars:
+            index_cols.extend(cols2add)
+        elif var in col_vars:
+            column_cols.extend(cols2add)
+        else:
+            raise Exception(f"{var=} not found in either {row_vars=} or {col_vars=}")
+    ## only add what is needed to fill gaps
+    for i in range(n_row_fillers):
+        df_pre_pivot[f'row_filler_var_{i}'] = BLANK
+        df_pre_pivot[f'row_filler_{i}'] = BLANK
+        index_cols.extend([f'row_filler_var_{i}', f'row_filler_{i}'])
+    for i in range(n_col_fillers):
+        df_pre_pivot[f'col_filler_var_{i}'] = BLANK
+        df_pre_pivot[f'col_filler_{i}'] = BLANK
+        column_cols.extend([f'col_filler_var_{i}', f'col_filler_{i}'])
+    column_cols.append('measure')  ## TODO: change to metric
+    df_pre_pivot['measure'] = 'Freq'
+    print(df_pre_pivot)
+    df_pre_pivots = [df_pre_pivot, ]
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    if Metric.ROW_PCT in pct_metrics:
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+        df_pre_pivots.append(df_pre_pivot_inc_row_pct)
+    if Metric.COL_PCT in pct_metrics:
+        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+        df_pre_pivots.append(df_pre_pivot_inc_col_pct)
+    df_pre_pivot = pd.concat(df_pre_pivots)
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    return df
 
 def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *, pct_type: PctType, debug=False) -> pd.DataFrame:
     """
@@ -188,154 +412,6 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
     if debug: print(df_pre_pivot_inc_pct)
     return df_pre_pivot_inc_pct
 
-
-def get_data_from_spec(all_variables: Collection[str], totalled_variables: Collection[str], filter: str,
-        *, debug=False) -> list[list]:
-    """
-    TODO: change to a dc
-    rows: country (TOTAL) > gender (TOTAL)
-    cols: agegroup (TOTAL, Freq)
-    filter: WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-
-    Needed:
-    data_main + data_total_agegroup
-        + data_total_gender + data_total_gender_agegroup
-        + data_total_country + data_total_country_agegroup
-        + data_total_country_gender + data_total_country_gender_agegroup
-
-    main = the row + col fields (filtered) and count
-    totals for each var with a TOTAL = "{TOTAL}" AS totalled var, other vars, filter, group by non-totalled
-    two-way combos
-
-    For more complex situation - e.g. country_gender_by_browser_and_age_group
-    data = (
-        All - every variable, group by every variable
-        data_main
-        Then, for all the totalled variables:
-        1s - each var gets TOTAL version
-        + data_total_agegroup + data_total_browser + data_total_gender + data_total_country
-        2s - a,b a,c a,d   b,c b,d   c,d (every 2-way combination)
-        + data_total_browser_agegroup + data_total_country_browser + data_total_gender_browser
-        + data_total_gender_agegroup + data_total_country_gender
-        + data_total_country_agegroup
-        3s - a,b,c a,b,d a,c,d   b,c,d  (every 3-way combination)
-        + data_total_gender_browser_agegroup + data_total_country_gender_browser
-        + data_total_country_browser_agegroup + data_total_country_gender_agegroup
-        4s - a,b,c,d (every 4-way combination)
-        + data_total_country_gender_browser_agegroup
-        if we had N variables we want all combos with N, all combos with N-1, ... all combos with 1
-    )
-
-    Note - order matters
-
-    Step 0 - get all variables that are to be totalled
-        (if any - and note, their order, place in the variable hierarchy, or row vs col, is irrelevant)
-        and all non-totalled variables (if any)
-    Step 1 - select and group by all variables
-    Step 2 - for any totalled variables, get every combination from 1 to N
-        (where N is the total number of totalled variables) and then generate the SQL and data (lists of col-val lists)
-    Step 3 - concat all data (data + ...)
-    """
-    data = []
-    con = sqlite.connect('sofa_db')
-    cur = con.cursor()
-    tbl = 'demo_tbl'
-    ## Step 0 - variable lists
-    n_totalled = len(totalled_variables)
-    ## Step 1 - group by all
-    main_flds = ', '.join(all_variables)
-    sql_main = f"""\
-    SELECT {main_flds}, COUNT(*) AS n
-    FROM {tbl}
-    {filter}
-    GROUP BY {main_flds}
-    """
-    cur.execute(sql_main)
-    data.extend(cur.fetchall())
-    ## Step 2 - combos
-    totalled_combinations = []
-    for n in count(1):
-        totalled_combinations_for_n = combinations(totalled_variables, n)
-        totalled_combinations.extend(totalled_combinations_for_n)
-        if n == n_totalled:
-            break
-    if debug: print(f"{totalled_combinations=}")
-    for totalled_combination in totalled_combinations:  ## there might not be any, of course
-        if debug: print(totalled_combination)
-        ## have to preserve order of variables - follow order of all_variables
-        select_clauses = []
-        group_by_vars = []
-        for var in all_variables:
-            if var in totalled_combination:
-                select_clauses.append(f'"{TOTAL}" AS {var}')
-            else:
-                select_clauses.append(var)
-                group_by_vars.append(var)
-        select_str = "SELECT " + ', '.join(select_clauses) + ", COUNT(*) AS n"
-        group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
-        sql_totalled = f"""\
-        {select_str}
-        FROM {tbl}
-        {filter}
-        {group_by}
-        """
-        if debug: print(f"sql_totalled={sql_totalled}")
-        cur.execute(sql_totalled)
-        data.extend(cur.fetchall())
-    if debug:
-        for row in data:
-            print(row)
-    return data
-
-def get_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
-        n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], debug=False) -> pd.DataFrame:
-    all_variables = row_vars + col_vars
-    columns = []
-    for var in all_variables:
-        columns.append(var_labels.var2var_label_spec[var].pandas_val)  ## e.g. agegroup_val
-    columns.append('n')
-    df_pre_pivot = pd.DataFrame(data, columns=columns)
-    index_cols = []
-    column_cols = []
-    for var in all_variables:
-        var2var_label_spec = var_labels.var2var_label_spec[var]
-        ## var set to lbl e.g. "Age Group" goes into cells
-        df_pre_pivot[var2var_label_spec.pandas_var] = var2var_label_spec.lbl
-        ## val set to val lbl e.g. 1 => '< 20'
-        df_pre_pivot[var2var_label_spec.name] = df_pre_pivot[var2var_label_spec.pandas_val].apply(
-            lambda x: var2var_label_spec.val2lbl.get(x, str(x)))
-        cols2add = [var2var_label_spec.pandas_var, var2var_label_spec.name]
-        if var in row_vars:
-            index_cols.extend(cols2add)
-        elif var in col_vars:
-            column_cols.extend(cols2add)
-        else:
-            raise Exception(f"{var=} not found in either {row_vars=} or {col_vars=}")
-    ## only add what is needed to fill gaps
-    for i in range(n_row_fillers):
-        df_pre_pivot[f'row_filler_var_{i}'] = BLANK
-        df_pre_pivot[f'row_filler_{i}'] = BLANK
-        index_cols.extend([f'row_filler_var_{i}', f'row_filler_{i}'])
-    for i in range(n_col_fillers):
-        df_pre_pivot[f'col_filler_var_{i}'] = BLANK
-        df_pre_pivot[f'col_filler_{i}'] = BLANK
-        column_cols.extend([f'col_filler_var_{i}', f'col_filler_{i}'])
-    column_cols.append('measure')  ## TODO: change to metric
-    df_pre_pivot['measure'] = 'Freq'
-    print(df_pre_pivot)
-    df_pre_pivots = [df_pre_pivot, ]
-    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
-    if Metric.ROW_PCT in pct_metrics:
-        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
-        df_pre_pivots.append(df_pre_pivot_inc_row_pct)
-    if Metric.COL_PCT in pct_metrics:
-        df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
-        df_pre_pivots.append(df_pre_pivot_inc_col_pct)
-    df_pre_pivot = pd.concat(df_pre_pivots)
-    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
-    return df
-
 N_ROWS_IN_TOTAL_TBL = 2
 N_COLS_IN_TOTAL_TBL = 2
 
@@ -349,10 +425,9 @@ class GetData:
     Left and right must share same row variables.
     """
 
-
     ## TOP df **********************************************************************************************************
 
-    ## TOP LEFT & RIGHT (reused to put more strain on row-spanning of columns and reuse of column names)
+    ## TOP LEFT
     @staticmethod
     def get_country_gender_by_age_group(*, debug=False) -> pd.DataFrame:
         row_vars = ['country', 'gender', ]
@@ -368,7 +443,7 @@ class GetData:
         df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[], debug=debug)
-        if debug: print(f"\nTOP LEFT & RIGHT:\n{df}")
+        if debug: print(f"\nTOP LEFT:\n{df}")
         return df
 
     ## TOP MIDDLE
@@ -390,6 +465,25 @@ class GetData:
         if debug: print(f"\nTOP MIDDLE:\n{df}")
         return df
 
+    ## TOP RIGHT (reused to put more strain on row-spanning of columns and reuse of column names)
+    @staticmethod
+    def get_country_gender_by_std_age_group(*, debug=False) -> pd.DataFrame:
+        row_vars = ['country', 'gender', ]
+        col_vars = ['std_agegroup']
+        all_variables = row_vars + col_vars
+        totalled_variables = ['country', 'gender', 'std_agegroup']
+        filter = """\
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        """
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
+        if debug: print(f"\nTOP RIGHT:\n{df}")
+        return df
+
     ## MIDDLE df *******************************************************************************************************
 
     """
@@ -398,46 +492,66 @@ class GetData:
     Note - can't have country twice at top-level but OK if different variable name.
     """
 
-    ## MIDDLE LEFT & RIGHT
+    ## MIDDLE LEFT
     @staticmethod
     def get_country_by_age_group(*, debug=False) -> pd.DataFrame:
         """
         Needs two level column dimension columns because left df has two column dimension levels
         i.e. browser and age_group. So filler variable needed.
         """
-        row_vars = ['country']
+        row_vars = ['home_country']
         col_vars = ['agegroup']
         all_variables = row_vars + col_vars
-        totalled_variables = ['country', 'agegroup']
+        totalled_variables = ['home_country', 'agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
         data = get_data_from_spec(
             all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        row_vars = ['home_country']  ## TODO: country is the data but I want to pretend it is home_country so I can repeat the variable
         df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[], debug=debug)
-        if debug: print(f"\nMIDDLE LEFT & RIGHT:\n{df}")
+        if debug: print(f"\nMIDDLE LEFT:\n{df}")
         return df
 
     ## MIDDLE MIDDLE
     @staticmethod
     def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['country']
+        row_vars = ['home_country']
         col_vars = ['browser', 'agegroup']
         all_variables = row_vars + col_vars
-        totalled_variables = ['country', 'browser', 'agegroup']
+        totalled_variables = ['home_country', 'browser', 'agegroup']
         filter = """\
         WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
         """
         data = get_data_from_spec(
             all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        row_vars = ['home_country']  ## TODO: country is the data but I want to pretend it is home_country so I can repeat the variable
         df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
         if debug: print(f"\nMIDDLE MIDDLE:\n{df}")
+        return df
+
+    ## MIDDLE RIGHT
+    @staticmethod
+    def get_country_by_std_age_group(*, debug=False) -> pd.DataFrame:
+        """
+        Needs two level column dimension columns because left df has two column dimension levels
+        i.e. browser and age_group. So filler variable needed.
+        """
+        row_vars = ['home_country']
+        col_vars = ['std_agegroup']
+        all_variables = row_vars + col_vars
+        totalled_variables = ['home_country', 'std_agegroup']
+        filter = """\
+        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        """
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
+        if debug: print(f"\nMIDDLE RIGHT:\n{df}")
         return df
 
     ## BOTTOM df *******************************************************************************************************
@@ -446,7 +560,7 @@ class GetData:
     Note - must have same columns for left as for TOP left df and for the right as for TOP right df
     """
 
-    ## BOTTOM LEFT & RIGHT
+    ## BOTTOM LEFT
     @staticmethod
     def get_car_by_age_group(*, debug=False) -> pd.DataFrame:
         """
@@ -466,7 +580,7 @@ class GetData:
         df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[], debug=debug)
-        if debug: print(f"\nBOTTOM LEFT & RIGHT:\n{df}")
+        if debug: print(f"\nBOTTOM LEFT:\n{df}")
         return df
 
     ## BOTTOM MIDDLE
@@ -486,6 +600,29 @@ class GetData:
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
         if debug: print(f"\nBOTTOM MIDDLE:\n{df}")
+        return df
+
+    ## BOTTOM RIGHT
+    @staticmethod
+    def get_car_by_std_age_group(*, debug=False) -> pd.DataFrame:
+        """
+        Needs two level column dimension columns because left df has two column dimension levels
+        i.e. browser and age_group. So filler variable needed.
+        """
+        row_vars = ['car']
+        col_vars = ['std_agegroup']
+        all_variables = row_vars + col_vars
+        totalled_variables = ['std_agegroup']
+        filter = """\
+        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        AND car IN (2, 3, 11)
+        """
+        data = get_data_from_spec(
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=[], debug=debug)
+        if debug: print(f"\nBOTTOM RIGHT:\n{df}")
         return df
 
 
@@ -525,32 +662,28 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
-    agegroup_val_labels = var_labels.var2var_label_spec['agegroup']
     car_val_labels = var_labels.var2var_label_spec['car']
     country_val_labels = var_labels.var2var_label_spec['country']
     gender_val_labels = var_labels.var2var_label_spec['gender']
     home_country_val_labels = var_labels.var2var_label_spec['home_country']
     ## TOP
     df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
-    df_top_right = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
-    df_top = df_top_left.merge(df_top_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])
-    df_top_repeat = df_top_left.copy()
-    df_top_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)  ## as if there were a real variable - but we'll need to add that fake variable to the VarLabels we use
-    df_top = df_top.merge(df_top_repeat, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])  ## join again to test ability to  handle col-spanning offsets etc
+    df_top_middle = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
+    df_top_right = GetData.get_country_gender_by_std_age_group(debug=debug)
+    df_top = df_top_left.merge(df_top_middle, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])
+    df_top = df_top.merge(df_top_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])  ## join again to test ability to  handle col-spanning offsets etc
     ## MIDDLE
     df_middle_left = GetData.get_country_by_age_group(debug=debug)
-    df_middle_right = GetData.get_country_by_browser_and_age_group(debug=debug)
-    df_middle = df_middle_left.merge(df_middle_right, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    df_middle_repeat = df_middle_left.copy()
-    df_middle_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)
-    df_middle = df_middle.merge(df_middle_repeat, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_middle_middle = GetData.get_country_by_browser_and_age_group(debug=debug)
+    df_middle_right = GetData.get_country_by_std_age_group(debug=debug)
+    df_middle = df_middle_left.merge(df_middle_middle, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_middle = df_middle.merge(df_middle_right, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     ## BOTTOM
     df_bottom_left = GetData.get_car_by_age_group(debug=debug)
-    df_bottom_right = GetData.get_car_by_browser_and_age_group(debug=debug)
-    df_bottom = df_bottom_left.merge(df_bottom_right, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    df_bottom_repeat = df_bottom_left.copy()
-    df_bottom_repeat.rename(columns={agegroup_val_labels.lbl: 'Std Age Group'}, inplace=True)
-    df_bottom = df_bottom.merge(df_bottom_repeat, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_bottom_middle = GetData.get_car_by_browser_and_age_group(debug=debug)
+    df_bottom_right = GetData.get_car_by_std_age_group(debug=debug)
+    df_bottom = df_bottom_left.merge(df_bottom_middle, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
+    df_bottom = df_bottom.merge(df_bottom_right, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
     if debug:
         print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
     ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
@@ -609,4 +742,5 @@ if __name__ == '__main__':
     TODO: Redo the fixing and merging so it works with new inputs
     """
     pass
+    # make_special_tbl()
     main(debug=True, verbose=False)
