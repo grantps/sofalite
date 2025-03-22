@@ -1,22 +1,21 @@
 """
-When creating SQL queries we need to use variable names.
-When displaying results we will use (often different) variable labels, and also value labels.
-When sorting items, we may need to sort by the cell contents themselves, but other times by something associated instead.
-If we choose to sort by values, for example, we can't just sort of value labels.
-We might want
-< 20  [1]
-20-29 [2]
-...
-rather than what we might get by sorting on the visible content.
-Using VarLabels dcs makes this a lot easier to work with.
+Under top-level can only have chains not trees.
 
-Otherwise pandas merges them together (as you would expect given how JOIN is mean to work)
-and everything is broken given we were trying to keep them separate.
+GOOD:
+age > gender
+country > browser > gender  <====== chain
 
-TODO: control each GetData function by row + col spec settings (loosely at first)
-TODO: can we have multiple children under a row (or col)? e.g. age > gender
-                                                                     country
-      when automated, we can just make a simple design that tests this
+BAD:
+age > gender   <======= tree
+    > car
+country > browser
+        > car
+        > age
+
+Useful to be able to look at different things by one thing
+e.g. for each country (rows) age break down, browser breakdown, and car breakdown (sic) ;-)
+
+But that's enough complexity. Anything more, better making multiple, individually clear tables.
 """
 from collections.abc import Collection
 from dataclasses import dataclass
@@ -25,7 +24,7 @@ from functools import cache
 from itertools import combinations, count, product
 from pathlib import Path
 import sqlite3 as sqlite
-from typing import Self, Sequence
+from typing import Self
 
 import pandas as pd
 
@@ -53,30 +52,53 @@ class DimSpec:
     has_total: bool = False
     is_col: bool = False
     pct_metrics: Collection[Metric] | None = None
-    children: list[Self] | None = None
+    child: Self | None = None
 
     @property
-    def descendant_vars(self):
+    def descendant_vars(self) -> list[str]:
         """
         All variables under, but not including, this Dim.
+        Note - only includes chains, not trees, as a deliberate design choice to avoid excessively complicated tables.
+        Tables are for computers to make, but for humans to read and understand :-).
         """
         dim_vars = []
-        if self.children:
-            for child in self.children:
-                dim_vars.append(child.var)
-                dim_vars.extend(child.descendant_vars)
+        if self.child:
+            dim_vars.append(self.child.var)
+            dim_vars.extend(self.child.descendant_vars)
         return dim_vars
+
+    @property
+    def self_and_descendant_vars(self) -> list[str]:
+        return [self.var, ] + self.descendant_vars
+
+    @property
+    def self_and_descendant_totalled_vars(self) -> list[str]:
+        """
+        All variables under, and including, this Dim that are totalled (if any).
+        """
+        dim_tot_vars = [self.var] if self.has_total else []
+        if self.child:
+            dim_tot_vars.extend(self.child.self_and_descendant_totalled_vars)
+        return dim_tot_vars
+
+    @property
+    def self_or_descendant_pct_metrics(self) -> Collection[Metric] | None:
+        if self.pct_metrics:
+            return self.pct_metrics
+        elif self.child:
+            return self.child.self_or_descendant_pct_metrics
+        else:
+            return None
 
     def __post_init__(self):
         if self.pct_metrics:
-            if self.children:
+            if self.child:
                 raise ValueError(f"Metrics are only for terminal dimension specs e.g. a > b > c (can have metrics)")
             if not self.is_col:
                 raise ValueError(f"Metrics are only for terminal column specs, yet this is a row spec")
-        if self.children:
-            for child in self.children:
-                if not self.is_col == child.is_col:
-                    raise ValueError(f"This dim has a child that is inconsistent e.g. a col parent having a row child")
+        if self.child:
+            if not self.is_col == self.child.is_col:
+                raise ValueError(f"This dim has a child that is inconsistent e.g. a col parent having a row child")
         if self.var in self.descendant_vars:
             raise ValueError(
                 f"Variables can't be repeated in the same dimension spec e.g. Car > Country > Car. Variable {self.var}")
@@ -98,10 +120,35 @@ class TblSpec:
                 seen.add(var)
         return dupes
 
+    @property
+    def totalled_vars(self) -> list[str]:
+        tot_vars = []
+        for row_spec in self.row_specs:
+            tot_vars.extend(row_spec.totalled_vars)
+        for col_spec in self.col_specs:
+            tot_vars.extend(col_spec.totalled_vars)
+        return tot_vars
+
+    def _get_max_dim_depth(self, *, is_col=False) -> int:
+        max_depth = 0
+        dim_specs = self.col_specs if is_col else self.row_specs
+        for dim_spec in dim_specs:
+            dim_depth = len(dim_spec.self_and_descendant_vars)
+            if dim_depth > max_depth:
+                max_depth = dim_depth
+        return max_depth
+
+    @property
+    def max_row_depth(self) -> int:
+        return self._get_max_dim_depth()
+
+    @property
+    def max_col_depth(self) -> int:
+        return self._get_max_dim_depth(is_col=True)
+
     def __post_init__(self):
 
         ## TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
-
 
         row_dupes = TblSpec._get_dupes([spec.var for spec in self.row_specs])
         if row_dupes:
@@ -115,24 +162,21 @@ class TblSpec:
             col_spec_vars = set([col_spec.var] + col_spec.descendant_vars)
             overlapping_vars = row_spec_vars.intersection(col_spec_vars)
             if overlapping_vars:
-                raise ValueError(f"Variables can't appear in both rows and columns. Found the following overlapping variable(s): {', '.join(overlapping_vars)}")
+                raise ValueError("Variables can't appear in both rows and columns. "
+                    f"Found the following overlapping variable(s): {', '.join(overlapping_vars)}")
 
 yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
 var_labels = yaml2varlabels(yaml_fpath,
     vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country', 'std_agegroup'], debug=True)
 
 row_spec_0 = DimSpec(var='country', has_total=True,
-    children=[
-        DimSpec(var='gender', has_total=True),
-    ])
+    child=DimSpec(var='gender', has_total=True))
 row_spec_1 = DimSpec(var='home_country', has_total=True)
 row_spec_2 = DimSpec(var='car')
 
 col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
 col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
-    children=[
-        DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]
-    )])
+    child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
 col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
 
 tbl_spec = TblSpec(
@@ -258,11 +302,12 @@ def get_data_from_spec(all_variables: Collection[str], totalled_variables: Colle
     data.extend(cur.fetchall())
     ## Step 2 - combos
     totalled_combinations = []
-    for n in count(1):
-        totalled_combinations_for_n = combinations(totalled_variables, n)
-        totalled_combinations.extend(totalled_combinations_for_n)
-        if n == n_totalled:
-            break
+    if n_totalled:
+        for n in count(1):
+            totalled_combinations_for_n = combinations(totalled_variables, n)
+            totalled_combinations.extend(totalled_combinations_for_n)
+            if n == n_totalled:  ## might be 0
+                break
     if debug: print(f"{totalled_combinations=}")
     for totalled_combination in totalled_combinations:  ## there might not be any, of course
         if debug: print(totalled_combination)
@@ -291,8 +336,11 @@ def get_data_from_spec(all_variables: Collection[str], totalled_variables: Colle
             print(row)
     return data
 
-def get_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
+def get_all_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
         n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], debug=False) -> pd.DataFrame:
+    """
+    Includes at least the Freq metric but potentially the percentage ones as well.
+    """
     all_variables = row_vars + col_vars
     columns = []
     for var in all_variables:
@@ -324,15 +372,15 @@ def get_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
         df_pre_pivot[f'col_filler_var_{i}'] = BLANK
         df_pre_pivot[f'col_filler_{i}'] = BLANK
         column_cols.extend([f'col_filler_var_{i}', f'col_filler_{i}'])
-    column_cols.append('measure')  ## TODO: change to metric
-    df_pre_pivot['measure'] = 'Freq'
+    column_cols.append('metric')
+    df_pre_pivot['metric'] = 'Freq'
     print(df_pre_pivot)
     df_pre_pivots = [df_pre_pivot, ]
     df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
-    if Metric.ROW_PCT in pct_metrics:
+    if pct_metrics and Metric.ROW_PCT in pct_metrics:
         df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
         df_pre_pivots.append(df_pre_pivot_inc_row_pct)
-    if Metric.COL_PCT in pct_metrics:
+    if pct_metrics and Metric.COL_PCT in pct_metrics:
         df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
         df_pre_pivots.append(df_pre_pivot_inc_col_pct)
     df_pre_pivot = pd.concat(df_pre_pivots)
@@ -348,7 +396,7 @@ browser_var                                                 Web Browser
 browser                                                          Chrome                          Firefox                           Chrome   Firefox     TOTAL
 agegroup_var                                                  Age Group                        Age Group                        Age Group Age Group Age Group
 agegroup                                                           < 20 20-29 30-39 40-64  65+      < 20 20-29 30-39 40-64  65+     TOTAL     TOTAL      < 20 20-29 30-39 40-64  65+ TOTAL
-measure                                                            Freq  Freq  Freq  Freq Freq      Freq  Freq  Freq  Freq Freq      Freq      Freq      Freq  Freq  Freq  Freq Freq  Freq
+metric                                                             Freq  Freq  Freq  Freq Freq      Freq  Freq  Freq  Freq Freq      Freq      Freq      Freq  Freq  Freq  Freq Freq  Freq
 home_country_var home_country row_filler_var_0 row_filler_0
 Home Country     NZ           __blank__        __blank__             18     8    10    27   30        35    25    24    51   55        93       190        53    33    34    78   85   283
              South Korea  __blank__        __blank__             32    17    16    35   21        49    23    17    43   49       121       181        81    40    33    78   70   302
@@ -361,7 +409,7 @@ Home Country     NZ           __blank__        __blank__             18     8   
 
     Each row is a Series with a multi-index on the left and the values on the right. E.g.:
 
-    browser_var  browser  agegroup_var  agegroup  measure
+    browser_var  browser  agegroup_var  agegroup  metric
 Web Browser  Chrome   Age Group     < 20      Freq        18
                                 20-29     Freq         8
                                 30-39     Freq        10
@@ -400,17 +448,17 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
     and seeing if there is a TOTAL (so we can tell if we have to divide by 2);
 
     Finally, we have to gather the results into the same structure as the pre-pivot source data
-    BUT with Row % or Col % as the measure not Freq.
+    BUT with Row % or Col % as the metric not Freq.
     Note - OK if we don't include columns not used in pivot, and OK if the cols are not in the correct order.
     The appending is by col_name so it Just Works™ :-).
-    Why? Because if we can get to that structure, we can just append the different dfs-by-measure together,
-    and pivot the resulting combined df to get a column per measure.
+    Why? Because if we can get to that structure, we can just append the different dfs-by-metric together,
+    and pivot the resulting combined df to get a column per metric.
     Trivial if we can get to that point - it Just Works™!
     """
     if pct_type == PctType.COL_PCT:
         df = df.T  ## if unpivoted, each row has values for the Row % calculation; otherwise has values for Col % calculation. If pivoted, it is the reverse. But still rows refers to rows and cols to cols in the df we're working through here either way.
     col_names = [col for col in df.columns.names if
-        not col.endswith('_var') and not col.startswith(('col_filler_', 'row_filler_')) and col != 'measure']
+        not col.endswith('_var') and not col.startswith(('col_filler_', 'row_filler_')) and col != 'metric']
     if debug: print(col_names)
     col_names_for_grouping = col_names[:-1]
     use_groupby = bool(col_names_for_grouping)
@@ -431,11 +479,11 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
         else:
             s_row_pcts = (100 * row) / (sum(row) / divide_by)
         if debug: print(s_row_pcts)
-        ## create rows ready to append to df_pre_pivot before re-pivoting but with additional measure type
+        ## create rows ready to append to df_pre_pivot before re-pivoting but with additional metric type
         for sub_index, val in s_row_pcts.items():
             values = list(row.name) + list(sub_index) + [val]
             s = pd.Series(values, index=list(df.index.names + var_names + ['n']))  ## order doesn't matter - see comment earlier
-            s['measure'] = pct_type
+            s['metric'] = pct_type
             if debug: print(s)
             ## add to new df_pre_pivot
             df_pre_pivot_inc_pct = pd.concat([df_pre_pivot_inc_pct, s.to_frame().T])
@@ -445,236 +493,70 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
 N_ROWS_IN_TOTAL_TBL = 2
 N_COLS_IN_TOTAL_TBL = 2
 
-def get_row_df(row_spec: DimSpec, cols_specs: Sequence[DimSpec]) -> pd.DataFrame:
+def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, debug=False) -> pd.DataFrame:
     """
     get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
-    e.g. row_spec_1 = DimSpec(var='home_country', has_total=True)
+    e.g.
+    row_spec_1 = DimSpec(var='country', has_total=True,
+        child=(var='gender', has_total=True))
     vs
     col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
     col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
-        children=[
-            DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]
-        )])
+        child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
     col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
-    """
 
+    ==>
 
-
-class GetData:
-
-    """
-    Filtering some values to reduce the sheer size of the table so it is easier to see at once.
-    Thus, the filter clause: WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari').
-    Top, middle, and bottom must share same column variables.
-    Left and right must share same row variables.
-    """
-
-    ## TOP df **********************************************************************************************************
-
-    ## TOP LEFT
-    @staticmethod
-    def get_country_gender_by_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['country', 'gender', ]
+    row_vars = ['country', 'gender']
+    filter = '''\
+        WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+        '''
+    according to col_spec:
         col_vars = ['agegroup']
-        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'gender', 'agegroup']
-        filter = """\
-        WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
-        if debug: print(f"\nTOP LEFT:\n{df}")
-        return df
 
-    ## TOP MIDDLE
-    @staticmethod
-    def get_country_gender_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['country', 'gender', ]
         col_vars = ['browser', 'agegroup']
-        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'gender', 'browser', 'agegroup']
-        # filter = """\
-        # WHERE NOT (country = 3 AND gender = 1)
-        # AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        # """
-        filter = """\
-        WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
-        if debug: print(f"\nTOP MIDDLE:\n{df}")
-        return df
 
-    ## TOP RIGHT (reused to put more strain on row-spanning of columns and reuse of column names)
-    @staticmethod
-    def get_country_gender_by_std_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['country', 'gender', ]
         col_vars = ['std_agegroup']
-        all_variables = row_vars + col_vars
         totalled_variables = ['country', 'gender', 'std_agegroup']
-        filter = """\
-        WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
+
+        all_variables = row_vars + col_vars
         data = get_data_from_spec(
             all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
         df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=[], debug=debug)
-        if debug: print(f"\nTOP RIGHT:\n{df}")
         return df
-
-    ## MIDDLE df *******************************************************************************************************
-
     """
-    Note - must have same columns for left as for TOP left df, for middle as TOP middle df,
-    and for the right as for TOP right df
-    Note - can't have country twice at top-level but OK if different variable name.
-    """
-
-    ## MIDDLE LEFT
-    @staticmethod
-    def get_country_by_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and age_group. So filler variable needed.
-        """
-        row_vars = ['home_country']
-        col_vars = ['agegroup']
+    row_spec = tbl_spec.row_specs[row_idx]
+    row_vars = row_spec.self_and_descendant_vars
+    n_row_fillers = N_ROWS_IN_TOTAL_TBL - len(row_vars)
+    df_cols = []
+    for col_spec in tbl_spec.col_specs:
+        col_vars = col_spec.self_and_descendant_vars
+        totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
         all_variables = row_vars + col_vars
-        totalled_variables = ['home_country', 'agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
-        if debug: print(f"\nMIDDLE LEFT:\n{df}")
-        return df
-
-    ## MIDDLE MIDDLE
-    @staticmethod
-    def get_country_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['home_country']
-        col_vars = ['browser', 'agegroup']
-        all_variables = row_vars + col_vars
-        totalled_variables = ['home_country', 'browser', 'agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
-        if debug: print(f"\nMIDDLE MIDDLE:\n{df}")
-        return df
-
-    ## MIDDLE RIGHT
-    @staticmethod
-    def get_country_by_std_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and age_group. So filler variable needed.
-        """
-        row_vars = ['home_country']
-        col_vars = ['std_agegroup']
-        all_variables = row_vars + col_vars
-        totalled_variables = ['home_country', 'std_agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
-        if debug: print(f"\nMIDDLE RIGHT:\n{df}")
-        return df
-
-    ## BOTTOM df *******************************************************************************************************
-
-    """
-    Note - must have same columns for left as for TOP left df and for the right as for TOP right df
-    """
-
-    ## BOTTOM LEFT
-    @staticmethod
-    def get_car_by_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and age_group. So filler variable needed.
-        """
-        row_vars = ['car']
-        col_vars = ['agegroup']
-        all_variables = row_vars + col_vars
-        totalled_variables = ['agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
-        if debug: print(f"\nBOTTOM LEFT:\n{df}")
-        return df
-
-    ## BOTTOM MIDDLE
-    @staticmethod
-    def get_car_by_browser_and_age_group(*, debug=False) -> pd.DataFrame:
-        row_vars = ['car']
-        col_vars = ['browser', 'agegroup']
-        all_variables = row_vars + col_vars
-        totalled_variables = ['browser', 'agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT], debug=debug)
-        if debug: print(f"\nBOTTOM MIDDLE:\n{df}")
-        return df
-
-    ## BOTTOM RIGHT
-    @staticmethod
-    def get_car_by_std_age_group(*, debug=False) -> pd.DataFrame:
-        """
-        Needs two level column dimension columns because left df has two column dimension levels
-        i.e. browser and age_group. So filler variable needed.
-        """
-        row_vars = ['car']
-        col_vars = ['std_agegroup']
-        all_variables = row_vars + col_vars
-        totalled_variables = ['std_agegroup']
-        filter = """\
-        WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        AND car IN (2, 3, 11)
-        """
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
-        if debug: print(f"\nBOTTOM RIGHT:\n{df}")
-        return df
-
-
-## COMBINED - TOP + BOTTOM
+        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables,
+            filter=filter, debug=debug)
+        df_col = get_all_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+            n_row_fillers=n_row_fillers, n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+            pct_metrics=col_spec.self_or_descendant_pct_metrics, debug=debug)
+        df_cols.append(df_col)
+    df = df_cols[0]
+    df_cols_remaining = df_cols[1:]
+    row_merge_on = []
+    for row_var in row_vars:
+        val_labels = var_labels.var2var_label_spec[row_var]
+        row_merge_on.append(val_labels.pandas_var)
+        row_merge_on.append(val_labels.name)
+    for i in range(n_row_fillers):
+        row_merge_on.append(f'row_filler_var_{i}')
+        row_merge_on.append(f'row_filler_{i}')
+    for df_next_col in df_cols_remaining:
+        df = df.merge(df_next_col, how='outer', on=row_merge_on)
+    return df
 
 def get_tbl_df(*, debug=False) -> pd.DataFrame:
     """
@@ -710,30 +592,11 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
-    car_val_labels = var_labels.var2var_label_spec['car']
-    country_val_labels = var_labels.var2var_label_spec['country']
-    gender_val_labels = var_labels.var2var_label_spec['gender']
-    home_country_val_labels = var_labels.var2var_label_spec['home_country']
-    ## TOP
-    df_top_left = GetData.get_country_gender_by_age_group(debug=debug)
-    df_top_middle = GetData.get_country_gender_by_browser_and_age_group(debug=debug)
-    df_top_right = GetData.get_country_gender_by_std_age_group(debug=debug)
-    df_top = df_top_left.merge(df_top_middle, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])
-    df_top = df_top.merge(df_top_right, how='outer', on=[country_val_labels.pandas_var, country_val_labels.name, gender_val_labels.pandas_var, gender_val_labels.name])  ## join again to test ability to  handle col-spanning offsets etc
-    ## MIDDLE
-    df_middle_left = GetData.get_country_by_age_group(debug=debug)
-    df_middle_middle = GetData.get_country_by_browser_and_age_group(debug=debug)
-    df_middle_right = GetData.get_country_by_std_age_group(debug=debug)
-    df_middle = df_middle_left.merge(df_middle_middle, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    df_middle = df_middle.merge(df_middle_right, how='outer', on=[home_country_val_labels.pandas_var, home_country_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    ## BOTTOM
-    df_bottom_left = GetData.get_car_by_age_group(debug=debug)
-    df_bottom_middle = GetData.get_car_by_browser_and_age_group(debug=debug)
-    df_bottom_right = GetData.get_car_by_std_age_group(debug=debug)
-    df_bottom = df_bottom_left.merge(df_bottom_middle, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    df_bottom = df_bottom.merge(df_bottom_right, how='outer', on=[car_val_labels.pandas_var, car_val_labels.name, 'row_filler_var_0', 'row_filler_0'])
-    if debug:
-        print(f"\nTOP:\n{df_top}\n\nMIDDLE:\n{df_middle}\n\nBOTTOM:\n{df_bottom}")
+    data_filter = "WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)"
+
+    df_top = get_row_df(tbl_spec, row_idx=0, filter=data_filter, debug=True)
+    df_middle = get_row_df(tbl_spec, row_idx=1, filter=data_filter, debug=True)
+    df_bottom = get_row_df(tbl_spec, row_idx=2, filter=data_filter, debug=True)
     ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
     ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
     ## And there is a bug (from my point of view) whenever tables are merged with the same variables at the top level.
@@ -784,7 +647,7 @@ def main(*, debug=False, verbose=False):
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)
-    display_tbl(tbl_html, 'step_4_from_real_data', style_name)
+    display_tbl(tbl_html, 'step_4b_from_real_data', style_name)
 
 if __name__ == '__main__':
     """
