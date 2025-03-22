@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.1.5"
+version = "0.1.6"
 description = "SOFA Statistics as a library only and with sane code"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }

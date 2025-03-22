@@ -106,6 +106,8 @@ class DimSpec:
 
 @dataclass(frozen=True, kw_only=True)
 class TblSpec:
+    tbl: str
+    filter: str | None
     row_specs: list[DimSpec]
     col_specs: list[DimSpec]
 
@@ -124,9 +126,9 @@ class TblSpec:
     def totalled_vars(self) -> list[str]:
         tot_vars = []
         for row_spec in self.row_specs:
-            tot_vars.extend(row_spec.totalled_vars)
+            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
         for col_spec in self.col_specs:
-            tot_vars.extend(col_spec.totalled_vars)
+            tot_vars.extend(col_spec.self_and_descendant_totalled_vars)
         return tot_vars
 
     def _get_max_dim_depth(self, *, is_col=False) -> int:
@@ -180,67 +182,66 @@ col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
 col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
 
 tbl_spec = TblSpec(
+    tbl=DEMO_CROSS_TAB_NAME,
+    filter="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
     row_specs=[row_spec_0, row_spec_1, row_spec_2],
     col_specs=[col_spec_0, col_spec_1, col_spec_2],
 )
 
-class DataSpecificCheats:
-
-    @staticmethod
-    @cache
-    def get_raw_df(*, debug=False) -> pd.DataFrame:
-        con = sqlite.connect('sofa_db')
-        cur = con.cursor()
-        sql = """\
-        SELECT id, agegroup, browser, car, agegroup as std_agegroup
-        FROM demo_tbl
-        """
-        cur.execute(sql)
-        data = cur.fetchall()
-        cur.close()
-        con.close()
-        df = pd.DataFrame(data, columns=['id', 'agegroup', 'browser', 'car', 'std_agegroup'])
-        df['browser'] = df['browser'].apply(lambda s: 'Google Chrome' if s == 'Chrome' else s)  ## so we can apply Google Chrome as a label to prove labels work
-        if debug:
-            print(df)
-        return df
-
-    @staticmethod
-    def get_orders_for_multi_index_branches() -> dict:
-        """
-        Should come from a GUI via an interface ad thence into the code using this.
-        Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
-        """
-        return {
-            ## columns
-            ('agegroup', ): (0, Sort.VAL),
-            ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
-            ('std_agegroup', ): (2, Sort.VAL),
-            ## rows
-            ('country', 'gender', ): (0, Sort.VAL, 0, Sort.LBL),
-            ('home_country', ): (1, Sort.LBL),
-            ('car', ): (2, Sort.VAL),
-        }
-
-
-def make_special_tbl():
+def get_raw_df(tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
     con = sqlite.connect('sofa_db')
     cur = con.cursor()
-    sql = f"""\
+    cur.execute(f"SELECT * FROM {tbl_spec.tbl}")
+    data = cur.fetchall()
+    cur.close()
+    con.close()
+    df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
+    if debug:
+        print(df)
+    return df
+
+## TODO: run from tbl_spec
+def get_orders_for_multi_index_branches() -> dict:
+    """
+    Should come from a GUI via an interface ad thence into the code using this.
+    Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
+    """
+    return {
+        ## columns
+        ('agegroup', ): (0, Sort.VAL),
+        ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
+        ('std_agegroup', ): (2, Sort.VAL),
+        ## rows
+        ('country', 'gender', ): (0, Sort.VAL, 0, Sort.LBL),
+        ('home_country', ): (1, Sort.LBL),
+        ('car', ): (2, Sort.VAL),
+    }
+
+def make_special_tbl():
+    """
+    Relabelled 'Google Chrome' to 'Chrome' so we can apply Google Chrome as a label to prove labels work.
+    """
+    con = sqlite.connect('sofa_db')
+    cur = con.cursor()
+    sql_drop = f"DROP TABLE IF EXISTS {DEMO_CROSS_TAB_NAME}"
+    cur.execute(sql_drop)
+    con.commit()
+    sql_make = f"""\
     CREATE TABLE {DEMO_CROSS_TAB_NAME} AS
-    SELECT *, country AS home_country, agegroup AS std_agegroup
+    SELECT id, country, car, gender, agegroup,
+      CASE WHEN browser = 'Google Chrome' THEN 'Chrome' ELSE browser END AS browser,
+      country AS home_country, agegroup AS std_agegroup
     FROM demo_tbl
     """
-    cur.execute(sql)
+    cur.execute(sql_make)
     con.commit()
     cur.close()
     con.close()
     print(f"Finished making {DEMO_CROSS_TAB_NAME}")
 
-def get_data_from_spec(all_variables: Collection[str], totalled_variables: Collection[str], filter: str,
+def get_data_from_spec(tbl: str, all_variables: Collection[str], totalled_variables: Collection[str], filter: str,
         *, debug=False) -> list[list]:
     """
-    TODO: change to a dc
     rows: country (TOTAL) > gender (TOTAL)
     cols: agegroup (TOTAL, Freq)
     filter: WHERE agegroup <> 4
@@ -538,8 +539,8 @@ def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, debug=False) -> 
         col_vars = col_spec.self_and_descendant_vars
         totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
         all_variables = row_vars + col_vars
-        data = get_data_from_spec(all_variables=all_variables, totalled_variables=totalled_variables,
-            filter=filter, debug=debug)
+        data = get_data_from_spec(tbl=DEMO_CROSS_TAB_NAME,
+            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
         df_col = get_all_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=n_row_fillers, n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
             pct_metrics=col_spec.self_or_descendant_pct_metrics, debug=debug)
@@ -593,10 +594,8 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
     data_filter = "WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)"
-
-    df_top = get_row_df(tbl_spec, row_idx=0, filter=data_filter, debug=True)
-    df_middle = get_row_df(tbl_spec, row_idx=1, filter=data_filter, debug=True)
-    df_bottom = get_row_df(tbl_spec, row_idx=2, filter=data_filter, debug=True)
+    dfs = [get_row_df(tbl_spec, row_idx=row_idx, filter=data_filter, debug=True)
+        for row_idx in range(len(tbl_spec.row_specs))]
     ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
     ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
     ## And there is a bug (from my point of view) whenever tables are merged with the same variables at the top level.
@@ -604,14 +603,16 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
     ## E.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
     ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally
-    df_t = df_top.T.join(df_middle.T, how='outer')
-    df_t = df_t.join(df_bottom.T, how='outer')
+    df_t = dfs[0].T
+    dfs_remaining = dfs[1:]
+    for df_next in dfs_remaining:
+        df_t = df_t.join(df_next.T, how='outer')
     df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
     df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
     ## Sorting indexes
-    raw_df = DataSpecificCheats.get_raw_df(debug=debug)
-    orders_for_multi_index_branches = DataSpecificCheats.get_orders_for_multi_index_branches()
+    raw_df = get_raw_df(tbl_spec=tbl_spec, debug=debug)
+    orders_for_multi_index_branches = get_orders_for_multi_index_branches()
     ## COLS
     unsorted_col_multi_index_list = list(df.columns)
     sorted_col_multi_index_list = get_sorted_multi_index_list(
@@ -655,4 +656,5 @@ if __name__ == '__main__':
     """
     pass
     # make_special_tbl()
+    # print(get_raw_df(tbl_spec))
     main(debug=True, verbose=False)
