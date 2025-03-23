@@ -16,11 +16,17 @@ Useful to be able to look at different things by one thing
 e.g. for each country (rows) age break down, browser breakdown, and car breakdown (sic) ;-)
 
 But that's enough complexity. Anything more, better making multiple, individually clear tables.
+
+TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
+TODO - why not ints for freq in Age Group and Std Age Group?
+TODO - why:
+browser_var  browser  agegroup_var  agegroup  metric
+Web Browser  Chrome   Age Group     < 20      Freq       23.076923  <========== floats for freqs? Seems to be for a PCT metric but labelled here as Freq?
+                                    20-29     Freq       15.384615
 """
 from collections.abc import Collection
 from dataclasses import dataclass
 from enum import StrEnum
-from functools import cache
 from itertools import combinations, count, product
 from pathlib import Path
 import sqlite3 as sqlite
@@ -52,6 +58,7 @@ class DimSpec:
     has_total: bool = False
     is_col: bool = False
     pct_metrics: Collection[Metric] | None = None
+    sort_order: Sort = Sort.VAL
     child: Self | None = None
 
     @property
@@ -68,18 +75,25 @@ class DimSpec:
         return dim_vars
 
     @property
+    def self_and_descendants(self) -> list[Self]:
+        """
+        All Dims under, and including, this Dim.
+        """
+        dims = [self, ]
+        if self.child:
+            dims.extend(self.child.self_and_descendants)
+        return dims
+
+    @property
     def self_and_descendant_vars(self) -> list[str]:
-        return [self.var, ] + self.descendant_vars
+        return [dim.var for dim in self.self_and_descendants]
 
     @property
     def self_and_descendant_totalled_vars(self) -> list[str]:
         """
         All variables under, and including, this Dim that are totalled (if any).
         """
-        dim_tot_vars = [self.var] if self.has_total else []
-        if self.child:
-            dim_tot_vars.extend(self.child.self_and_descendant_totalled_vars)
-        return dim_tot_vars
+        return [dim.var for dim in self.self_and_descendants if dim.has_total]
 
     @property
     def self_or_descendant_pct_metrics(self) -> Collection[Metric] | None:
@@ -149,9 +163,6 @@ class TblSpec:
         return self._get_max_dim_depth(is_col=True)
 
     def __post_init__(self):
-
-        ## TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
-
         row_dupes = TblSpec._get_dupes([spec.var for spec in self.row_specs])
         if row_dupes:
             raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
@@ -172,12 +183,12 @@ var_labels = yaml2varlabels(yaml_fpath,
     vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country', 'std_agegroup'], debug=True)
 
 row_spec_0 = DimSpec(var='country', has_total=True,
-    child=DimSpec(var='gender', has_total=True))
-row_spec_1 = DimSpec(var='home_country', has_total=True)
+    child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
+row_spec_1 = DimSpec(var='home_country', has_total=True, sort_order=Sort.LBL)
 row_spec_2 = DimSpec(var='car')
 
 col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
-col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
+col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True, sort_order=Sort.LBL,
     child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
 col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
 
@@ -200,22 +211,26 @@ def get_raw_df(tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
         print(df)
     return df
 
-## TODO: run from tbl_spec
-def get_orders_for_multi_index_branches() -> dict:
+def get_orders_for_multi_index_branches(tbl_spec: TblSpec) -> dict:
     """
     Should come from a GUI via an interface ad thence into the code using this.
+
     Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
+
+    Note - because, below the top-level, only chains are allowed (not trees)
+    the index for any variables after the first (top-level) are always 0.
     """
-    return {
-        ## columns
-        ('agegroup', ): (0, Sort.VAL),
-        ('browser', 'agegroup', ): (1, Sort.LBL, 0, Sort.VAL),
-        ('std_agegroup', ): (2, Sort.VAL),
-        ## rows
-        ('country', 'gender', ): (0, Sort.VAL, 0, Sort.LBL),
-        ('home_country', ): (1, Sort.LBL),
-        ('car', ): (2, Sort.VAL),
-    }
+    orders = {}
+    dims_type_specs = [tbl_spec.row_specs, tbl_spec.col_specs]
+    for dim_type_specs in dims_type_specs:
+        for top_level_idx, dim_type_spec in enumerate(dim_type_specs):
+            dim_vars = tuple(dim_type_spec.self_and_descendant_vars)
+            sort_dets = []
+            for chain_idx, dim_spec in enumerate(dim_type_spec.self_and_descendants):
+                idx2use = top_level_idx if chain_idx == 0 else 0
+                sort_dets.extend([idx2use, dim_spec.sort_order])
+            orders[dim_vars] = tuple(sort_dets)
+    return orders
 
 def make_special_tbl():
     """
@@ -612,7 +627,7 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     if debug: print(f"\nCOMBINED:\n{df}")
     ## Sorting indexes
     raw_df = get_raw_df(tbl_spec=tbl_spec, debug=debug)
-    orders_for_multi_index_branches = get_orders_for_multi_index_branches()
+    orders_for_multi_index_branches = get_orders_for_multi_index_branches(tbl_spec)
     ## COLS
     unsorted_col_multi_index_list = list(df.columns)
     sorted_col_multi_index_list = get_sorted_multi_index_list(
