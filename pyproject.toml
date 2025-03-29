@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.1.7"
+version = "0.1.8"
 description = "SOFA Statistics as a library only and with sane code"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -21,10 +21,77 @@ build-backend = "hatchling.build"
 
 [tool.uv]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "import-linter>=2.3",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sofalite"]
+
+[tool.importlinter]
+root_packages = [ "sofalite" ]
+
+[[tool.importlinter.contracts]]
+name = "Modular Design"
+type = "layers"
+layers = [
+    "sql_extraction",
+    "output",
+    "start",
+]
+containers = [ "sofalite" ]
+exhaustive = true
+exhaustive_ignores = [ "stats_calc", "conf"]
+
+[[tool.importlinter.contracts]]
+name = "sql_extraction"
+type = "layers"
+layers = [
+    "utils",
+    "charts | tables",
+    "db",
+]
+containers = [ "sofalite.sql_extraction" ]
+exhaustive = true
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "output"
+type = "layers"
+layers = [
+    "stats",
+    "charts | tables"
+]
+containers = [ "sofalite.output" ]
+exhaustive = true
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "stats_calc"
+type = "layers"
+layers = [
+    "ttest_indep | anova",
+    "histogram",
+    "boxplot",
+    "engine",
+    "utils"
+]
+containers = [ "sofalite.stats_calc" ]
+exhaustive = true
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "conf"
+type = "layers"
+layers = [
+    "charts",
+    "data | paths | stats_output | style | tables",
+    "misc",
+    "stats_calc",
+]
+containers = [ "sofalite.conf" ]
+exhaustive = true
+exhaustive_ignores = []

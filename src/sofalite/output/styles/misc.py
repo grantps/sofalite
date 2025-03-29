@@ -1,7 +1,7 @@
 """
 CSS needed for header:
 
-General e.g. body - font, background colour etc (see get_generic_css())
+General e.g. body - font, background colour etc. (see get_generic_css())
 
 Dojo for charts - want name-spaced CSS for every style in styles folder.
 Non-CSS styling, e.g. colour for pie chart slices, already set in JS functions directly.
@@ -140,7 +140,7 @@ def get_generic_css() -> str:
         border-collapse: collapse;
     }}
 
-    /* NOT used by tables styled by pandas - they are at id level <================================================== */
+    /* NOT used by tables styled by pandas - they are styled at the id level <======================================= */
 
     /* Note - tables are not just used for report tables but also in chart legends and more besides  */
     tr, td, th {{
@@ -162,6 +162,9 @@ def get_generic_css() -> str:
     td {{
         padding: 2px 6px;
         font-size: 13px;
+    }}
+    td, .data {{
+        text-align: right;
     }}
     .row-level-1-var {{
         {flatten(CSS.ROW_LEVEL_1_VAR.value)}

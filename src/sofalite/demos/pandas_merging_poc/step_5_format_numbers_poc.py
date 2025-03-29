@@ -16,10 +16,20 @@ Useful to be able to look at different things by one thing
 e.g. for each country (rows) age break down, browser breakdown, and car breakdown (sic) ;-)
 
 But that's enough complexity. Anything more, better making multiple, individually clear tables.
+
+TODO - rounding and displaying as 2 digit numbers not:
+|2.380000 |
+|22.220000|
+but
+| 2.38|
+|22.22|
+
+TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
 """
 from collections.abc import Collection
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import partial
 from itertools import combinations, count, product
 from pathlib import Path
 import sqlite3 as sqlite
@@ -345,8 +355,24 @@ def get_data_from_spec(tbl: str, all_variables: Collection[str], totalled_variab
             print(row)
     return data
 
+def _correct_str_dps(val: str, *, dp: int) -> str:
+    """
+    Apply decimal points to floats only - leave Freq integers alone.
+    3dp
+    0.0 => 0.000
+    12 => 12
+    """
+    try:
+        len_after_dot = len(val.split('.')[1])
+    except IndexError:
+        return val
+    n_zeros2add = dp - len_after_dot
+    zeros2add = '0' * n_zeros2add
+    return val + zeros2add
+
 def get_all_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[str],
-        n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], debug=False) -> pd.DataFrame:
+        n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], dp: int = 2,
+        debug=False) -> pd.DataFrame:
     """
     Includes at least the Freq metric but potentially the percentage ones as well.
     """
@@ -386,19 +412,36 @@ def get_all_metrics_df_from_vars(data, *, row_vars: list[str], col_vars: list[st
     df_pre_pivot['n'] = df_pre_pivot['n'].astype(pd.Int64Dtype())
     if debug: print(df_pre_pivot)
     df_pre_pivots = [df_pre_pivot, ]
-    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')  ## missing rows e.g. if we have no rows for females < 20 in the USA, now appear as NAs so we need to fill them in df
+    ## https://stackoverflow.com/questions/77900971/pandas-futurewarning-downcasting-object-dtype-arrays-on-fillna-ffill-bfill
+    ## https://medium.com/@felipecaballero/deciphering-the-cryptic-futurewarning-for-fillna-in-pandas-2-01deb4e411a1
+    with pd.option_context('future.no_silent_downcasting', True):
+        df = df.fillna(0).infer_objects(copy=False)  ## needed so we can round values (can't round a NA). Also need to do later because of gaps appearing when pivoted then too
     if pct_metrics:
         if Metric.ROW_PCT in pct_metrics:
-            df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, debug=debug)
+            df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.ROW_PCT, dp=dp, debug=debug)
             df_pre_pivots.append(df_pre_pivot_inc_row_pct)
         if Metric.COL_PCT in pct_metrics:
-            df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, debug=debug)
+            df_pre_pivot_inc_col_pct = get_df_pre_pivot_with_pcts(df, pct_type=PctType.COL_PCT, dp=dp, debug=debug)
             df_pre_pivots.append(df_pre_pivot_inc_col_pct)
     df_pre_pivot = pd.concat(df_pre_pivots)
     df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')
+    with pd.option_context('future.no_silent_downcasting', True):
+        df = df.fillna(0).infer_objects(copy=False)
+    df = df.astype(str)
+    ## have to ensure all significant digits are showing e.g. 3.33 and 1.0 or 0.0 won't align nicely
+    correct_str_dps = partial(_correct_str_dps, dp=dp)
+    df = df.map(correct_str_dps)
     return df
 
-def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *, pct_type: PctType, debug=False) -> pd.DataFrame:
+def _round_kws(x, *, dp: int) -> float:
+    """
+    Need kwargs so we can use with partial given we are not changing the first positional args - see
+    https://stackoverflow.com/questions/11173660/can-one-partially-apply-the-second-argument-of-a-function-that-takes-no-keyword
+    """
+    return round(x, dp)
+
+def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *, pct_type: PctType, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     Strategy - we have multi-indexes so let's use them!
     Note - exact same approach works if you work from the df (for rows and Row %) or from a transposed df (for cols and Col %)
@@ -483,12 +526,14 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
     has_total = TOTAL in vals_in_final_col
     divide_by = 2 if has_total else 1
     df_pre_pivot_inc_pct = pd.DataFrame(data=[], columns=list(df.index.names + var_names + ['n']))  ## order doesn't matter - it will append based on col names, so both row % and col % work fine as long as original Freq df_pre_pivot comes first
+    rounder = partial(_round_kws, dp=dp)
     for i, row in df.iterrows():
         ## do calculations
         if use_groupby:
             s_row_pcts = (100 * row) / (row.groupby(col_names_for_grouping).agg('sum') / divide_by)
         else:
             s_row_pcts = (100 * row) / (sum(row) / divide_by)
+        s_row_pcts = s_row_pcts.apply(rounder)
         if debug: print(s_row_pcts)
         ## create rows ready to append to df_pre_pivot before re-pivoting but with additional metric type
         for sub_index, val in s_row_pcts.items():
@@ -501,7 +546,7 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
     if debug: print(df_pre_pivot_inc_pct)
     return df_pre_pivot_inc_pct
 
-def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, debug=False) -> pd.DataFrame:
+def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
     e.g.
@@ -550,7 +595,7 @@ def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, debug=False) -> 
             all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
         df_col = get_all_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=n_row_fillers, n_col_fillers=tbl_spec.max_col_depth - len(col_vars),
-            pct_metrics=col_spec.self_or_descendant_pct_metrics, debug=debug)
+            pct_metrics=col_spec.self_or_descendant_pct_metrics, dp=dp, debug=debug)
         df_cols.append(df_col)
     df = df_cols[0]
     df_cols_remaining = df_cols[1:]
@@ -566,7 +611,7 @@ def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, debug=False) -> 
         df = df.merge(df_next_col, how='outer', on=row_merge_on)
     return df
 
-def get_tbl_df(*, debug=False) -> pd.DataFrame:
+def get_tbl_df(*, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
     to avoid repeating the row dimension columns e.g. country and gender.
@@ -601,7 +646,7 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
     data_filter = "WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)"
-    dfs = [get_row_df(tbl_spec, row_idx=row_idx, filter=data_filter, debug=debug)
+    dfs = [get_row_df(tbl_spec, row_idx=row_idx, filter=data_filter, dp=dp, debug=debug)
         for row_idx in range(len(tbl_spec.row_specs))]
     ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
     ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
@@ -615,7 +660,6 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     for df_next in dfs_remaining:
         df_t = df_t.join(df_next.T, how='outer')
     df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
-    df.fillna(0, inplace=True)
     if debug: print(f"\nCOMBINED:\n{df}")
     ## Sorting indexes
     raw_df = get_raw_df(tbl_spec=tbl_spec, debug=debug)
@@ -638,8 +682,8 @@ def get_tbl_df(*, debug=False) -> pd.DataFrame:
     if debug: print(f"\nORDERED:\n{df}")
     return df
 
-def main(*, debug=False, verbose=False):
-    df = get_tbl_df(debug=debug)
+def main(*, dp: int = 2, debug=False, verbose=False):
+    df = get_tbl_df(dp=dp, debug=debug)
     style_name = 'prestige_screen'
     pd_styler = set_table_styles(df.style)
     pd_styler = apply_index_styles(df, style_name, pd_styler, axis='rows')
@@ -655,7 +699,7 @@ def main(*, debug=False, verbose=False):
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)
-    display_tbl(tbl_html, 'step_4b_from_real_data', style_name)
+    display_tbl(tbl_html, 'step_5_from_real_data', style_name)
 
 if __name__ == '__main__':
     """
@@ -664,4 +708,4 @@ if __name__ == '__main__':
     pass
     # make_special_tbl()
     # print(get_raw_df(tbl_spec))
-    main(debug=False, verbose=False)
+    main(dp=3, debug=False, verbose=False)
