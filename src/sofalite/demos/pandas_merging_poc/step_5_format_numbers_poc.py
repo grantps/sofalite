@@ -42,7 +42,7 @@ from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.demos.pandas_merging_poc.utils.misc import apply_index_styles, display_tbl, set_table_styles
 from sofalite.demos.pandas_merging_poc.utils.multi_index_sort import get_sorted_multi_index_list
-from sofalite.utils.labels import yaml2varlabels
+from sofalite.utils.labels import VarLabels, yaml2varlabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -181,26 +181,6 @@ class TblSpec:
                 raise ValueError("Variables can't appear in both rows and columns. "
                     f"Found the following overlapping variable(s): {', '.join(overlapping_vars)}")
 
-yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
-var_labels = yaml2varlabels(yaml_fpath,
-    vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country', 'std_agegroup'], debug=False)
-
-row_spec_0 = DimSpec(var='country', has_total=True,
-    child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
-row_spec_1 = DimSpec(var='home_country', has_total=True, sort_order=Sort.LBL)
-row_spec_2 = DimSpec(var='car')
-
-col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
-col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True, sort_order=Sort.LBL,
-    child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
-col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
-
-tbl_spec = TblSpec(
-    tbl=DEMO_CROSS_TAB_NAME,
-    filter="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
-    row_specs=[row_spec_0, row_spec_1, row_spec_2],
-    col_specs=[col_spec_0, col_spec_1, col_spec_2],
-)
 
 def get_raw_df(tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
     con = sqlite.connect('sofa_db')
@@ -611,7 +591,7 @@ def get_row_df(tbl_spec: TblSpec, *, row_idx: int, filter: str, dp: int = 2, deb
         df = df.merge(df_next_col, how='outer', on=row_merge_on)
     return df
 
-def get_tbl_df(*, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_tbl_df(tbl_spec: TblSpec, var_labels: VarLabels, *, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
     to avoid repeating the row dimension columns e.g. country and gender.
@@ -682,8 +662,8 @@ def get_tbl_df(*, dp: int = 2, debug=False) -> pd.DataFrame:
     if debug: print(f"\nORDERED:\n{df}")
     return df
 
-def main(*, dp: int = 2, debug=False, verbose=False):
-    df = get_tbl_df(dp=dp, debug=debug)
+def main(tbl_spec: TblSpec, var_labels: VarLabels, *, dp: int = 2, debug=False, verbose=False):
+    df = get_tbl_df(tbl_spec, var_labels, dp=dp, debug=debug)
     style_name = 'prestige_screen'
     pd_styler = set_table_styles(df.style)
     pd_styler = apply_index_styles(df, style_name, pd_styler, axis='rows')
@@ -706,6 +686,26 @@ if __name__ == '__main__':
     TODO: Redo the fixing and merging so it works with new inputs
     """
     pass
+    row_spec_0 = DimSpec(var='country', has_total=True,
+        child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
+    row_spec_1 = DimSpec(var='home_country', has_total=True, sort_order=Sort.LBL)
+    row_spec_2 = DimSpec(var='car')
+
+    col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
+    col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True, sort_order=Sort.LBL,
+        child=DimSpec(var='agegroup', has_total=True, is_col=True,
+        pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
+    col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
+    tbl_spec = TblSpec(
+        tbl=DEMO_CROSS_TAB_NAME,
+        filter="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
+        row_specs=[row_spec_0, row_spec_1, row_spec_2],
+        col_specs=[col_spec_0, col_spec_1, col_spec_2],
+    )
+    yaml_fpath = Path(__file__).parent.parent.parent.parent.parent / 'store' / 'var_labels.yaml'
+    var_labels = yaml2varlabels(yaml_fpath,
+        vars2include=['agegroup', 'browser', 'car', 'country', 'gender', 'home_country',
+            'std_agegroup'], debug=False)
     # make_special_tbl()
     # print(get_raw_df(tbl_spec))
-    main(dp=3, debug=False, verbose=False)
+    main(tbl_spec, var_labels, dp=3, debug=False, verbose=False)
