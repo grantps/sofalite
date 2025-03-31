@@ -1,6 +1,12 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum
+from statistics import median
+
+from sofalite.init_conf.utils.boxplot import get_bottom_whisker, get_top_whisker
+from sofalite.init_conf.utils.histogram import BinDets  ## so available for import from here
+from sofalite.init_conf.utils.stats import get_quartiles
 
 MAX_RANKDATA_VALS = 100_000
 
@@ -177,3 +183,49 @@ class RegressionDets:
     y0: float
     x1: float
     y1: float
+
+class SortOrder(StrEnum):
+    VALUE = 'by value'
+    LABEL = 'by label'
+    INCREASING = 'by increasing frequency'
+    DECREASING = 'by decreasing frequency'
+
+class BoxplotType(StrEnum):
+    MIN_MAX_WHISKERS = 'min_max_whiskers'
+    HIDE_OUTLIERS = 'hide_outliers'
+    IQR_1_PT_5_OR_INSIDE = '1.5 IQR or inside'
+
+@dataclass(frozen=False)
+class BoxDets:
+    vals: Sequence[float]
+    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+
+    def __post_init__(self):
+        """
+        lower_box_val=box_dets.lower_box_val,
+        upper_box_val=box_dets.upper_box_val,
+        """
+        min_measure = min(self.vals)
+        max_measure = max(self.vals)
+        ## box
+        lower_quartile, upper_quartile = get_quartiles(self.vals)
+        self.box_bottom = lower_quartile
+        self.box_top = upper_quartile
+        ## median
+        self.median = median(self.vals)
+        ## whiskers
+        if self.boxplot_type == BoxplotType.MIN_MAX_WHISKERS:
+            self.bottom_whisker = min_measure
+            self.top_whisker = max_measure
+        else:
+            iqr = self.box_top - self.box_bottom
+            raw_bottom_whisker = self.box_bottom - (1.5 * iqr)
+            raw_top_whisker = self.box_top + (1.5 * iqr)
+            self.bottom_whisker = get_bottom_whisker(raw_bottom_whisker, self.box_bottom, self.vals)
+            self.top_whisker = get_top_whisker(raw_top_whisker, self.box_top, self.vals)
+        ## outliers
+        if self.boxplot_type == BoxplotType.IQR_1_PT_5_OR_INSIDE:
+            self.outliers = [x for x in self.vals
+                if x < self.bottom_whisker or x > self.top_whisker]
+        else:
+            self.outliers = []  ## hidden or inside whiskers

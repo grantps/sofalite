@@ -1,8 +1,8 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
 
 from sofalite.conf.charts.output.standard import CategorySpec
-from sofalite.output.charts.utils import get_optimal_axis_bounds
+from sofalite.conf.utils.stats import get_optimal_axis_bounds
 
 ## Histogram
 

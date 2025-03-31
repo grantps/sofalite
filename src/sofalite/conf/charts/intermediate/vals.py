@@ -4,9 +4,9 @@ from typing import Sequence
 from sofalite.conf.charts.output.non_standard import (
     BoxplotDataItem, BoxplotDataSeriesSpec, BoxplotIndivChartSpec, HistoIndivChartSpec)
 from sofalite.conf.charts.output.standard import CategorySpec
-from sofalite.conf.misc import BoxDets, BoxplotType, SortOrder
-from sofalite.stats_calc.engine import get_normal_ys
-from sofalite.stats_calc.histogram import get_bin_details_from_vals
+from sofalite.conf.stats.interfaces import BoxDets, BoxplotType, SortOrder
+from sofalite.init_conf.stats.engine import get_normal_ys
+from sofalite.conf.utils.histogram import get_bin_details_from_vals
 
 @dataclass(frozen=False)
 class BoxplotCategoryItemValsSpec:

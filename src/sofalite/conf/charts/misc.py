@@ -1,7 +1,7 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, Sequence
-
-from sofalite.conf.misc import StrConst
+from enum import StrEnum
+from typing import Literal
 
 AVG_LINE_HEIGHT_PIXELS = 12
 AVG_CHAR_WIDTH_PIXELS = 6.5
@@ -48,7 +48,7 @@ class HistogramConf:
 class HistogramData:
     vals: Sequence[float]
 
-class PlotStyle(StrConst):
+class PlotStyle(StrEnum):
     """
     Self-defined plot names added with addPlot in the sofalite chart js file.
      Each has different settings re: tension and markers.

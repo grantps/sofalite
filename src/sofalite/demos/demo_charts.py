@@ -13,8 +13,8 @@ from sofalite.conf.charts.output.non_standard import (
 from sofalite.conf.charts.output.standard import (
     AreaChartingSpec, BarChartingSpec, CategorySpec, DataItem, DataSeriesSpec,
     IndivChartSpec, LineChartingSpec, PieChartingSpec)
-from sofalite.conf.misc import BoxplotType, SortOrder
 from sofalite.conf.paths import DATABASE_FPATH
+from sofalite.conf.stats.interfaces import BoxplotType, SortOrder
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
@@ -28,7 +28,7 @@ pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
 def run_clustered_bar_chart():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -98,7 +98,7 @@ def run_clustered_bar_chart():
     open_new_tab(url=f"file://{fpath}")
 
 def run_multi_line_chart():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -172,7 +172,7 @@ def run_multi_line_chart():
     open_new_tab(url=f"file://{fpath}")
 
 def run_area_chart():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -238,7 +238,7 @@ def get_random_data_items(*, n_amounts, min_range: int, max_range: int) -> list[
     return data_items
 
 def run_time_series_chart_with_trend_and_smooth():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val='2022-01-01', lbl='2022-01-01'),
         CategorySpec(val='2022-02-01', lbl='2022-02-01'),
@@ -307,7 +307,7 @@ def run_time_series_chart_with_trend_and_smooth():
     open_new_tab(url=f"file://{fpath}")
 
 def run_pie_chart():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     ## https://en.wikipedia.org/wiki/List_of_operating_systems
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
@@ -363,7 +363,7 @@ def run_pie_chart():
     open_new_tab(url=f"file://{fpath}")
 
 def run_histo():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     indiv_chart_spec_male = HistoIndivChartSpec(
         lbl='Male',
         n_records=1_312,
@@ -417,7 +417,7 @@ def run_histo():
     open_new_tab(url=f"file://{fpath}")
 
 def run_scatterplot():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     data_series_spec_nz_male = ScatterDataSeriesSpec(
         lbl='Male',
         xy_pairs=[
@@ -1393,7 +1393,7 @@ def run_scatterplot():
     open_new_tab(url=f"file://{fpath}")
 
 def run_boxplots():
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='New Zealand'),
         CategorySpec(val=2, lbl='United States'),
@@ -1529,7 +1529,7 @@ def run_chart_data():
 
 def simple_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='grey_spirals')
+    style_dets = get_style_spec(style_name='grey_spirals')
     category_fld_name = 'gender'
     category_fld_lbl = 'Gender'
     category_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1563,7 +1563,7 @@ def simple_bar_chart_from_data():
 
 def multi_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'gender'
@@ -1602,7 +1602,7 @@ def multi_bar_chart_from_data():
 
 def clustered_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     series_fld_name = 'country'
     series_fld_lbl = 'Country'
     category_fld_name = 'gender'
@@ -1642,7 +1642,7 @@ def clustered_bar_chart_from_data():
 
 def multi_clustered_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     series_fld_name = 'gender'
@@ -1687,7 +1687,7 @@ def multi_clustered_bar_chart_from_data():
 
 def multi_line_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     series_fld_name = 'country'
     series_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1731,7 +1731,7 @@ def multi_line_chart_from_data():
 
 def area_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1773,7 +1773,7 @@ def area_chart_from_data():
 
 def pie_chart_from_data():
     ## design
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1807,7 +1807,7 @@ def pie_chart_from_data():
 
 def single_series_scatterplot_from_data():
     # ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     x_fld_name = 'age'
     x_fld_lbl = 'Age'
     y_fld_name = 'weight'
@@ -1840,7 +1840,7 @@ def single_series_scatterplot_from_data():
 
 def multi_series_scatterplot_from_data():
     # ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     series_fld_name = 'gender'
     series_fld_lbl = 'Gender'
     series_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1877,7 +1877,7 @@ def multi_series_scatterplot_from_data():
 
 def multi_chart_scatterplot_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1914,7 +1914,7 @@ def multi_chart_scatterplot_from_data():
 
 def multi_chart_series_scatterplot_from_data():
     ## conf
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1957,7 +1957,7 @@ def multi_chart_series_scatterplot_from_data():
 def histogram_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
@@ -1988,7 +1988,7 @@ def histogram_from_data():
 def multi_chart_histogram_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -2025,7 +2025,7 @@ def multi_chart_histogram_from_data():
 def boxplot_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     category_fld_name = 'country'
     category_fld_lbl = 'Country'
     category_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
@@ -2060,7 +2060,7 @@ def boxplot_from_data():
 def multi_series_boxplot_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style='default')
+    style_dets = get_style_spec(style_name='default')
     series_fld_name = 'gender'
     series_fld_lbl = 'Gender'
     series_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -2097,29 +2097,31 @@ def multi_series_boxplot_from_data():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-# simple_bar_chart_from_data()
-# multi_bar_chart_from_data()
-# clustered_bar_chart_from_data()
-# multi_clustered_bar_chart_from_data()
-# multi_line_chart_from_data()
-# area_chart_from_data()
-# pie_chart_from_data()
-# single_series_scatterplot_from_data()
-# multi_series_scatterplot_from_data()
-# multi_chart_scatterplot_from_data()
-# multi_chart_series_scatterplot_from_data()
-# histogram_from_data()
-# multi_chart_histogram_from_data()
-# boxplot_from_data()
-# multi_series_boxplot_from_data()
+if __name__ == '__main__':
+    pass
+    # simple_bar_chart_from_data()
+    # multi_bar_chart_from_data()
+    # clustered_bar_chart_from_data()
+    # multi_clustered_bar_chart_from_data()
+    # multi_line_chart_from_data()
+    # area_chart_from_data()
+    # pie_chart_from_data()
+    # single_series_scatterplot_from_data()
+    # multi_series_scatterplot_from_data()
+    # multi_chart_scatterplot_from_data()
+    # multi_chart_series_scatterplot_from_data()
+    # histogram_from_data()
+    # multi_chart_histogram_from_data()
+    # boxplot_from_data()
+    # multi_series_boxplot_from_data()
 
-# run_chart_data()
-#
-# run_clustered_bar_chart()
-# run_multi_line_chart()
-# run_time_series_chart_with_trend_and_smooth()
-# run_area_chart()
-# run_pie_chart()
-# run_histo()
-# run_scatterplot()
-# run_boxplots()
+    # run_chart_data()
+    #
+    # run_clustered_bar_chart()
+    # run_multi_line_chart()
+    # run_time_series_chart_with_trend_and_smooth()
+    # run_area_chart()
+    # run_pie_chart()
+    # run_histo()
+    # run_scatterplot()
+    # run_boxplots()

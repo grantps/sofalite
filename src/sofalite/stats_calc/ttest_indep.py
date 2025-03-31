@@ -1,5 +1,5 @@
-from sofalite.conf import stats_calc as stats_conf
 from sofalite.conf.data import ValDets
+from sofalite.conf.stats import interfaces as stats_interfaces
 from sofalite.sql_extraction.db import ExtendedCursor
 from sofalite.sql_extraction.utils import get_sample
 from sofalite.stats_calc import engine
@@ -9,7 +9,7 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
         grouping_fld_lbl: str, grouping_fld_name: str,
         group_a_val_dets: ValDets, group_b_val_dets: ValDets, grouping_val_is_numeric,
         measure_fld_lbl: str, measure_fld_name: str,
-        tbl_filt_clause: str | None = None) -> stats_conf.TTestIndepResultExt:
+        tbl_filt_clause: str | None = None) -> stats_interfaces.TTestIndepResultExt:
     """
     Get independent t-test results.
 
@@ -44,6 +44,6 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
         measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
     ## get results
     ttest_indep_results = engine.ttest_ind(sample_a, sample_b)
-    ttest_indep_results_extended = stats_conf.TTestIndepResultExt(**todict(ttest_indep_results),
+    ttest_indep_results_extended = stats_interfaces.TTestIndepResultExt(**todict(ttest_indep_results),
         group_lbl=grouping_fld_lbl, measure_fld_lbl=measure_fld_lbl)
     return ttest_indep_results_extended

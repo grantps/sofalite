@@ -1,17 +1,17 @@
 import jinja2
 
-from sofalite.conf.stats_calc import AnovaResultExt, NumericSampleDetsFormatted
-from sofalite.conf.stats_output import (
+from sofalite.conf.stats.interfaces import AnovaResultExt, NumericSampleDetsFormatted
+from sofalite.conf.stats.output import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
     p_explain_multiple_groups,
     skew_explain, std_dev_explain,
 )
 from sofalite.conf.style import StyleSpec
-from sofalite.output.charts import mpl_pngs
+from sofalite.stats_calc.utils import get_p_str
+from sofalite.output import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
-from sofalite.stats_calc.utils import get_p_str
 from sofalite.utils.maths import format_num
 
 def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
@@ -130,7 +130,6 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
         sample_mean = num_tpl.format(round(orig_group_dets.mean, dp))
         kurt = num_tpl.format(round(orig_group_dets.kurtosis, dp))
         skew_val = num_tpl.format(round(orig_group_dets.skew, dp))
-        p = get_p_str(orig_group_dets.p)
         formatted_group_dets = NumericSampleDetsFormatted(
             lbl=orig_group_dets.lbl,
             n=n,
@@ -141,7 +140,7 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
             sample_max=str(orig_group_dets.sample_max),
             kurtosis=kurt,
             skew=skew_val,
-            p=p,
+            p=orig_group_dets.p,
         )
         formatted_groups_dets.append(formatted_group_dets)
         ## make images

@@ -3,7 +3,7 @@ from textwrap import dedent
 from typing import Sequence
 
 from sofalite.conf.charts.output.standard import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
-from sofalite.conf.misc import SortOrder
+from sofalite.init_conf.stats.interfaces import SortOrder
 
 ## by category only (one chart, one series)
 

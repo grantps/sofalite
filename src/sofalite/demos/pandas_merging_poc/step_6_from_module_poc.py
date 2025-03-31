@@ -1,5 +1,7 @@
 """
 Run entirely from config and library modules.
+
+TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
 """
 from pathlib import Path
 

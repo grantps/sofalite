@@ -4,7 +4,7 @@ from itertools import groupby  ## actually quite performant
 from sofalite.conf.charts.intermediate.vals import (
     BoxplotCategoryItemValsSpec, BoxplotCategoryValsSpecs, BoxplotSeriesCategoryValsSpecs,
     BoxplotSeriesItemCategoryValsSpecs)
-from sofalite.conf.misc import BoxplotType, SortOrder
+from sofalite.conf.stats.interfaces import BoxplotType, SortOrder
 from sofalite.sql_extraction.db import ExtendedCursor
 
 def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,

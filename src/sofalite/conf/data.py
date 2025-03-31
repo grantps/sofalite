@@ -1,13 +1,13 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
-from sofalite.conf.misc import StrConst
 
 @dataclass(frozen=True)
 class ValDets:
     lbl: str
     val: Any
 
-class ValType(StrConst):
+class ValType(StrEnum):
     IS_SEQ = 'is_sequence'
     IS_NULLABLE = 'is_nullable'
     DATA_ENTRY_OK = 'data_entry_ok'  ## e.g. not autonumber, timestamp etc

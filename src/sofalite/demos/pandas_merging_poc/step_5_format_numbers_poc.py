@@ -23,8 +23,6 @@ TODO - rounding and displaying as 2 digit numbers not:
 but
 | 2.38|
 |22.22|
-
-TODO - see if home_country > gender will blend badly when pandas automatically concats vertically with country > gender
 """
 from collections.abc import Collection
 from dataclasses import dataclass

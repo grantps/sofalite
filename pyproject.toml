@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.1.8"
+version = "0.1.9"
 description = "SOFA Statistics as a library only and with sane code"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -31,67 +31,88 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/sofalite"]
 
+## >>> lint-imports
+## https://import-linter.readthedocs.io/en/stable/contract_types.html#layers
+
 [tool.importlinter]
 root_packages = [ "sofalite" ]
 
 [[tool.importlinter.contracts]]
-name = "Modular Design"
+name = "Layered Design"
 type = "layers"
 layers = [
-    "sql_extraction",
     "output",
+    "stats_calc",
+    "sql_extraction",
+    "utils",
+    "conf",
+    "init_conf",
     "start",
 ]
-containers = [ "sofalite" ]
-exhaustive = true
-exhaustive_ignores = [ "stats_calc", "conf"]
-
-[[tool.importlinter.contracts]]
-name = "sql_extraction"
-type = "layers"
-layers = [
-    "utils",
-    "charts | tables",
-    "db",
-]
-containers = [ "sofalite.sql_extraction" ]
-exhaustive = true
+containers = ["sofalite"]
+exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "output"
+name = "init_conf Hidden Above Conf"
+type = "forbidden"
+source_modules = [
+    "sofalite.output",
+    "sofalite.stats_calc",
+    "sofalite.sql_extraction",
+    "sofalite.utils",
+]
+forbidden_modules = [
+    "sofalite.init_conf",
+]
+allow_indirect_imports = true
+ignore_imports = [  ## not config but functions - needed in init_conf so conf can use these functions to create @property attributes on demand
+    "sofalite.stats_calc.boxplot -> sofalite.init_conf.utils.boxplot",
+    "sofalite.stats_calc.engine -> sofalite.init_conf.stats.engine",
+    "sofalite.stats_calc.histogram -> sofalite.init_conf.utils.histogram",
+    "sofalite.utils.maths -> sofalite.init_conf.utils.maths",
+]
+
+[[tool.importlinter.contracts]]
+name = "init_conf Layered"
 type = "layers"
 layers = [
     "stats",
-    "charts | tables"
+    "utils",
 ]
-containers = [ "sofalite.output" ]
-exhaustive = true
+containers = ["sofalite.init_conf"]
+exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "stats_calc"
+name = "conf Layered"
 type = "layers"
 layers = [
-    "ttest_indep | anova",
-    "histogram",
-    "boxplot",
-    "engine",
-    "utils"
+    "charts | data | paths | style| tables",
+    "misc | stats",
 ]
-containers = [ "sofalite.stats_calc" ]
-exhaustive = true
+containers = ["sofalite.conf"]
+exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "conf"
+name = "conf.charts Layered"
 type = "layers"
 layers = [
-    "charts",
-    "data | paths | stats_output | style | tables",
-    "misc",
-    "stats_calc",
+    "intermediate | misc",  ## specific use of output
+    "output",
 ]
-containers = [ "sofalite.conf" ]
-exhaustive = true
+containers = ["sofalite.conf.charts"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "output Layered"
+type = "layers"
+layers = [
+    "charts | stats | tables",
+    "styles",
+]
+containers = ["sofalite.output"]
+exhaustive = false
 exhaustive_ignores = []

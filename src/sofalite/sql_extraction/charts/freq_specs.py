@@ -16,7 +16,7 @@ from sofalite.conf.charts.intermediate.freq_specs import (
     ChartCategoryFreqSpec, ChartCategoryFreqSpecs,
     ChartSeriesCategoryFreqSpec, ChartSeriesCategoryFreqSpecs,
     SeriesCategoryFreqSpec, SeriesCategoryFreqSpecs)
-from sofalite.conf.misc import SortOrder
+from sofalite.conf.stats.interfaces import SortOrder
 from sofalite.sql_extraction.db import ExtendedCursor
 
 def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,

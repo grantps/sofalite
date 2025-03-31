@@ -4,10 +4,10 @@ Grouping variable
 Measurement variable
 Precision level
 """
-from typing import Sequence
+from collections.abc import Sequence
 
-from sofalite.conf import stats_calc as stats_conf
 from sofalite.conf.data import ValDets
+from sofalite.conf.stats import interfaces as stats_interfaces
 from sofalite.sql_extraction.db import ExtendedCursor
 from sofalite.sql_extraction.utils import get_sample
 from sofalite.stats_calc import engine
@@ -18,7 +18,7 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
         grouping_fld_vals_dets: Sequence[ValDets], grouping_val_is_numeric,
         measure_fld_lbl: str, measure_fld_name: str,
         tbl_filt_clause: str | None = None,
-        high_precision_required=False) -> stats_conf.AnovaResultExt:
+        high_precision_required=False) -> stats_interfaces.AnovaResultExt:
     """
     Get ANOVA results.
 
@@ -53,6 +53,6 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
     ## get results
     anova_results = engine.anova(grouping_fld_lbl, measure_fld_lbl,
         samples, high=high_precision_required)
-    anova_results_extended = stats_conf.AnovaResultExt(**todict(anova_results),
+    anova_results_extended = stats_interfaces.AnovaResultExt(**todict(anova_results),
         group_lbl=grouping_fld_lbl, measure_fld_lbl=measure_fld_lbl)
     return anova_results_extended
