@@ -13,6 +13,8 @@ YELLOW = '#f7ae54'
 YELLOW_HIGHLIGHT = '#f88e0a'
 BLACK_BLUE = '#333435'
 MID_GREY = '#c0c0c0'
+BLUE_GREY = '#6798a8'
+DARKER_GREY = '#919191'
 WHITE = '#ffffff'
 BLACK = '#000000'
 
@@ -26,15 +28,15 @@ def get_style_spec() -> StyleSpec:
         gui_msg_font_colour=BLACK_BLUE,  ## replacing #29221c;
         gui_note_font_colour=BLACK_BLUE,
         ## background colours
-        var_bg_colour_first_level=MID_GREY,
+        var_bg_colour_first_level=LIGHT_BLUE,
         var_bg_colour_not_first_level=MID_GREY,
         gui_note_bg_colour=MID_GREY,
         ## borders
-        var_border_colour_first_level=MID_GREY,
-        var_border_colour_not_first_level=MID_GREY,
+        var_border_colour_first_level=BLUE_GREY,
+        var_border_colour_not_first_level=DARKER_GREY,
         ## spaceholders
-        spaceholder_bg_colour=MID_GREY,
-        spaceholder_bg_img='none',
+        spaceholder_bg_colour=LIGHT_BLUE,
+        spaceholder_bg_img=None,
     )
     chart_spec = ChartStyleSpec(
         chart_bg_colour=WHITE,
@@ -65,6 +67,7 @@ def get_style_spec() -> StyleSpec:
         tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
     style_spec = StyleSpec(
+        name='two_degrees',
         table=table_spec,
         chart=chart_spec,
         dojo=dojo_spec,

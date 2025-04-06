@@ -3,12 +3,13 @@ from itertools import count
 from bs4 import BeautifulSoup
 import pandas as pd
 
+from sofalite.conf.style import StyleSpec
 from sofalite.conf.tables.misc import BLANK
 
 def is_empty_th(th) -> bool:
     return th.string in (None, ' ', '\xa0')
 
-def fix_top_left_box(raw_tbl_html: str, style_name: str, *, debug=False, verbose=False) -> str:
+def fix_top_left_box(raw_tbl_html: str, style_spec: StyleSpec, *, debug=False, verbose=False) -> str:
     """
     Merge top-left cells.
 
@@ -57,7 +58,7 @@ def fix_top_left_box(raw_tbl_html: str, style_name: str, *, debug=False, verbose
     tl_box_th = soup.new_tag('th')
     tl_box_th['rowspan'] = str(n_header_rows)
     tl_box_th['colspan'] = str(n_header_cols)
-    tl_box_th['class'] = f"spaceholder-{style_name.replace('_', '-')}"
+    tl_box_th['class'] = f"spaceholder-{style_spec.name.replace('_', '-')}"
     first_tr_first_th = first_tr_ths[0]
     first_tr_first_th.replace_with(tl_box_th)  ## Step 2 happens
     ## Step 3 Remove redundant ths

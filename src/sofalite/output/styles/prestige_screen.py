@@ -87,6 +87,7 @@ def get_style_spec() -> StyleSpec:
         tooltip_connector_right=f"{SOFALITE_WEB_RESOURCES_ROOT}/tooltipConnectorRight-{connector_style}.png",
     )
     style_spec = StyleSpec(
+        name='prestige_screen',
         table=table_spec,
         chart=chart_spec,
         dojo=dojo_spec,

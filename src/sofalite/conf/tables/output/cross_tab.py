@@ -4,6 +4,7 @@ from enum import StrEnum
 from itertools import product
 from typing import Self
 
+from sofalite.conf.misc import VarLabels
 from sofalite.conf.tables.misc import Metric, Sort
 
 class PctType(StrEnum):
@@ -78,10 +79,11 @@ class DimSpec:
 
 @dataclass(frozen=True, kw_only=True)
 class TblSpec:
-    tbl: str
+    src_tbl: str
     tbl_filter: str | None
     row_specs: list[DimSpec]
     col_specs: list[DimSpec]
+    var_labels: VarLabels
 
     @staticmethod
     def _get_dupes(_vars: Collection[str]) -> set[str]:

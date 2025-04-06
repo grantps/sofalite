@@ -20,31 +20,26 @@ But that's enough complexity. Anything more, better making multiple, individuall
 from collections.abc import Collection
 from functools import partial
 from itertools import combinations, count
-from pathlib import Path
-import sqlite3 as sqlite
 
 import pandas as pd
 
+from sofalite.conf.style import StyleSpec
 from sofalite.conf.tables.output.cross_tab import PctType, TblSpec
 from sofalite.conf.tables.misc import BLANK, TOTAL, Metric
-from sofalite.demos.pandas_merging_poc.utils.html_fixes import (
+from sofalite.output.tables.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
-from sofalite.demos.pandas_merging_poc.utils.misc import apply_index_styles, display_tbl, set_table_styles
-from sofalite.demos.pandas_merging_poc.utils.multi_index_sort import get_sorted_multi_index_list
-from sofalite.utils.labels import VarLabels
+from sofalite.output.tables.utils.misc import apply_index_styles, set_table_styles
+from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
+from sofalite.conf.misc import VarLabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1_000)
 
-def get_raw_df(db_fpath: Path, tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
-    con = sqlite.connect(db_fpath)
-    cur = con.cursor()
-    cur.execute(f"SELECT * FROM {tbl_spec.tbl}")
+def get_raw_df(cur, tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
+    cur.execute(f"SELECT * FROM {tbl_spec.src_tbl}")
     data = cur.fetchall()
-    cur.close()
-    con.close()
     df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
     if debug:
         print(df)
@@ -71,8 +66,7 @@ def get_orders_for_multi_index_branches(tbl_spec: TblSpec) -> dict:
             orders[dim_vars] = tuple(sort_dets)
     return orders
 
-def get_data_from_spec(
-        db_fpath: Path, tbl_spec: TblSpec, all_variables: Collection[str], totalled_variables: Collection[str],
+def get_data_from_spec(cur, tbl_spec: TblSpec, all_variables: Collection[str], totalled_variables: Collection[str],
         *, debug=False) -> list[list]:
     """
     rows: country (TOTAL) > gender (TOTAL)
@@ -120,15 +114,13 @@ def get_data_from_spec(
     Step 3 - concat all data (data + ...)
     """
     data = []
-    con = sqlite.connect(db_fpath)
-    cur = con.cursor()
     ## Step 0 - variable lists
     n_totalled = len(totalled_variables)
     ## Step 1 - group by all
     main_flds = ', '.join(all_variables)
     sql_main = f"""\
     SELECT {main_flds}, COUNT(*) AS n
-    FROM {tbl_spec.tbl}
+    FROM {tbl_spec.src_tbl}
     {tbl_spec.tbl_filter}
     GROUP BY {main_flds}
     """
@@ -158,7 +150,7 @@ def get_data_from_spec(
         group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
         sql_totalled = f"""\
         {select_str}
-        FROM {tbl_spec.tbl}
+        FROM {tbl_spec.src_tbl}
         {tbl_spec.tbl_filter}
         {group_by}
         """
@@ -361,8 +353,7 @@ Web Browser  Chrome   Age Group     < 20      Freq        18
     if debug: print(df_pre_pivot_inc_pct)
     return df_pre_pivot_inc_pct
 
-def get_row_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, row_idx: int, dp: int = 2,
-        debug=False) -> pd.DataFrame:
+def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
     e.g.
@@ -407,9 +398,9 @@ def get_row_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, row_
         col_vars = col_spec.self_and_descendant_vars
         totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
         all_variables = row_vars + col_vars
-        data = get_data_from_spec(db_fpath=db_fpath, tbl_spec=tbl_spec,
+        data = get_data_from_spec(cur, tbl_spec=tbl_spec,
             all_variables=all_variables, totalled_variables=totalled_variables, debug=debug)
-        df_col = get_all_metrics_df_from_vars(data, var_labels, row_vars=row_vars, col_vars=col_vars,
+        df_col = get_all_metrics_df_from_vars(data, tbl_spec.var_labels, row_vars=row_vars, col_vars=col_vars,
             n_row_fillers=n_row_fillers, n_col_fillers=tbl_spec.max_col_depth - len(col_vars),
             pct_metrics=col_spec.self_or_descendant_pct_metrics, dp=dp, debug=debug)
         df_cols.append(df_col)
@@ -417,7 +408,7 @@ def get_row_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, row_
     df_cols_remaining = df_cols[1:]
     row_merge_on = []
     for row_var in row_vars:
-        val_labels = var_labels.var2var_label_spec[row_var]
+        val_labels = tbl_spec.var_labels.var2var_label_spec[row_var]
         row_merge_on.append(val_labels.pandas_var)
         row_merge_on.append(val_labels.name)
     for i in range(n_row_fillers):
@@ -427,7 +418,7 @@ def get_row_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, row_
         df = df.merge(df_next_col, how='outer', on=row_merge_on)
     return df
 
-def get_tbl_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
     to avoid repeating the row dimension columns e.g. country and gender.
@@ -461,7 +452,7 @@ def get_tbl_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, dp: 
     So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
     If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
     """
-    dfs = [get_row_df(db_fpath=db_fpath, tbl_spec=tbl_spec, var_labels=var_labels, row_idx=row_idx, dp=dp, debug=debug)
+    dfs = [get_row_df(cur, tbl_spec=tbl_spec, row_idx=row_idx, dp=dp, debug=debug)
         for row_idx in range(len(tbl_spec.row_specs))]
     ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
     ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
@@ -477,43 +468,40 @@ def get_tbl_df(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, *, dp: 
     df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
     if debug: print(f"\nCOMBINED:\n{df}")
     ## Sorting indexes
-    raw_df = get_raw_df(db_fpath=db_fpath, tbl_spec=tbl_spec, debug=debug)
+    raw_df = get_raw_df(cur, tbl_spec=tbl_spec, debug=debug)
     orders_for_multi_index_branches = get_orders_for_multi_index_branches(tbl_spec)
     ## COLS
     unsorted_col_multi_index_list = list(df.columns)
     sorted_col_multi_index_list = get_sorted_multi_index_list(
         unsorted_col_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
-        var_lbl2var=var_labels.var_lbl2var, var_and_val_lbl2val=var_labels.var_and_val_lbl2val,
+        var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=True, debug=debug)
     sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     ## ROWS
     unsorted_row_multi_index_list = list(df.index)
     sorted_row_multi_index_list = get_sorted_multi_index_list(
         unsorted_row_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
-        var_lbl2var=var_labels.var_lbl2var, var_and_val_lbl2val=var_labels.var_and_val_lbl2val,
+        var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=False, debug=debug)
     sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
     if debug: print(f"\nORDERED:\n{df}")
     return df
 
-## TODO: follow std output approach - return HTML? Header included?
-def display_cross_tab(db_fpath: Path, tbl_spec: TblSpec, var_labels: VarLabels, output_fname: str, *,
-        dp: int = 2, debug=False, verbose=False):
-    df = get_tbl_df(db_fpath, tbl_spec, var_labels, dp=dp, debug=debug)
-    style_name = 'prestige_screen'
+def get_html(cur, tbl_spec: TblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
+    df = get_tbl_df(cur, tbl_spec, dp=dp, debug=debug)
     pd_styler = set_table_styles(df.style)
-    pd_styler = apply_index_styles(df, style_name, pd_styler, axis='rows')
-    pd_styler = apply_index_styles(df, style_name, pd_styler, axis='columns')
+    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')
+    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='columns')
     raw_tbl_html = pd_styler.to_html()
     if debug:
         print(raw_tbl_html)
     ## Fix
     tbl_html = raw_tbl_html
-    tbl_html = fix_top_left_box(tbl_html, style_name, debug=debug, verbose=verbose)
+    tbl_html = fix_top_left_box(tbl_html, style_spec, debug=debug, verbose=verbose)
     tbl_html = merge_cols_of_blanks(tbl_html, debug=debug)
     tbl_html = merge_rows_of_blanks(tbl_html, debug=debug, verbose=verbose)
     if debug:
         print(pd_styler.uuid)
         print(tbl_html)
-    display_tbl(tbl_html, output_fname, style_name)
+    return tbl_html

@@ -1,3 +1,1 @@
-from sofalite.conf.stats.interfaces import *
-from sofalite.conf.utils.maths import *
-from sofalite.conf.utils.stats import *
+from sofalite.init_conf.utils.stats import get_obriens_msg, get_p_str  ## noqa -

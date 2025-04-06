@@ -1,6 +1,4 @@
 """
-TODO: think through how pandas approach works with subtrees which have multiple sub-children e.g. [gender, [age_group, car]]
-
 TODO: go to store.table_dim_specs_experiment; make special dataset in sqlite which has
     gender vs country data but not gender vs age_group
     and we have a pattern which will display all nulls for one block

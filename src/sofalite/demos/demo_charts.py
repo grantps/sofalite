@@ -28,7 +28,7 @@ pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 500)
 
 def run_clustered_bar_chart():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -91,14 +91,14 @@ def run_clustered_bar_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_clustered_bar_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_multi_line_chart():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -165,14 +165,14 @@ def run_multi_line_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_area_chart():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
         CategorySpec(val=2, lbl='Microsoft<br>Windows'),
@@ -222,7 +222,7 @@ def run_area_chart():
         x_axis_title='Operating System',
         y_axis_title='Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_area_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -238,7 +238,7 @@ def get_random_data_items(*, n_amounts, min_range: int, max_range: int) -> list[
     return data_items
 
 def run_time_series_chart_with_trend_and_smooth():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val='2022-01-01', lbl='2022-01-01'),
         CategorySpec(val='2022-02-01', lbl='2022-02-01'),
@@ -300,14 +300,14 @@ def run_time_series_chart_with_trend_and_smooth():
         x_axis_title='Operating System',
         y_axis_title='Extreme Technical Excellence',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_time_series_chart_with_trend_and_smooth.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_pie_chart():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     ## https://en.wikipedia.org/wiki/List_of_operating_systems
     category_specs = [
         CategorySpec(val=1, lbl='Ubuntu<br>Linux'),
@@ -356,14 +356,14 @@ def run_pie_chart():
         indiv_chart_specs=[indiv_chart_spec_male, indiv_chart_spec_female],
         show_n_records=True,
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_pie_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_histo():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     indiv_chart_spec_male = HistoIndivChartSpec(
         lbl='Male',
         n_records=1_312,
@@ -410,14 +410,14 @@ def run_histo():
         x_axis_max_val=96,
         x_axis_min_val=1,
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_histo.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_scatterplot():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     data_series_spec_nz_male = ScatterDataSeriesSpec(
         lbl='Male',
         xy_pairs=[
@@ -1386,14 +1386,14 @@ def run_scatterplot():
         x_axis_title='Age',
         y_axis_title='Post-diet Weight',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_scatterplot.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
 def run_boxplots():
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_specs = [
         CategorySpec(val=1, lbl='New Zealand'),
         CategorySpec(val=2, lbl='United States'),
@@ -1490,7 +1490,7 @@ def run_boxplots():
         x_axis_title='Country',
         y_axis_title='Age',
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_boxplot.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1529,7 +1529,7 @@ def run_chart_data():
 
 def simple_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='grey_spirals')
+    style_spec = get_style_spec(style_name='grey_spirals')
     category_fld_name = 'gender'
     category_fld_lbl = 'Gender'
     category_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1555,7 +1555,7 @@ def simple_bar_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1563,7 +1563,7 @@ def simple_bar_chart_from_data():
 
 def multi_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'gender'
@@ -1594,7 +1594,7 @@ def multi_bar_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_bar_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1602,7 +1602,7 @@ def multi_bar_chart_from_data():
 
 def clustered_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     series_fld_name = 'country'
     series_fld_lbl = 'Country'
     category_fld_name = 'gender'
@@ -1634,7 +1634,7 @@ def clustered_bar_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_clustered_bar_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1642,7 +1642,7 @@ def clustered_bar_chart_from_data():
 
 def multi_clustered_bar_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     series_fld_name = 'gender'
@@ -1679,7 +1679,7 @@ def multi_clustered_bar_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_clustered_bar_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1687,7 +1687,7 @@ def multi_clustered_bar_chart_from_data():
 
 def multi_line_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     series_fld_name = 'country'
     series_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1723,7 +1723,7 @@ def multi_line_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1731,7 +1731,7 @@ def multi_line_chart_from_data():
 
 def area_chart_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1765,7 +1765,7 @@ def area_chart_from_data():
         y_axis_title='Freq',
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_area_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1773,7 +1773,7 @@ def area_chart_from_data():
 
 def pie_chart_from_data():
     ## design
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'country'
     chart_fld_lbl = 'Country'
     category_fld_name = 'browser'
@@ -1799,7 +1799,7 @@ def pie_chart_from_data():
         show_n_records=True,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_pie_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1807,7 +1807,7 @@ def pie_chart_from_data():
 
 def single_series_scatterplot_from_data():
     # ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     x_fld_name = 'age'
     x_fld_lbl = 'Age'
     y_fld_name = 'weight'
@@ -1832,7 +1832,7 @@ def single_series_scatterplot_from_data():
         y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_single_series_scatterplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1840,7 +1840,7 @@ def single_series_scatterplot_from_data():
 
 def multi_series_scatterplot_from_data():
     # ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     series_fld_name = 'gender'
     series_fld_lbl = 'Gender'
     series_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1869,7 +1869,7 @@ def multi_series_scatterplot_from_data():
         y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_series_scatterplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1877,7 +1877,7 @@ def multi_series_scatterplot_from_data():
 
 def multi_chart_scatterplot_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1906,7 +1906,7 @@ def multi_chart_scatterplot_from_data():
         y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_scatterplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1914,7 +1914,7 @@ def multi_chart_scatterplot_from_data():
 
 def multi_chart_series_scatterplot_from_data():
     ## conf
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -1948,7 +1948,7 @@ def multi_chart_series_scatterplot_from_data():
         y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_series_scatterplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1957,7 +1957,7 @@ def multi_chart_series_scatterplot_from_data():
 def histogram_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
@@ -1979,7 +1979,7 @@ def histogram_from_data():
         x_axis_min_val=x_axis_min_val,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_histogram_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -1988,7 +1988,7 @@ def histogram_from_data():
 def multi_chart_histogram_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     chart_fld_name = 'gender'
     chart_fld_lbl = 'Gender'
     chart_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -2016,7 +2016,7 @@ def multi_chart_histogram_from_data():
         x_axis_min_val=x_axis_min_val,
     )
     ## output
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_histogram_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -2025,7 +2025,7 @@ def multi_chart_histogram_from_data():
 def boxplot_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     category_fld_name = 'country'
     category_fld_lbl = 'Country'
     category_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
@@ -2051,7 +2051,7 @@ def boxplot_from_data():
         x_axis_title=intermediate_charting_spec.category_fld_lbl,
         y_axis_title=intermediate_charting_spec.fld_lbl,
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_boxplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -2060,7 +2060,7 @@ def boxplot_from_data():
 def multi_series_boxplot_from_data():
     ## conf
     dp = 3
-    style_dets = get_style_spec(style_name='default')
+    style_spec = get_style_spec(style_name='default')
     series_fld_name = 'gender'
     series_fld_lbl = 'Gender'
     series_vals2lbls = {1: 'Male', 2: 'Female'}
@@ -2091,7 +2091,7 @@ def multi_series_boxplot_from_data():
         x_axis_title=intermediate_charting_spec.category_fld_lbl,
         y_axis_title=intermediate_charting_spec.fld_lbl,
     )
-    html = get_html(charting_spec, style_dets)
+    html = get_html(charting_spec, style_spec)
     fpath = '/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)

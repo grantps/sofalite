@@ -1,7 +1,7 @@
 [project]
 name = "sofalite"
-version = "0.1.9"
-description = "SOFA Statistics as a library only and with sane code"
+version = "0.2.0"
+description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
 ]
@@ -53,7 +53,17 @@ containers = ["sofalite"]
 exhaustive = false
 exhaustive_ignores = []
 
+## I want a simple narrative about layers where higher can access lower but never the other way around
+## But, there are functions needed at a conf level, which I would like to be very low, which are also needed at higher levels
+## Solution - put those functions at a pre-conf level (init_conf) and only allow conf to get access to init_conf.
+## But, need a few execeptions where we allw some function from init_conf to be served up from higher-level places.
+## So we have a few exceptions to the only conf can access init_conf rule. And only to serve them up as library code at a higher level from which client code will access them i.e. not dorectly from init_conf.
+## An alternative would be to have some conf at a much higher-level.
+## Is it worth having so much conf at the lowest level? Open question.
+## Probably not - you still end up with needing some interfaces defined lower than where the functions they may need,
+## e.g. to fulfil @properties, will naturally belong above in the layer hierarchy.
 [[tool.importlinter.contracts]]
+## want to pass these through to higher-level modules so they can be accessed from the logical place e.g. all stats calculation code together
 name = "init_conf Hidden Above Conf"
 type = "forbidden"
 source_modules = [
@@ -70,6 +80,7 @@ ignore_imports = [  ## not config but functions - needed in init_conf so conf ca
     "sofalite.stats_calc.boxplot -> sofalite.init_conf.utils.boxplot",
     "sofalite.stats_calc.engine -> sofalite.init_conf.stats.engine",
     "sofalite.stats_calc.histogram -> sofalite.init_conf.utils.histogram",
+    "sofalite.stats_calc.utils -> sofalite.init_conf.utils.stats",
     "sofalite.utils.maths -> sofalite.init_conf.utils.maths",
 ]
 

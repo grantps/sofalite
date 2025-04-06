@@ -80,6 +80,7 @@ class DojoStyleSpec:
 
 @dataclass(frozen=True)
 class StyleSpec:
+    name: str
     table: TableStyleSpec
     chart: ChartStyleSpec
     dojo: DojoStyleSpec

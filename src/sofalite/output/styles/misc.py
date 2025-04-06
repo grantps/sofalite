@@ -50,13 +50,13 @@ def get_style_names() -> list[str]:
 def get_style_spec(style_name: str) -> StyleSpec:
     """
     Get dataclass with key colour details and so on e.g.
-    style_dets.table_dets.heading_cell_border (DARKER_MID_GREY)
-    style_dets.table_dets.first_row_border (None)
+    style_spec.table_spec.heading_cell_border (DARKER_MID_GREY)
+    style_spec.table_spec.first_row_border (None)
     """
     style_module = importlib.import_module(f"sofalite.output.styles.{style_name}")
     return style_module.get_style_spec()
 
-def get_all_style_dets() -> dict[str, StyleSpec]:
+def get_all_style_specs() -> dict[str, StyleSpec]:
     style_names = get_style_names()
     style_specs = {}
     for style_name in style_names:
@@ -288,7 +288,7 @@ def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list
 
 def get_styled_misc_css(chart_style_spec: ChartStyleSpec, table_style_spec: TableStyleSpec) -> str:
     """
-    TODO: remove
+    TODO: apparently remove - but why? Because unused now? Seems like old SOFA table CSS settings
     """
     tpl = """\
         .gui-msg-medium, gui-msg-small{

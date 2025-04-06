@@ -19,8 +19,8 @@ def run_anova():
             grouping_fld_vals_dets=grouping_fld_vals_dets,
             grouping_val_is_numeric=True,
             measure_fld_lbl='Age', measure_fld_name='age', high_precision_required=False)
-        style_dets = get_style_spec(style_name='prestige_screen')
-        html = html_anova.make_anova_html(results, style_dets, dp=3, show_workings=False)
+        style_spec = get_style_spec(style_name='prestige_screen')
+        html = html_anova.make_anova_html(results, style_spec, dp=3, show_workings=False)
         fpath = '/home/g/Documents/sofalite/reports/anova_age_by_country_prestige_screen.html'
         with open(fpath, 'w') as f:
             f.write(html)
@@ -35,8 +35,8 @@ def run_ttest_indep():
             group_a_val_dets=group_a_val_dets, group_b_val_dets=group_b_val_dets,
             grouping_val_is_numeric=True,
             measure_fld_lbl='Age', measure_fld_name='age')
-        style_dets = get_style_spec(style_name='default')
-        html = html_ttest_indep.make_ttest_indep_html(results, style_dets, dp=3, show_workings=False)
+        style_spec = get_style_spec(style_name='default')
+        html = html_ttest_indep.make_ttest_indep_html(results, style_spec, dp=3, show_workings=False)
         fpath = '/home/g/Documents/sofalite/reports/ttest_indep_age_by_country_default.html'
         with open(fpath, 'w') as f:
             f.write(html)

@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 import numpy as np
 
+from sofalite.conf.style import StyleSpec
 from sofalite.conf.tables.misc import PCT_METRICS, Metric
 from sofalite.output.styles.misc import get_generic_css, get_placeholder_css, get_style_spec
 
@@ -74,7 +75,8 @@ def set_table_styles(pd_styler: Styler) -> Styler:
     So setting colour for th by set_table_styles() here will override
     colour set by apply_index() for individual index cells (th's are used for both col and row index cells).
 
-    Therefore, the things we set here mustn't contradict what is in the indiv index CSS settings.
+    Therefore, the things we set here mustn't contradict what is in the indiv index CSS settings
+    in apply_index_styles() below.
     """
     headers = {
         "selector": "th",
@@ -83,7 +85,8 @@ def set_table_styles(pd_styler: Styler) -> Styler:
     pd_styler.set_table_styles([headers, ])  ## changes style.Styler for df (which is invoked when style.to_html() is applied
     return pd_styler
 
-def apply_index_styles(df: pd.DataFrame, style_name: str, pd_styler: Styler, *, axis: Literal['rows', 'columns']) -> Styler:
+def apply_index_styles(
+        df: pd.DataFrame, style_spec: StyleSpec, pd_styler: Styler, *, axis: Literal['rows', 'columns']) -> Styler:
     """
     Index i.e. row and column headings.
 
@@ -104,7 +107,6 @@ def apply_index_styles(df: pd.DataFrame, style_name: str, pd_styler: Styler, *, 
     df.columns.levshape
     (2, 10, 2, 5, 3) var, val, var, val, measure <==== always has one level for measure
     """
-    style_spec = get_style_spec(style_name)
     tbl_style_spec = style_spec.table
     n_row_index_levels = df.index.nlevels
     n_col_index_levels = df.columns.nlevels
@@ -116,13 +118,15 @@ def apply_index_styles(df: pd.DataFrame, style_name: str, pd_styler: Styler, *, 
     def variable_name_first_level(s: pd.Series) -> list[str]:
         css_str = (f"background-color: {tbl_style_spec.var_bg_colour_first_level}; "
             f"color: {tbl_style_spec.var_font_colour_first_level}; "
-            "font-size: 14px; font-weight: bold;")
+            "font-size: 14px; font-weight: bold; "
+            f"border: solid 1px {tbl_style_spec.var_border_colour_first_level};")
         return get_css_list(s, css_str)
 
     def variable_name_not_first_level(s: pd.Series) -> list[str]:
         css_str = (f"background-color: {tbl_style_spec.var_bg_colour_not_first_level}; "
             f"color: {tbl_style_spec.var_font_colour_not_first_level}; "
-            "font-size: 14px; font-weight: bold;")
+            "font-size: 14px; font-weight: bold;"
+            f"border: solid 1px {tbl_style_spec.var_border_colour_not_first_level};")
         return get_css_list(s, css_str)
 
     def value(s: pd.Series) -> list[str]:
