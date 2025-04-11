@@ -168,12 +168,16 @@ def get_metric2order(metric: Metric) -> int:
 
 def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, str]] | None = None, *,
         increasing=True) -> tuple[int, float]:
+    """
+    Args:
+        filts: [('browser', 'Firefox'), ...] or [('agegroup', '< 20'), ...]
+    """
     if lbl == TOTAL:
         sort_val = (1, 'anything ;-)')
     else:
         df_filt = df.copy().loc[df[variable] == lbl]
-        for filt_variable, filt_lbl in filts:
-            df_filt = df_filt.loc[df_filt[filt_variable] == filt_lbl]
+        for filt_variable, filt_val_lbl in filts:
+            df_filt = df_filt.loc[df_filt[filt_variable] == filt_val_lbl]
         freq = len(df_filt)
         if increasing:
             sort_val = freq
@@ -215,7 +219,7 @@ def get_branch_of_variables_key(
     branch_of_variables_key = index_row2branch_of_vars_key(tuple(index_with_vars), debug=debug)
     return branch_of_variables_key
 
-def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_multi_index_branches: dict,
+def get_tuple_for_sorting(orig_index_tuple: tuple, *, order_rules_for_multi_index_branches: dict,
         var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], Any],
         raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> tuple:
     """
@@ -238,50 +242,53 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_multi_index_bra
     max_idx = len(orig_index_tuple) - 1
     metric_idx = max_idx if has_metrics else None
     branch_of_variables_key = get_branch_of_variables_key(index_with_lbls=orig_index_tuple, var_lbl2var=var_lbl2var)
-    orders_spec = orders_for_multi_index_branches[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
+    order_rule = order_rules_for_multi_index_branches[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
     list_for_sorting = []
-    variable_value_pairs = []  ## so we know what filters apply depending on how far across the index we have come e.g. if we have passed Gender Female then we need to filter to that
+    variable_value_lbl_pairs = []  ## so we know what filters apply depending on how far across the index we have come e.g. if we have passed Gender Female then we need to filter to that
     if debug:
-        print(f"{orig_index_tuple=}; {max_idx=}; {orders_spec=}")
+        print(f"{orig_index_tuple=}; {max_idx=}; {order_rule=}")
     for idx in count():
         if idx > max_idx:
             break
         ## get order for sorting
-        is_var_idx = (idx % 2 == 0 and idx != metric_idx)
-        is_val_idx = (idx != is_var_idx and idx != metric_idx)
         is_metric_idx = (idx == metric_idx) if has_metrics else False
+        is_var_idx = (idx % 2 == 0 and not is_metric_idx)
+        is_val_idx = not (is_var_idx or is_metric_idx)
         if is_var_idx:
             variable_lbl = orig_index_tuple[idx]
             if variable_lbl == BLANK:
                 variable_order = 0  ## never more than one BLANK below a parent so no sorting occurs - so 0 as good as anything else
             else:
-                variable_order = orders_spec[idx]
+                variable_order = order_rule[idx]
             if debug:
                 print(f"{variable_lbl=}; {variable_order=}")
             list_for_sorting.append(variable_order)
         elif is_val_idx:
-            lbl = orig_index_tuple[idx]
-            if lbl == BLANK:
+            val_lbl = orig_index_tuple[idx]
+            if val_lbl == BLANK:
                 value_order = 0  ## never more than one so no order
             else:
                 variable_lbl = orig_index_tuple[idx - 1]
                 variable = var_lbl2var[variable_lbl]
-                value_order_spec = orders_spec[idx]
-                if value_order_spec == Sort.LBL:
-                    value_order = (1, lbl) if lbl == TOTAL else (0, lbl)  ## want TOTAL last
-                elif value_order_spec == Sort.VAL:
-                    raw_val_order = var_and_val_lbl2val.get((variable, lbl))
-                    if raw_val_order is None:  ## want TOTAL last
-                        value_order = (1, 'anything ;-)')
+                value_order_rule = order_rule[idx]
+                if value_order_rule == Sort.LBL:
+                    value_order = (1, val_lbl) if val_lbl == TOTAL else (0, val_lbl)  ## want TOTAL last
+                elif value_order_rule == Sort.VAL:
+                    raw_val_order = var_and_val_lbl2val.get((variable, val_lbl))
+                    if val_lbl == TOTAL:  ## want TOTAL last
+                        value_order = (1, 'anything - the 1 is enough to ensure sort order')
                     else:
-                        value_order = (0, raw_val_order)
-                elif value_order_spec in (Sort.INCREASING, Sort.DECREASING):
-                    increasing = (value_order_spec == Sort.INCREASING)
-                    filts = tuple(variable_value_pairs)
-                    value_order = by_freq(variable, lbl, df=raw_df, filts=filts, increasing=increasing)  ## can't use df as arg for cached function  ## want TOTAL last
+                        if raw_val_order is None:
+                            value_order = (0, val_lbl.title())
+                        else:
+                            value_order = (0, raw_val_order)
+                elif value_order_rule in (Sort.INCREASING, Sort.DECREASING):
+                    increasing = (value_order_rule == Sort.INCREASING)
+                    filts = tuple(variable_value_lbl_pairs)
+                    value_order = by_freq(variable, val_lbl, df=raw_df, filts=filts, increasing=increasing)  ## can't use df as arg for cached function  ## want TOTAL last
                 else:
-                    raise ValueError(f"Unexpected value order spec ({value_order_spec})")
-                variable_value_pairs.append((variable, lbl))
+                    raise ValueError(f"Unexpected value order spec ({value_order_rule})")
+                variable_value_lbl_pairs.append((variable, val_lbl))
             list_for_sorting.append(value_order)
         elif has_metrics and is_metric_idx:
             metric = orig_index_tuple[idx]
@@ -292,7 +299,7 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, orders_for_multi_index_bra
     tuple_for_sorting = tuple(list_for_sorting)
     return tuple_for_sorting
 
-def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, orders_for_multi_index_branches: dict,
+def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order_rules_for_multi_index_branches: dict,
         var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], int | str],
         raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> list[tuple]:
     """
@@ -311,10 +318,12 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order
     =>
     ('browser', 'car', )
 
-    3) Find the matching sort order for that branch of variables key
+    3) Find the matching sort order rule for that branch of variables key
     (in this case, a branch from browser to car).
 
-    4) Apply that sort order to the original index row.
+    4) Derive a sortable tuple from that original index row according to the sort order rule (see get_tuple_for_sorting)
+
+    5) Sort by the sortable tuple
 
     :param orders_for_col_tree: e.g.
         {
@@ -339,7 +348,7 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order
         1499  1500    4  Internet Explorer    8
     """
     multi_index_sort_fn = partial(get_tuple_for_sorting,
-        orders_for_multi_index_branches=orders_for_multi_index_branches,
+        order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
         var_lbl2var=var_lbl2var, var_and_val_lbl2val=var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=has_metrics, debug=debug)
     sorted_multi_index_list = sorted(unsorted_multi_index_list, key=multi_index_sort_fn)

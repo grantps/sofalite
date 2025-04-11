@@ -45,7 +45,7 @@ def get_raw_df(cur, tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
         print(df)
     return df
 
-def get_orders_for_multi_index_branches(tbl_spec: TblSpec) -> dict:
+def get_order_rules_for_multi_index_branches(tbl_spec: TblSpec) -> dict:
     """
     Should come from a GUI via an interface ad thence into the code using this.
 
@@ -469,18 +469,18 @@ def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFr
     if debug: print(f"\nCOMBINED:\n{df}")
     ## Sorting indexes
     raw_df = get_raw_df(cur, tbl_spec=tbl_spec, debug=debug)
-    orders_for_multi_index_branches = get_orders_for_multi_index_branches(tbl_spec)
+    order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(tbl_spec)
     ## COLS
     unsorted_col_multi_index_list = list(df.columns)
     sorted_col_multi_index_list = get_sorted_multi_index_list(
-        unsorted_col_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
+        unsorted_col_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
         var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=True, debug=debug)
     sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     ## ROWS
     unsorted_row_multi_index_list = list(df.index)
     sorted_row_multi_index_list = get_sorted_multi_index_list(
-        unsorted_row_multi_index_list, orders_for_multi_index_branches=orders_for_multi_index_branches,
+        unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
         var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=False, debug=debug)
     sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
