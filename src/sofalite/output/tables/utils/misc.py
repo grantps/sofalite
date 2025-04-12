@@ -1,5 +1,6 @@
+from collections.abc import Collection
 from functools import partial
-from itertools import count
+from itertools import combinations, count
 from typing import Literal, Sequence
 from webbrowser import open_new_tab
 
@@ -8,8 +9,155 @@ from pandas.io.formats.style import Styler
 import numpy as np
 
 from sofalite.conf.style import StyleSpec
+from sofalite.conf.tables.misc import TOTAL
+from sofalite.conf.tables.output.cross_tab import TblSpec as CrossTabTblSpec
+from sofalite.conf.tables.output.freq import TblSpec as FreqTabTblSpec
 from sofalite.conf.tables.misc import PCT_METRICS, Metric
-from sofalite.output.styles.misc import get_generic_css, get_placeholder_css, get_style_spec
+from sofalite.output.styles.misc import get_generic_css, get_placeholder_css
+
+def correct_str_dps(val: str, *, dp: int) -> str:
+    """
+    Apply decimal points to floats only - leave Freq integers alone.
+    3dp
+    0.0 => 0.000
+    12 => 12
+    """
+    try:
+        len_after_dot = len(val.split('.')[1])
+    except IndexError:
+        return val
+    n_zeros2add = dp - len_after_dot
+    zeros2add = '0' * n_zeros2add
+    return val + zeros2add
+
+def get_raw_df(cur, tbl_spec: CrossTabTblSpec | FreqTabTblSpec, *, debug=False) -> pd.DataFrame:
+    cur.execute(f"SELECT * FROM {tbl_spec.src_tbl}")
+    data = cur.fetchall()
+    df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
+    if debug:
+        print(df)
+    return df
+
+def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTabTblSpec,
+        all_variables: Collection[str], totalled_variables: Collection[str], *, debug=False) -> list[list]:
+    """
+    rows: country (TOTAL) > gender (TOTAL)
+    cols: agegroup (TOTAL, Freq)
+    filter: WHERE agegroup <> 4
+        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+
+    Needed:
+    data_main + data_total_agegroup
+        + data_total_gender + data_total_gender_agegroup
+        + data_total_country + data_total_country_agegroup
+        + data_total_country_gender + data_total_country_gender_agegroup
+
+    main = the row + col fields (filtered) and count
+    totals for each var with a TOTAL = "{TOTAL}" AS totalled var, other vars, filter, group by non-totalled
+    two-way combos
+
+    For more complex situation - e.g. country_gender_by_browser_and_age_group
+    data = (
+        All - every variable, group by every variable
+        data_main
+        Then, for all the totalled variables:
+        1s - each var gets TOTAL version
+        + data_total_agegroup + data_total_browser + data_total_gender + data_total_country
+        2s - a,b a,c a,d   b,c b,d   c,d (every 2-way combination)
+        + data_total_browser_agegroup + data_total_country_browser + data_total_gender_browser
+        + data_total_gender_agegroup + data_total_country_gender
+        + data_total_country_agegroup
+        3s - a,b,c a,b,d a,c,d   b,c,d  (every 3-way combination)
+        + data_total_gender_browser_agegroup + data_total_country_gender_browser
+        + data_total_country_browser_agegroup + data_total_country_gender_agegroup
+        4s - a,b,c,d (every 4-way combination)
+        + data_total_country_gender_browser_agegroup
+        if we had N variables we want all combos with N, all combos with N-1, ... all combos with 1
+    )
+
+    Note - order matters
+
+    Step 0 - get all variables that are to be totalled
+        (if any - and note, their order, place in the variable hierarchy, or row vs col, is irrelevant)
+        and all non-totalled variables (if any)
+    Step 1 - select and group by all variables
+    Step 2 - for any totalled variables, get every combination from 1 to N
+        (where N is the total number of totalled variables) and then generate the SQL and data (lists of col-val lists)
+    Step 3 - concat all data (data + ...)
+    """
+    data = []
+    ## Step 0 - variable lists
+    n_totalled = len(totalled_variables)
+    ## Step 1 - group by all
+    main_flds = ', '.join(all_variables)
+    sql_main = f"""\
+    SELECT {main_flds}, COUNT(*) AS n
+    FROM {tbl_spec.src_tbl}
+    {tbl_spec.tbl_filter}
+    GROUP BY {main_flds}
+    """
+    cur.execute(sql_main)
+    data.extend(cur.fetchall())
+    ## Step 2 - combos
+    totalled_combinations = []
+    if n_totalled:
+        for n in count(1):
+            totalled_combinations_for_n = combinations(totalled_variables, n)
+            totalled_combinations.extend(totalled_combinations_for_n)
+            if n == n_totalled:  ## might be 0
+                break
+    if debug: print(f"{totalled_combinations=}")
+    for totalled_combination in totalled_combinations:  ## there might not be any, of course
+        if debug: print(totalled_combination)
+        ## have to preserve order of variables - follow order of all_variables
+        select_clauses = []
+        group_by_vars = []
+        for var in all_variables:
+            if var in totalled_combination:
+                select_clauses.append(f'"{TOTAL}" AS {var}')
+            else:
+                select_clauses.append(var)
+                group_by_vars.append(var)
+        select_str = "SELECT " + ', '.join(select_clauses) + ", COUNT(*) AS n"
+        group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
+        sql_totalled = f"""\
+        {select_str}
+        FROM {tbl_spec.src_tbl}
+        {tbl_spec.tbl_filter}
+        {group_by}
+        """
+        if debug: print(f"sql_totalled={sql_totalled}")
+        cur.execute(sql_totalled)
+        data.extend(cur.fetchall())
+    if debug:
+        for row in data:
+            print(row)
+    return data
+
+def get_order_rules_for_multi_index_branches(tbl_spec: CrossTabTblSpec | FreqTabTblSpec) -> dict:
+    """
+    Should come from a GUI via an interface ad thence into the code using this.
+
+    Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
+
+    Note - because, below the top-level, only chains are allowed (not trees)
+    the index for any variables after the first (top-level) are always 0.
+    """
+    orders = {}
+    dims_type_specs = [tbl_spec.row_specs, ]
+    try:
+        dims_type_specs.append(tbl_spec.col_specs)
+    except AttributeError:
+        pass
+    for dim_type_specs in dims_type_specs:
+        for top_level_idx, dim_type_spec in enumerate(dim_type_specs):
+            dim_vars = tuple(dim_type_spec.self_and_descendant_vars)
+            sort_dets = []
+            for chain_idx, dim_spec in enumerate(dim_type_spec.self_and_descendants):
+                idx2use = top_level_idx if chain_idx == 0 else 0
+                sort_dets.extend([idx2use, dim_spec.sort_order])
+            orders[dim_vars] = tuple(sort_dets)
+    return orders
 
 def get_tbl_df(
         row_idx_tuples: Sequence[Sequence[str]],

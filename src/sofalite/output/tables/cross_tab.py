@@ -19,169 +19,105 @@ But that's enough complexity. Anything more, better making multiple, individuall
 """
 from collections.abc import Collection
 from functools import partial
-from itertools import combinations, count
 
 import pandas as pd
 
+from sofalite.conf.misc import VarLabels
 from sofalite.conf.style import StyleSpec
-from sofalite.conf.tables.output.cross_tab import PctType, TblSpec
+from sofalite.conf.tables.output.common import PctType
+from sofalite.conf.tables.output.cross_tab import TblSpec
 from sofalite.conf.tables.misc import BLANK, TOTAL, Metric
 from sofalite.output.tables.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
-from sofalite.output.tables.utils.misc import apply_index_styles, set_table_styles
+from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
+    get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
-from sofalite.conf.misc import VarLabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1_000)
 
-def get_raw_df(cur, tbl_spec: TblSpec, *, debug=False) -> pd.DataFrame:
-    cur.execute(f"SELECT * FROM {tbl_spec.src_tbl}")
-    data = cur.fetchall()
-    df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
-    if debug:
-        print(df)
-    return df
-
-def get_order_rules_for_multi_index_branches(tbl_spec: TblSpec) -> dict:
-    """
-    Should come from a GUI via an interface ad thence into the code using this.
-
-    Note - to test Sort.INCREASING and Sort.DECREASING I'll need to manually check what expected results should be (groan)
-
-    Note - because, below the top-level, only chains are allowed (not trees)
-    the index for any variables after the first (top-level) are always 0.
-    """
-    orders = {}
-    dims_type_specs = [tbl_spec.row_specs, tbl_spec.col_specs]
-    for dim_type_specs in dims_type_specs:
-        for top_level_idx, dim_type_spec in enumerate(dim_type_specs):
-            dim_vars = tuple(dim_type_spec.self_and_descendant_vars)
-            sort_dets = []
-            for chain_idx, dim_spec in enumerate(dim_type_spec.self_and_descendants):
-                idx2use = top_level_idx if chain_idx == 0 else 0
-                sort_dets.extend([idx2use, dim_spec.sort_order])
-            orders[dim_vars] = tuple(sort_dets)
-    return orders
-
-def get_data_from_spec(cur, tbl_spec: TblSpec, all_variables: Collection[str], totalled_variables: Collection[str],
-        *, debug=False) -> list[list]:
-    """
-    rows: country (TOTAL) > gender (TOTAL)
-    cols: agegroup (TOTAL, Freq)
-    filter: WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-
-    Needed:
-    data_main + data_total_agegroup
-        + data_total_gender + data_total_gender_agegroup
-        + data_total_country + data_total_country_agegroup
-        + data_total_country_gender + data_total_country_gender_agegroup
-
-    main = the row + col fields (filtered) and count
-    totals for each var with a TOTAL = "{TOTAL}" AS totalled var, other vars, filter, group by non-totalled
-    two-way combos
-
-    For more complex situation - e.g. country_gender_by_browser_and_age_group
-    data = (
-        All - every variable, group by every variable
-        data_main
-        Then, for all the totalled variables:
-        1s - each var gets TOTAL version
-        + data_total_agegroup + data_total_browser + data_total_gender + data_total_country
-        2s - a,b a,c a,d   b,c b,d   c,d (every 2-way combination)
-        + data_total_browser_agegroup + data_total_country_browser + data_total_gender_browser
-        + data_total_gender_agegroup + data_total_country_gender
-        + data_total_country_agegroup
-        3s - a,b,c a,b,d a,c,d   b,c,d  (every 3-way combination)
-        + data_total_gender_browser_agegroup + data_total_country_gender_browser
-        + data_total_country_browser_agegroup + data_total_country_gender_agegroup
-        4s - a,b,c,d (every 4-way combination)
-        + data_total_country_gender_browser_agegroup
-        if we had N variables we want all combos with N, all combos with N-1, ... all combos with 1
-    )
-
-    Note - order matters
-
-    Step 0 - get all variables that are to be totalled
-        (if any - and note, their order, place in the variable hierarchy, or row vs col, is irrelevant)
-        and all non-totalled variables (if any)
-    Step 1 - select and group by all variables
-    Step 2 - for any totalled variables, get every combination from 1 to N
-        (where N is the total number of totalled variables) and then generate the SQL and data (lists of col-val lists)
-    Step 3 - concat all data (data + ...)
-    """
-    data = []
-    ## Step 0 - variable lists
-    n_totalled = len(totalled_variables)
-    ## Step 1 - group by all
-    main_flds = ', '.join(all_variables)
-    sql_main = f"""\
-    SELECT {main_flds}, COUNT(*) AS n
-    FROM {tbl_spec.src_tbl}
-    {tbl_spec.tbl_filter}
-    GROUP BY {main_flds}
-    """
-    cur.execute(sql_main)
-    data.extend(cur.fetchall())
-    ## Step 2 - combos
-    totalled_combinations = []
-    if n_totalled:
-        for n in count(1):
-            totalled_combinations_for_n = combinations(totalled_variables, n)
-            totalled_combinations.extend(totalled_combinations_for_n)
-            if n == n_totalled:  ## might be 0
-                break
-    if debug: print(f"{totalled_combinations=}")
-    for totalled_combination in totalled_combinations:  ## there might not be any, of course
-        if debug: print(totalled_combination)
-        ## have to preserve order of variables - follow order of all_variables
-        select_clauses = []
-        group_by_vars = []
-        for var in all_variables:
-            if var in totalled_combination:
-                select_clauses.append(f'"{TOTAL}" AS {var}')
-            else:
-                select_clauses.append(var)
-                group_by_vars.append(var)
-        select_str = "SELECT " + ', '.join(select_clauses) + ", COUNT(*) AS n"
-        group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
-        sql_totalled = f"""\
-        {select_str}
-        FROM {tbl_spec.src_tbl}
-        {tbl_spec.tbl_filter}
-        {group_by}
-        """
-        if debug: print(f"sql_totalled={sql_totalled}")
-        cur.execute(sql_totalled)
-        data.extend(cur.fetchall())
-    if debug:
-        for row in data:
-            print(row)
-    return data
-
-def _correct_str_dps(val: str, *, dp: int) -> str:
-    """
-    Apply decimal points to floats only - leave Freq integers alone.
-    3dp
-    0.0 => 0.000
-    12 => 12
-    """
-    try:
-        len_after_dot = len(val.split('.')[1])
-    except IndexError:
-        return val
-    n_zeros2add = dp - len_after_dot
-    zeros2add = '0' * n_zeros2add
-    return val + zeros2add
-
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str], col_vars: list[str],
         n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], dp: int = 2,
         debug=False) -> pd.DataFrame:
     """
     Includes at least the Freq metric but potentially the percentage ones as well.
+
+    Start with a column for each row var, then one for each col var, then freq. All in a fixed order we can rely on.
+    Which is why we can build the columns from the input variable names, with _val suffix, in order.
+    We know the last column is the count so we add 'n' as the final column.
+    E.g. country_val, gender_val, agegroup_val, n.
+
+       country_val gender_val agegroup_val    n
+    0            1          1            1    3
+    ...
+    59           3          2        TOTAL   44
+    60       TOTAL      TOTAL            1   27
+    ...
+
+    Note - the source, un-pivoted df has all TOTAL values calculated and identified in the val columns already.
+
+    OK, so now we have a proper df. Time to add extra columns e.g. alongside country_val's 1s, 2s, etc.
+    we add country_var with all values set to 'Country', and country as 'USA', 'South Korea', etc
+
+       country_val gender_val agegroup_val    n country_var      country gender_var  gender
+    0            1          1            1    3     Country          USA     Gender    Male
+    ...
+    59           3          2        TOTAL   44     Country           NZ     Gender  Female
+    60       TOTAL      TOTAL            1   27     Country        TOTAL     Gender   TOTAL
+    ...
+
+    Then add in any row or column filler columns (some will pivot to rows and others to columns in the final df)
+    __BLANK__
+
+       country_val gender_val agegroup_val    n country_var      country gender_var  gender agegroup_var agegroup col_filler_var_0 col_filler_0 metric
+    0            1          1            1    3     Country          USA     Gender    Male    Age Group     < 20        __blank__    __blank__   Freq
+    ...
+
+    Then pivot the data (at this stage, simple so we have a required input to make more df_pre_pivots
+    for any row or col pcts data):
+
+    agegroup_var                              Age Group
+    agegroup                                       < 20     20-29     30-39     40-64       65+     TOTAL
+    col_filler_var_0                          __blank__ __blank__ __blank__ __blank__ __blank__ __blank__
+    col_filler_0                              __blank__ __blank__ __blank__ __blank__ __blank__ __blank__
+    metric                                         Freq      Freq      Freq      Freq      Freq      Freq
+    country_var country     gender_var gender
+    Country     NZ          Gender     Female         8         6         2        11        17        44
+                                       Male           8         7         5         6        11        37
+    ...
+
+    Then we generate additional df_pre_pivots for row pcts and col pcts as appropriate. And we pivot the final df.
+
+       country_val gender_val agegroup_val    n country_var      country gender_var  gender agegroup_var agegroup col_filler_var_0 col_filler_0 metric
+    0            1          1            1    3     Country          USA     Gender    Male    Age Group     < 20        __blank__    __blank__   Freq
+    ...
+
+    AND
+
+       country_var country gender_var  gender  agegroup_var  agegroup metric      n
+    0      Country      NZ     Gender  Female  Age Group         < 20  Row %  11.76
+    ...
+
+    AND
+
+       country_var country gender_var  gender  agegroup_var  agegroup metric      n
+    0      Country      NZ     Gender  Female  Age Group         < 20  Col %  33.33
+    ...
+
+    Then we pivot the new, combined df_pre_pivot and metric splays across intoFreq, Row %, and Col % as appropriate.
+
+    agegroup_var                              Age Group
+    agegroup                                       < 20     20-29     30-39     40-64       65+     TOTAL      < 20     20-29     30-39     40-64       65+     TOTAL
+    col_filler_var_0                          __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__
+    col_filler_0                              __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__ __blank__
+    metric                                         Freq      Freq      Freq      Freq      Freq      Freq     Row %     Row %     Row %     Row %     Row %     Row %   <== yet to have the columns reordered so we have Freq Row % Freq Row % etc
+    country_var country     gender_var gender
+    Country     NZ          Gender     Female         8         6         2        11        17        44     18.18...  13.63...   4.54...  25.00...  38.63... 100.00...
+    ...
+
+    Finally, round numbers
     """
     all_variables = row_vars + col_vars
     columns = []
@@ -237,8 +173,8 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
         df = df.fillna(0).infer_objects(copy=False)
     df = df.astype(str)
     ## have to ensure all significant digits are showing e.g. 3.33 and 1.0 or 0.0 won't align nicely
-    correct_str_dps = partial(_correct_str_dps, dp=dp)
-    df = df.map(correct_str_dps)
+    correct_string_dps = partial(correct_str_dps, dp=dp)
+    df = df.map(correct_string_dps)
     return df
 
 def _round_kws(x, *, dp: int) -> float:
