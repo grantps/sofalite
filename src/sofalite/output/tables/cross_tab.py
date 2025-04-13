@@ -26,11 +26,11 @@ from sofalite.conf.misc import VarLabels
 from sofalite.conf.style import StyleSpec
 from sofalite.conf.tables.output.common import PctType
 from sofalite.conf.tables.output.cross_tab import TblSpec
-from sofalite.conf.tables.misc import BLANK, TOTAL, Metric
+from sofalite.conf.tables.misc import BLANK, Metric
 from sofalite.output.tables.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
-    get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
+    get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
 
 pd.set_option('display.max_rows', 200)
@@ -176,118 +176,6 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     correct_string_dps = partial(correct_str_dps, dp=dp)
     df = df.map(correct_string_dps)
     return df
-
-def _round_kws(x, *, dp: int) -> float:
-    """
-    Need kwargs so we can use with partial given we are not changing the first positional args - see
-    https://stackoverflow.com/questions/11173660/can-one-partially-apply-the-second-argument-of-a-function-that-takes-no-keyword
-    """
-    return round(x, dp)
-
-def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *, pct_type: PctType, dp: int = 2, debug=False) -> pd.DataFrame:
-    """
-    Strategy - we have multi-indexes so let's use them!
-    Note - exact same approach works if you work from the df (for rows and Row %) or from a transposed df (for cols and Col %)
-
-browser_var                                                 Web Browser
-browser                                                          Chrome                          Firefox                           Chrome   Firefox     TOTAL
-agegroup_var                                                  Age Group                        Age Group                        Age Group Age Group Age Group
-agegroup                                                           < 20 20-29 30-39 40-64  65+      < 20 20-29 30-39 40-64  65+     TOTAL     TOTAL      < 20 20-29 30-39 40-64  65+ TOTAL
-metric                                                             Freq  Freq  Freq  Freq Freq      Freq  Freq  Freq  Freq Freq      Freq      Freq      Freq  Freq  Freq  Freq Freq  Freq
-home_country_var home_country row_filler_var_0 row_filler_0
-Home Country     NZ           __blank__        __blank__             18     8    10    27   30        35    25    24    51   55        93       190        53    33    34    78   85   283
-                 South Korea  __blank__        __blank__             32    17    16    35   21        49    23    17    43   49       121       181        81    40    33    78   70   302
-                 TOTAL        __blank__        __blank__             60    44    43    90   95       109    74    55   132  152       332       522       169   118    98   222  247   854
-                 USA          __blank__        __blank__             10    19    17    28   44        25    26    14    38   48       118       151        35    45    31    66   92   269
-
-    Row %s are taken row (per column block e.g. Under Chrome, or under Firefox) per row.
-    We have all the numbers we need so surely there must be some way to calculate it (spoiler - there is!).
-    We can do it row by row if we have the information required available in the row. So do we? Let's look at a row:
-
-    Each row is a Series with a multi-index on the left and the values on the right. E.g.:
-
-    browser_var  browser  agegroup_var  agegroup  metric
-Web Browser  Chrome   Age Group     < 20      Freq        18
-                                    20-29     Freq         8
-                                    30-39     Freq        10
-                                    40-64     Freq        27
-                                    65+       Freq        30
-             Firefox  Age Group     < 20      Freq        35
-                                    20-29     Freq        25
-                                    30-39     Freq        24
-                                    40-64     Freq        51
-                                    65+       Freq        55
-             Chrome   Age Group     TOTAL     Freq        93
-             Firefox  Age Group     TOTAL     Freq       190
-             TOTAL    Age Group     < 20      Freq        53
-                                    20-29     Freq        33
-                                    30-39     Freq        34
-                                    40-64     Freq        78
-                                    65+       Freq        85
-                                    TOTAL     Freq       283
-
-    Looking at it like this, we can see a way of using aggregation and broadcasting to get row %s.
-    In the case above, if we can group by Web Browser,
-    and broadcast the total within each group as the denominator of every value in the group,
-    (multiply by 100, of course, so a percentage not a fraction).
-    One more complication: if TOTAL is included, need to divide the percentage by 2
-    because the inclusion of TOTAL doubles it.
-    One more complication: have to do the aggregation slightly differently if no variable to group by.
-
-    OK - let's do a worked example using the row Series.
-    In Chrome we have a total of 18+8+10+27+30+93 (you nearly forgot the TOTAL row didn't you!).
-    So that's 93x2 i.e. 186.
-    (100 * 18) / (186 / 2) = 19.35% Correct! :-)
-    (100 * 93) / (186 / 2) = 100% of course! Brilliant!
-
-    The rest of the logic is about working out whether or not we have variables to group by;
-    getting variable to group by (if any);
-    and seeing if there is a TOTAL (so we can tell if we have to divide by 2);
-
-    Finally, we have to gather the results into the same structure as the pre-pivot source data
-    BUT with Row % or Col % as the metric not Freq.
-    Note - OK if we don't include columns not used in pivot, and OK if the cols are not in the correct order.
-    The appending is by col_name so it Just Works™ :-).
-    Why? Because if we can get to that structure, we can just append the different dfs-by-metric together,
-    and pivot the resulting combined df to get a column per metric.
-    Trivial if we can get to that point - it Just Works™!
-    """
-    if pct_type == PctType.COL_PCT:
-        df = df.T  ## if unpivoted, each row has values for the Row % calculation; otherwise has values for Col % calculation. If pivoted, it is the reverse. But still rows refers to rows and cols to cols in the df we're working through here either way.
-    col_names = [col for col in df.columns.names if
-        not col.endswith('_var') and not col.startswith(('col_filler_', 'row_filler_')) and col != 'metric']
-    if debug: print(col_names)
-    col_names_for_grouping = col_names[:-1]
-    use_groupby = bool(col_names_for_grouping)
-    ## divide by 2 to handle doubling caused by inclusion of already-calculated value in TOTAL row in summing
-    name_of_final_col = col_names[-1]
-    row_0 = df.iloc[0]
-    var_names = row_0.index.names
-    idx_of_final_col = var_names.index(name_of_final_col)
-    vals_in_final_col = [list(inner_index)[idx_of_final_col] for inner_index in row_0.index]
-    if debug: print(vals_in_final_col)
-    has_total = TOTAL in vals_in_final_col
-    divide_by = 2 if has_total else 1
-    df_pre_pivot_inc_pct = pd.DataFrame(data=[], columns=list(df.index.names + var_names + ['n']))  ## order doesn't matter - it will append based on col names, so both row % and col % work fine as long as original Freq df_pre_pivot comes first
-    rounder = partial(_round_kws, dp=dp)
-    for i, row in df.iterrows():
-        ## do calculations
-        if use_groupby:
-            s_row_pcts = (100 * row) / (row.groupby(col_names_for_grouping).agg('sum') / divide_by)
-        else:
-            s_row_pcts = (100 * row) / (sum(row) / divide_by)
-        s_row_pcts = s_row_pcts.apply(rounder)
-        if debug: print(s_row_pcts)
-        ## create rows ready to append to df_pre_pivot before re-pivoting but with additional metric type
-        for sub_index, val in s_row_pcts.items():
-            values = list(row.name) + list(sub_index) + [val]
-            s = pd.Series(values, index=list(df.index.names + var_names + ['n']))  ## order doesn't matter - see comment earlier
-            s['metric'] = pct_type
-            if debug: print(s)
-            ## add to new df_pre_pivot
-            df_pre_pivot_inc_pct = pd.concat([df_pre_pivot_inc_pct, s.to_frame().T])
-    if debug: print(df_pre_pivot_inc_pct)
-    return df_pre_pivot_inc_pct
 
 def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
     """

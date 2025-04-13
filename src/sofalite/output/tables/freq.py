@@ -1,33 +1,40 @@
-from collections.abc import Collection
 from functools import partial
 
 import pandas as pd
 
 from sofalite.conf.misc import VarLabels
 from sofalite.conf.style import StyleSpec
-from sofalite.conf.tables.misc import BLANK, Metric
+from sofalite.conf.tables.misc import BLANK
+from sofalite.conf.tables.output.common import PctType
 from sofalite.conf.tables.output.freq import TblSpec
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
-    get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
-from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
+    get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
+from sofalite.output.tables.utils.multi_index_sort import get_metric2order, get_sorted_multi_index_list
 
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str],
         n_row_fillers: int = 0, inc_col_pct=False, dp: int = 2, debug=False) -> pd.DataFrame:
     """
-    TODO: same but no pivoting until end with Freq and Col %
     Includes at least the Freq metric but potentially the percentage ones as well.
 
     Start with a column for each row var, then one for each col var, then freq. All in a fixed order we can rely on.
     Which is why we can build the columns from the input variable names, with _val suffix, in order.
     We know the last column is the count so we add 'n' as the final column.
-    E.g. country_val, gender_val, agegroup_val, n.
+    E.g. country_val, gender_val, n.
 
-       country_val gender_val agegroup_val    n
-    0            1          1            1    3
-    ...
-    59           3          2        TOTAL   44
-    60       TOTAL      TOTAL            1   27
+       country_val gender_val    n
+    0            1          1   43
+    1            1          2   34
+    2            2          1   25
+    3            2          2   21
+    4            3          1   37
+    5            3          2   44
+    6        TOTAL          1  105
+    7        TOTAL          2   99
+    8            1      TOTAL   77
+    9            2      TOTAL   46
+    10           3      TOTAL   81
+    11       TOTAL      TOTAL  204
     ...
 
     Note - the source, un-pivoted df has all TOTAL values calculated and identified in the val columns already.
@@ -35,21 +42,26 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     OK, so now we have a proper df. Time to add extra columns e.g. alongside country_val's 1s, 2s, etc.
     we add country_var with all values set to 'Country', and country as 'USA', 'South Korea', etc
 
-       country_val gender_val agegroup_val    n country_var      country gender_var  gender
-    0            1          1            1    3     Country          USA     Gender    Male
-    ...
-    59           3          2        TOTAL   44     Country           NZ     Gender  Female
-    60       TOTAL      TOTAL            1   27     Country        TOTAL     Gender   TOTAL
-    ...
+       country_val gender_val    n country_var      country gender_var  gender metric
+    0            1          1   43     Country          USA     Gender    Male   Freq
+    1            1          2   34     Country          USA     Gender  Female   Freq
+    2            2          1   25     Country  South Korea     Gender    Male   Freq
+    3            2          2   21     Country  South Korea     Gender  Female   Freq
+    4            3          1   37     Country           NZ     Gender    Male   Freq
+    5            3          2   44     Country           NZ     Gender  Female   Freq
+    6        TOTAL          1  105     Country        TOTAL     Gender    Male   Freq
+    7        TOTAL          2   99     Country        TOTAL     Gender  Female   Freq
+    8            1      TOTAL   77     Country          USA     Gender   TOTAL   Freq
+    9            2      TOTAL   46     Country  South Korea     Gender   TOTAL   Freq
+    10           3      TOTAL   81     Country           NZ     Gender   TOTAL   Freq
+    11       TOTAL      TOTAL  204     Country        TOTAL     Gender   TOTAL   Freq
 
     Then add in any row or column filler columns (some will pivot to rows and others to columns in the final df)
-    __BLANK__
+    with __BLANK__ e.g. (if another config from that followed through in this example):
 
        country_val gender_val agegroup_val    n country_var      country gender_var  gender agegroup_var agegroup col_filler_var_0 col_filler_0 metric
     0            1          1            1    3     Country          USA     Gender    Male    Age Group     < 20        __blank__    __blank__   Freq
     ...
-
-
 
     Finally, round numbers
     """
@@ -82,9 +94,20 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     df_pre_pivot['metric'] = 'Freq'
     df_pre_pivot['n'] = df_pre_pivot['n'].astype(pd.Int64Dtype())
     if debug: print(df_pre_pivot)
-
-    df = []
-
+    df_pre_pivots = [df_pre_pivot, ]
+    column_cols = ['metric', ]  ## simple cf a cross_tab
+    df = df_pre_pivot.pivot(index=index_cols, columns=column_cols, values='n')  ## missing rows e.g. if we have no rows for females < 20 in the USA, now appear as NAs so we need to fill them in df
+    ## https://stackoverflow.com/questions/77900971/pandas-futurewarning-downcasting-object-dtype-arrays-on-fillna-ffill-bfill
+    ## https://medium.com/@felipecaballero/deciphering-the-cryptic-futurewarning-for-fillna-in-pandas-2-01deb4e411a1
+    with pd.option_context('future.no_silent_downcasting', True):
+        df = df.fillna(0).infer_objects(copy=False)  ## needed so we can round values (can't round a NA). Also need to do later because of gaps appearing when pivoted then too
+    if inc_col_pct:
+        df_pre_pivot_inc_row_pct = get_df_pre_pivot_with_pcts(
+            df, is_cross_tab=False, pct_type=PctType.COL_PCT, dp=dp, debug=debug)
+        df_pre_pivots.append(df_pre_pivot_inc_row_pct)
+    df_pre_pivot = pd.concat(df_pre_pivots)
+    df_pre_pivot['__throwaway__'] = 'Metric'
+    df = df_pre_pivot.pivot(index=index_cols, columns=['__throwaway__', ] + column_cols, values='n')
     with pd.option_context('future.no_silent_downcasting', True):
         df = df.fillna(0).infer_objects(copy=False)
     df = df.astype(str)
@@ -102,6 +125,7 @@ def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False
     row_vars = row_spec.self_and_descendant_vars
     data = get_data_from_spec(cur, tbl_spec=tbl_spec, all_variables=row_vars, totalled_variables=totalled_variables,
         debug=debug)
+    n_row_fillers = tbl_spec.max_row_depth - len(row_vars)
     df = get_all_metrics_df_from_vars(
         data, tbl_spec.var_labels, row_vars=row_vars, n_row_fillers=n_row_fillers, inc_col_pct=tbl_spec.inc_col_pct,
         dp=dp, debug=debug)
@@ -129,7 +153,10 @@ def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFr
         var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
         raw_df=raw_df, has_metrics=False, debug=debug)
     sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
-    df = df.reindex(index=sorted_row_multi_index)
+    sorted_col_multi_index_list = sorted(
+        df.columns, key=lambda metric_lbl_and_metric: get_metric2order(metric_lbl_and_metric[1]))
+    sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)
+    df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
     if debug: print(f"\nORDERED:\n{df}")
     return df
 

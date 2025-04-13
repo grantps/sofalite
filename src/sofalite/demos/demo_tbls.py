@@ -80,16 +80,15 @@ def run_simple_freq_tbl():
     var_labels = yaml2varlabels(yaml_fpath, vars2include=['agegroup', 'browser', 'country', 'gender'], debug=False)
 
     row_spec_0 = DimSpec(var='country', has_total=True,
-                         child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
-    row_spec_1 = DimSpec(var='agegroup', has_total=True,
-                         child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
+        child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))
+    row_spec_1 = DimSpec(var='agegroup', has_total=True)
 
     tbl_spec = FreqTblSpec(
         src_tbl='demo_cross_tab',
         tbl_filter="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
         row_specs=[row_spec_0, row_spec_1, ],
         var_labels=var_labels,
-        inc_col_pct=False,
+        inc_col_pct=True,
     )
 
     with Sqlite(DATABASE_FPATH) as (_con, cur):
@@ -101,6 +100,6 @@ def run_simple_freq_tbl():
 
 if __name__ == '__main__':
     pass
-    run_main_poc_cross_tab()
+    # run_main_poc_cross_tab()
     # run_repeat_level_two_row_var_cross_tab()
-    # run_simple_freq_tbl()
+    run_simple_freq_tbl()
