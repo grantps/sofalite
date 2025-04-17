@@ -75,9 +75,13 @@ def run_repeat_level_two_row_var_cross_tab():
         display_tbl(tbl_html, tbl_name='repeat_level_two_row_var', style_name=style_spec.name)
 
 def run_simple_freq_tbl():
+
+
+
+    ## TODO: derive vars2include from row_specs and do internally
     store_root = Path(__file__).parent.parent.parent.parent / 'store'
     yaml_fpath = store_root / 'var_labels.yaml'
-    var_labels = yaml2varlabels(yaml_fpath, vars2include=['agegroup', 'browser', 'country', 'gender'], debug=False)
+    var_labels = yaml2varlabels(yaml_fpath, vars2include=['agegroup', 'country', 'gender'], debug=False)
 
     row_spec_0 = DimSpec(var='country', has_total=True,
         child=DimSpec(var='gender', has_total=True, sort_order=Sort.LBL))

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sofalite.conf.charts.output.standard import CategorySpec
-from sofalite.conf.utils.stats import get_optimal_axis_bounds
+from sofalite.conf.stats.utils import get_optimal_axis_bounds
 
 ## Histogram
 

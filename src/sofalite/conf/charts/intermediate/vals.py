@@ -6,7 +6,7 @@ from sofalite.conf.charts.output.non_standard import (
 from sofalite.conf.charts.output.standard import CategorySpec
 from sofalite.conf.stats.interfaces import BoxDets, BoxplotType, SortOrder
 from sofalite.init_conf.stats.engine import get_normal_ys
-from sofalite.conf.utils.histogram import get_bin_details_from_vals
+from sofalite.conf.charts.utils import get_bin_details_from_vals
 
 @dataclass(frozen=False)
 class BoxplotCategoryItemValsSpec:

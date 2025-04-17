@@ -96,5 +96,15 @@ class VarLabels:
             var2var_label_spec[var_label_spec.name] = var_label_spec
         return var2var_label_spec
 
+    @cached_property
+    def var2var_lbl(self) -> dict[str, str]:
+        var2var_lbl = {var: var_label_spec.lbl for var, var_label_spec in self.var2var_label_spec.items()}
+        return var2var_lbl
+
+    @cached_property
+    def var2val2lbl(self) -> dict[int | str, str]:
+        var2val2lbl = {var: var_label_spec.val2lbl for var, var_label_spec in self.var2var_label_spec.items()}
+        return var2val2lbl
+
     def __str__(self) -> str:
         return '\n'.join(str(var_lbl_spec) for var_lbl_spec in self.var_label_specs)

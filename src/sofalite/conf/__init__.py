@@ -23,9 +23,9 @@ and depending on type of chart:
   * show_borders
   * x_axis_font_size
   * etc.
-It is often extended e.g. for bar, line etc
+It is often extended e.g. for bar, line etc.
 Will have two children: Axes vs NoAxes (pie) versions
-Axes will have lots of children - bar, line, area etc
+Axes will have lots of children - bar, line, area etc.
 indiv_chart_specs (often just one) are below charting_spec
 Each indiv_chart_spec has data_series_specs below (often just one)
 Each data_series_item amount, lbl, and tooltip

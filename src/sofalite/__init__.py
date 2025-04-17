@@ -1,8 +1,4 @@
 """
-TODO: go to store.table_dim_specs_experiment; make special dataset in sqlite which has
-    gender vs country data but not gender vs age_group
-    and we have a pattern which will display all nulls for one block
-
 Top-level package for sofalite.
 
 Big picture architecture of code pip eline:
