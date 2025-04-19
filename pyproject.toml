@@ -53,7 +53,7 @@ exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "stats_calc"
+name = "stats_calc_engine"
 type = "layers"
 layers = [
     "engine",  ## engine can enrich base interface to produce "smart" interfaces with calculated properties if required
@@ -62,3 +62,14 @@ layers = [
 containers = ["sofalite.stats_calc"]
 exhaustive = false
 exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "stats_calc"
+type = "layers"
+layers = [
+    "boxplot | engine | histogram | utils",
+]
+containers = ["sofalite.stats_calc"]
+exhaustive = false
+exhaustive_ignores = []
+

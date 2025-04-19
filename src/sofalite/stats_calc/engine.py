@@ -14,13 +14,13 @@ import math
 
 import numpy as np
 
-from sofalite.conf import MAX_RANKDATA_VALS
+from sofalite.conf import MAX_RANK_DATA_VALS
 
-from sofalite.init_conf.stats.interfaces import (
+from sofalite.stats_calc.base_interfaces import (
     AnovaResult, MannWhitneyDets, MannWhitneyDetsExt, NormalTestResult,  NumericSampleDets, NumericSampleDetsExt,
     OrdinalResult, RegressionDets, Result, Sample, SpearmansDets, SpearmansInitTbl, TTestResult, WilcoxonDetsExt)
-from sofalite.init_conf.utils.maths import n2d
-from sofalite.init_conf.utils.stats import get_obriens_msg
+from sofalite.utils.maths import n2d
+from sofalite.utils.stats import get_obriens_msg
 
 D = decimal.Decimal
 
@@ -907,7 +907,7 @@ def rankdata(inlist, *, high_volume_ok=False):
     mylist = list(inlist)
     n = len(mylist)
     # -----------------------
-    if n > MAX_RANKDATA_VALS:
+    if n > MAX_RANK_DATA_VALS:
         if high_volume_ok:
             logging.info(f"High number of records in randata function (n:,) "
                 "- will possibly run slowly")

@@ -2,12 +2,16 @@ from webbrowser import open_new_tab
 
 import pandas as pd
 
-from sofalite.conf.charts.output.non_standard import (BoxplotChartingSpec, HistoChartingSpec, ScatterChartingSpec)
-from sofalite.conf.charts.output.standard import (AreaChartingSpec, BarChartingSpec, LineChartingSpec, PieChartingSpec)
-from sofalite.conf.paths import DATABASE_FPATH
+from sofalite.conf import DATABASE_FPATH
+from sofalite.output.charts.boxplot import BoxplotChartingSpec
+from sofalite.output.charts.histogram import HistoChartingSpec
+from sofalite.output.charts.scatterplot import ScatterChartingSpec
+
+from sofalite.data_extraction.charts.freq_specs import (AreaChartingSpec, BarChartingSpec, LineChartingSpec, PieChartingSpec)
+
 from sofalite.conf.stats.interfaces import BoxplotType, SortOrder
 # noinspection PyUnresolvedReferences
-from sofalite.output.charts import area, bar, boxplot, histo, line, pie, scatterplot  ## needed so singledispatch registration can occur
+from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.main_interfaces import SimpleBarChartSpec
 from sofalite.output.styles.misc import get_style_spec
