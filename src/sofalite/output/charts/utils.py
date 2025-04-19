@@ -1,14 +1,13 @@
 from collections.abc import Sequence
 import logging
 
-from sofalite.output.charts.interfaces import LeftMarginOffsetDetails
-from sofalite.data_extraction.charts.standard import CategorySpec
+from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetDetails
 
 from sofalite.conf import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetDetails,
-        is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> int:
+        is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> float:
     wide = width_after_left_margin > 1_200
     initial_offset = offsets.wide_offset if wide else offsets.initial_offset  ## otherwise gets squeezed out e.g. in pct
     offset = initial_offset + y_axis_title_offset - DOJO_Y_AXIS_TITLE_OFFSET

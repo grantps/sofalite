@@ -1,20 +1,24 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Any, Literal
 import uuid
 
 import jinja2
 
-from sofalite.conf.charts.misc import (
-    AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED,
-    DojoSeriesDetails, LeftMarginOffsetDetails)
-from sofalite.conf.charts.output.standard import BarChartingSpec, IndivChartSpec
-from sofalite.conf.style import ColourWithHighlight, StyleSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
+from sofalite.conf import (
+    AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, YAML_FPATH)
+from sofalite.data_extraction.charts.freq_specs import get_by_category_charting_spec
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
+from sofalite.output.charts.interfaces import (
+    ChartingSpecAxes, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.styles.misc import get_long_colour_list
+from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
+from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.stats_calc.base_interfaces import SortOrder
 from sofalite.utils.maths import format_num
-from sofalite.utils.misc import todict
+from sofalite.utils.misc import todict, yaml2varlabels
 
 MIN_PIXELS_PER_X_ITEM = 30
 MIN_CLUSTER_WIDTH_PIXELS = 60
@@ -43,20 +47,20 @@ class SimpleBarChartSpec:
         ## style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
-        var_labels = yaml2varlabels(yaml_fpath, vars2include=[self.category_fld_name, ], debug=False)
+        var_labels = yaml2varlabels(YAML_FPATH, vars2include=[self.category_fld_name, ], debug=False)
         category_fld_lbl = var_labels.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
         category_vals2lbls = var_labels.var2val2lbl.get(self.category_fld_name, {})
         ## data
         local_cur = not bool(self.cur)
         if local_cur:
             with Sqlite(DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = freq_specs.get_by_category_charting_spec(
+                intermediate_charting_spec = get_by_category_charting_spec(
                     cur, tbl_name=self.tbl_name,
                     category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
                     category_vals2lbls=category_vals2lbls,
                     tbl_filt_clause=None, category_sort_order=SortOrder.VALUE)
         else:
-            intermediate_charting_spec = freq_specs.get_by_category_charting_spec(
+            intermediate_charting_spec = get_by_category_charting_spec(
                 self.cur, tbl_name=self.tbl_name,
                 category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
                 category_vals2lbls=category_vals2lbls,

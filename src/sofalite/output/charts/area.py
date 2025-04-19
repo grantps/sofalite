@@ -3,20 +3,14 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charts.misc import DojoSeriesDetails, PlotStyle
+from sofalite.output.charts.interfaces import DojoSeriesDetails, PlotStyle
 
 from sofalite.output.charts.interfaces import IndivChartSpec, LineArea
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import LeftMarginOffsetDetails
+from sofalite.output.charts.interfaces import AreaChartingSpec, LeftMarginOffsetDetails
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
-
-@dataclass
-class AreaChartingSpec(ChartingSpecAxes):
-    is_time_series: bool
-    show_major_ticks_only: bool
-    show_markers: bool
 
 @dataclass(frozen=True)
 class CommonColourSpec(LineArea.CommonColourSpec):

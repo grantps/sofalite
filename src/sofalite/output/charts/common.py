@@ -13,23 +13,15 @@ I chose option 2). It is a taste issue in this case - either would work.
 
 get_html(charting_spec, style_spec)
 """
-from dataclasses import dataclass
 from functools import singledispatch
-from typing import Callable, Literal, Sequence
 
 import jinja2
 
-from sofalite.conf.charts.output.standard import AreaChartingSpec, CategorySpec, LineChartingSpec
-from sofalite.conf.style import StyleSpec
 from sofalite.output.charts.html import html_bottom, tpl_html_top
+from sofalite.output.styles.interfaces import StyleSpec
 
-from sofalite.conf import AVG_CHAR_WIDTH_PIXELS, SOFALITE_WEB_RESOURCES_ROOT, TEXT_WIDTH_WHEN_ROTATED
-from sofalite.output.charts.interfaces import LeftMarginOffsetDetails
-from sofalite.output.charts.utils import (
-    get_axis_lbl_drop, get_height, get_left_margin_offset,
-    get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
+from sofalite.conf import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
-from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
 def get_html_styling_top(style_spec: StyleSpec) -> str:
     generic_css = get_generic_css()

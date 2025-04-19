@@ -1,31 +1,18 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 import logging
 from statistics import median
-from typing import Literal, Sequence
 import uuid
 
 import jinja2
 
-from sofalite.conf.charts.misc import DojoSeriesDetails, LeftMarginOffsetDetails, PlotStyle
-from sofalite.conf.charts.output.standard import DataSeriesSpec, IndivChartSpec, LineChartingSpec
-from sofalite.conf.style import StyleSpec
-from sofalite.output.charts.common import LineArea, get_common_charting_spec, get_indiv_chart_html
+from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
+from sofalite.output.charts.interfaces import (DataSeriesSpec, IndivChartSpec,
+    DojoSeriesDetails, LeftMarginOffsetDetails, LineArea, LineChartingSpec, PlotStyle)
+from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
-
-@dataclass
-class LineChartingSpec(ChartingSpecAxes):
-    is_time_series: bool
-    show_major_ticks_only: bool
-    show_markers: bool
-    show_smooth_line: bool
-    show_trend_line: bool
-
-    def __post_init__(self):
-        super().__post_init__()
-        if (self.show_smooth_line or self.show_trend_line) and not self.is_single_series:
-            raise Exception("Only single-series line charts can have a trend line or the smoothed option.")
 
 @dataclass(frozen=True)
 class CommonColourSpec(LineArea.CommonColourSpec):

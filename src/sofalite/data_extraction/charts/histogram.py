@@ -87,32 +87,6 @@ class HistoValsSpecs:
         x_axis_max_val = bin_dets.upper_limit
         return x_axis_min_val, x_axis_max_val
 
-@dataclass
-class HistoChartingSpec:
-    bin_lbls: Sequence[str]
-    indiv_chart_specs: Sequence[HistoIndivChartSpec]
-    show_borders: bool
-    show_n_records: bool
-    show_normal_curve: bool
-    var_lbl: str | None
-    x_axis_font_size: int
-    x_axis_max_val: float
-    x_axis_min_val: float
-
-    def __post_init__(self):
-        self.n_bins = len(self.bin_lbls)
-        self.n_charts = len(self.indiv_chart_specs)
-        self.is_multi_chart = self.n_charts > 1
-        y_axis_max_val = 0
-        for indiv_chart_spec in self.indiv_chart_specs:
-            indiv_chart_max_y_val = max(
-                max(indiv_chart_spec.y_vals),
-                max(indiv_chart_spec.norm_y_vals),
-            )
-            if indiv_chart_max_y_val > y_axis_max_val:
-                y_axis_max_val = indiv_chart_max_y_val
-        self.y_axis_max_val = y_axis_max_val
-
 def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None) -> HistoValsSpec:

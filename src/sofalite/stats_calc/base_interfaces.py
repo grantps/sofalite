@@ -5,10 +5,8 @@ from enum import StrEnum
 from statistics import median
 
 from sofalite.stats_calc.boxplot import get_bottom_whisker, get_top_whisker
-from sofalite.init_conf.utils.histogram import BinDets  ## noqa - so available for import from here as the one-stop shop for stats interfaces
-from sofalite.init_conf.utils.stats import get_quartiles
-
-
+from sofalite.stats_calc.histogram import BinDets  ## noqa - so available for import from here as the one-stop shop for stats interfaces
+from sofalite.utils.stats import get_quartiles
 
 ## samples
 

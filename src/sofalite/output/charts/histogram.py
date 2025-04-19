@@ -6,6 +6,11 @@ import uuid
 import jinja2
 
 from sofalite.conf import HISTO_AVG_CHAR_WIDTH_PIXELS
+from sofalite.data_extraction.charts.histogram import HistoIndivChartSpec
+from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
+from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
+from sofalite.utils.maths import format_num
+from sofalite.utils.misc import todict
 
 MIN_CHART_WIDTH = 700
 MIN_PIXELS_PER_BAR = 30
@@ -154,6 +159,32 @@ def get_width(var_lbl: str, *, n_bins: int,
     if is_multi_chart:
         width = width * 0.9  ## vulnerable to x-axis labels vanishing on minor ticks
     return width
+
+@dataclass
+class HistoChartingSpec:
+    bin_lbls: Sequence[str]
+    indiv_chart_specs: Sequence[HistoIndivChartSpec]
+    show_borders: bool
+    show_n_records: bool
+    show_normal_curve: bool
+    var_lbl: str | None
+    x_axis_font_size: int
+    x_axis_max_val: float
+    x_axis_min_val: float
+
+    def __post_init__(self):
+        self.n_bins = len(self.bin_lbls)
+        self.n_charts = len(self.indiv_chart_specs)
+        self.is_multi_chart = self.n_charts > 1
+        y_axis_max_val = 0
+        for indiv_chart_spec in self.indiv_chart_specs:
+            indiv_chart_max_y_val = max(
+                max(indiv_chart_spec.y_vals),
+                max(indiv_chart_spec.norm_y_vals),
+            )
+            if indiv_chart_max_y_val > y_axis_max_val:
+                y_axis_max_val = indiv_chart_max_y_val
+        self.y_axis_max_val = y_axis_max_val
 
 @get_common_charting_spec.register
 def get_common_charting_spec(charting_spec: HistoChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:

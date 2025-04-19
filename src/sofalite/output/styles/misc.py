@@ -34,8 +34,7 @@ from typing import Sequence
 import jinja2
 
 from sofalite.conf import DOJO_COLOURS
-
-from sofalite.conf.style import (ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
+from sofalite.output.styles.interfaces import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
 from sofalite.utils.misc import todict
 
 def get_style_names() -> list[str]:

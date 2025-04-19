@@ -3,20 +3,25 @@ from webbrowser import open_new_tab
 import pandas as pd
 
 from sofalite.conf import DATABASE_FPATH
+from sofalite.output.charts.area import AreaChartingSpec
+from sofalite.output.charts.bar import BarChartingSpec
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.histogram import HistoChartingSpec
+from sofalite.output.charts.line import LineChartingSpec
+from sofalite.output.charts.pie import PieChartingSpec
 from sofalite.output.charts.scatterplot import ScatterChartingSpec
-
-from sofalite.data_extraction.charts.freq_specs import (AreaChartingSpec, BarChartingSpec, LineChartingSpec, PieChartingSpec)
-
-from sofalite.conf.stats.interfaces import BoxplotType, SortOrder
+from sofalite.stats_calc.base_interfaces import BoxplotType, SortOrder
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.common import get_html
-from sofalite.output.charts.main_interfaces import SimpleBarChartSpec
+from sofalite.output.charts.bar import SimpleBarChartSpec
 from sofalite.output.styles.misc import get_style_spec
-from sofalite.sql_extraction.charts import box_vals, freq_specs, histo_vals, xys
-from sofalite.sql_extraction.db import Sqlite
+from sofalite.data_extraction.charts import freq_specs, xys
+from sofalite.data_extraction.charts.boxplot import (get_by_category_charting_spec as box_get_by_category_charting_spec,
+    get_by_series_category_charting_spec as box_get_by_series_category_charting_spec)
+from sofalite.data_extraction.charts.histogram import (get_by_chart_charting_spec as histo_get_by_chart_charting_spec,
+    get_by_vals_charting_spec as histo_get_by_vals_charting_spec)
+from sofalite.data_extraction.db import Sqlite
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -444,7 +449,7 @@ def histogram_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = histo_vals.get_by_vals_charting_spec(
+        intermediate_charting_spec = histo_get_by_vals_charting_spec(
             cur, tbl_name='demo_tbl', fld_name=fld_name, fld_lbl=fld_lbl, tbl_filt_clause=None)
     ## charts details
     indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
@@ -478,7 +483,7 @@ def multi_chart_histogram_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = histo_vals.get_by_chart_charting_spec(cur, tbl_name='demo_tbl',
+        intermediate_charting_spec = histo_get_by_chart_charting_spec(cur, tbl_name='demo_tbl',
             chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             fld_name=fld_name, fld_lbl=fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
@@ -515,7 +520,7 @@ def boxplot_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = box_vals.get_by_series_category_charting_spec(cur, tbl_name='demo_tbl',
+        intermediate_charting_spec = box_get_by_series_category_charting_spec(cur, tbl_name='demo_tbl',
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=fld_name, fld_lbl=fld_lbl,
             tbl_filt_clause=None,
@@ -553,7 +558,7 @@ def multi_series_boxplot_from_data():
     fld_name = 'age'
     fld_lbl = 'Age'
     with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = box_vals.get_by_series_category_charting_spec(cur, tbl_name='demo_tbl',
+        intermediate_charting_spec = box_get_by_series_category_charting_spec(cur, tbl_name='demo_tbl',
             series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=fld_name, fld_lbl=fld_lbl,
