@@ -443,8 +443,7 @@ class ChartSeriesCategoryFreqSpecs:
 
 def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
-        tbl_filt_clause: str | None = None,
-        category_sort_order: SortOrder = SortOrder.VALUE) -> CategoryFreqSpecs:
+        category_sort_order: SortOrder = SortOrder.VALUE, tbl_filt_clause: str | None = None) -> CategoryFreqSpecs:
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
@@ -485,8 +484,8 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         series_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
-        tbl_filt_clause: str | None = None,
-        category_sort_order: SortOrder = SortOrder.VALUE) -> SeriesCategoryFreqSpecs:
+        category_sort_order: SortOrder = SortOrder.VALUE,
+        tbl_filt_clause: str | None = None) -> SeriesCategoryFreqSpecs:
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
@@ -552,8 +551,8 @@ def get_by_chart_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
-        tbl_filt_clause: str | None = None,
-        category_sort_order: SortOrder = SortOrder.VALUE) -> ChartCategoryFreqSpecs:
+        category_sort_order: SortOrder = SortOrder.VALUE,
+        tbl_filt_clause: str | None = None) -> ChartCategoryFreqSpecs:
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
@@ -621,8 +620,8 @@ def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, tbl_name: st
          chart_vals2lbls: dict | None,
          series_vals2lbls: dict | None,
          category_vals2lbls: dict | None,
-         tbl_filt_clause: str | None = None,
-         category_sort_order: SortOrder = SortOrder.VALUE) -> ChartSeriesCategoryFreqSpecs:
+         category_sort_order: SortOrder = SortOrder.VALUE,
+         tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls

@@ -1,5 +1,6 @@
-from sofalite.conf.style import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
-from sofalite.conf.misc import SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.conf import SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.output.styles.interfaces import (
+    ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
 
 BLACK_BLUE = '#333435'
 BLACK_BROWN = '#423126'

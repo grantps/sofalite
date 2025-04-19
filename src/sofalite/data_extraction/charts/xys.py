@@ -3,10 +3,9 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from sofalite.data_extraction.charts.scatterplot import ScatterDataSeriesSpec
 from sofalite.data_extraction.db import ExtendedCursor
-
-
-from sofalite.conf.charts.output.non_standard import ScatterDataSeriesSpec, ScatterIndivChartSpec
+from sofalite.output.charts.scatterplot import ScatterIndivChartSpec
 
 @dataclass(frozen=True)
 class XYSpecs:

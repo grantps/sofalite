@@ -4,8 +4,8 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.charts.output.standard import IndivChartSpec, PieChartingSpec
-from sofalite.conf.style import StyleSpec
+from sofalite.output.charts.interfaces import ChartingSpecNoAxes, IndivChartSpec
+from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.misc import todict

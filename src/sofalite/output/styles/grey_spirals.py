@@ -1,5 +1,6 @@
-from sofalite.conf.style import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
-from sofalite.conf.misc import SOFALITE_FS_RESOURCES_ROOT, SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.conf import SOFALITE_FS_RESOURCES_ROOT, SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.output.styles.interfaces import (
+    ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
 
 BLUE_GREY = '#4c547c'
 VERY_PALE_TURQUOISE = '#e8f4ff'

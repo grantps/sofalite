@@ -3,25 +3,24 @@ from webbrowser import open_new_tab
 import pandas as pd
 
 from sofalite.conf import DATABASE_FPATH
-from sofalite.output.charts.area import AreaChartingSpec
-from sofalite.output.charts.bar import BarChartingSpec
-from sofalite.output.charts.boxplot import BoxplotChartingSpec
-from sofalite.output.charts.histogram import HistoChartingSpec
-from sofalite.output.charts.line import LineChartingSpec
-from sofalite.output.charts.pie import PieChartingSpec
-from sofalite.output.charts.scatterplot import ScatterChartingSpec
-from sofalite.stats_calc.base_interfaces import BoxplotType, SortOrder
-# noinspection PyUnresolvedReferences
-from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
-from sofalite.output.charts.common import get_html
-from sofalite.output.charts.bar import SimpleBarChartSpec
-from sofalite.output.styles.misc import get_style_spec
 from sofalite.data_extraction.charts import freq_specs, xys
 from sofalite.data_extraction.charts.boxplot import (get_by_category_charting_spec as box_get_by_category_charting_spec,
     get_by_series_category_charting_spec as box_get_by_series_category_charting_spec)
 from sofalite.data_extraction.charts.histogram import (get_by_chart_charting_spec as histo_get_by_chart_charting_spec,
     get_by_vals_charting_spec as histo_get_by_vals_charting_spec)
 from sofalite.data_extraction.db import Sqlite
+# noinspection PyUnresolvedReferences
+from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
+from sofalite.output.charts.area import AreaChartingSpec
+from sofalite.output.charts.bar import BarChartingSpec, MultiBarChartSpec, SimpleBarChartSpec
+from sofalite.output.charts.boxplot import BoxplotChartingSpec
+from sofalite.output.charts.common import get_html
+from sofalite.output.charts.histogram import HistoChartingSpec
+from sofalite.output.charts.line import LineChartingSpec
+from sofalite.output.charts.pie import PieChartingSpec
+from sofalite.output.charts.scatterplot import ScatterChartingSpec
+from sofalite.output.styles.misc import get_style_spec
+from sofalite.stats_calc.base_interfaces import BoxplotType, SortOrder
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -31,6 +30,28 @@ pd.set_option('display.width', 500)
 def simple_bar_chart():
     chart = SimpleBarChartSpec(
         style_name='prestige_screen',
+        category_fld_name='browser',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.VALUE,
+        legend_lbl=None,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        y_axis_title='Freq',
+    )
+    html = chart.to_html()
+    fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def multi_bar_chart():
+    chart = MultiBarChartSpec(
+        style_name='default',
+        chart_fld_name='country',
         category_fld_name='gender',
         tbl_name='demo_tbl',
         tbl_filt_clause=None,
@@ -44,46 +65,7 @@ def simple_bar_chart():
         y_axis_title='Freq',
     )
     html = chart.to_html()
-    fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart_from_data.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
-    open_new_tab(url=f"file://{fpath}")
-
-def multi_bar_chart_from_data():
-    ## conf
-    style_spec = get_style_spec(style_name='default')
-    chart_fld_name = 'country'
-    chart_fld_lbl = 'Country'
-    category_fld_name = 'gender'
-    category_fld_lbl = 'Gender'
-    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {1: 'Male', 2: 'Female'}
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_chart_category_charting_spec(
-            cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            chart_vals2lbls=chart_vals2lbls,
-            category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None, category_sort_order=SortOrder.LABEL)
-    ## charts details
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    charting_spec = BarChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=indiv_chart_specs,
-        legend_lbl=None,
-        rotate_x_lbls=False,
-        show_borders=False,
-        show_n_records=True,
-        x_axis_font_size=12,
-        x_axis_title=intermediate_charting_spec.category_fld_lbl,
-        y_axis_title='Freq',
-    )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_multi_bar_chart_from_data.html'
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_bar_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -588,7 +570,7 @@ def multi_series_boxplot_from_data():
 if __name__ == '__main__':
     pass
     simple_bar_chart()
-    # multi_bar_chart_from_data()
+    multi_bar_chart()
     # clustered_bar_chart_from_data()
     # multi_clustered_bar_chart_from_data()
     # multi_line_chart_from_data()

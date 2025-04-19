@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Literal
 import uuid
 
@@ -7,7 +8,8 @@ import jinja2
 
 from sofalite.conf import (
     AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, YAML_FPATH)
-from sofalite.data_extraction.charts.freq_specs import get_by_category_charting_spec
+from sofalite.data_extraction.charts.freq_specs import (
+    get_by_category_charting_spec, get_by_chart_category_charting_spec)
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import (
@@ -51,26 +53,80 @@ class SimpleBarChartSpec:
         category_fld_lbl = var_labels.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
         category_vals2lbls = var_labels.var2val2lbl.get(self.category_fld_name, {})
         ## data
+        get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
+            tbl_name=self.tbl_name,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=self.tbl_filt_clause, category_sort_order=SortOrder.VALUE)
         local_cur = not bool(self.cur)
         if local_cur:
             with Sqlite(DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_category_charting_spec(
-                    cur, tbl_name=self.tbl_name,
-                    category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
-                    category_vals2lbls=category_vals2lbls,
-                    tbl_filt_clause=None, category_sort_order=SortOrder.VALUE)
+                intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
         else:
-            intermediate_charting_spec = get_by_category_charting_spec(
-                self.cur, tbl_name=self.tbl_name,
-                category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
-                category_vals2lbls=category_vals2lbls,
-                tbl_filt_clause=None, category_sort_order=SortOrder.VALUE)
+            intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
         charting_spec = BarChartingSpec(
             category_specs=category_specs,
             indiv_chart_specs=[indiv_chart_spec, ],
+            legend_lbl=self.legend_lbl,
+            rotate_x_lbls=self.rotate_x_lbls,
+            show_borders=self.show_borders,
+            show_n_records=self.show_n_records,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_title=intermediate_charting_spec.category_fld_lbl,
+            y_axis_title=self.y_axis_title,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
+
+@dataclass(frozen=True)
+class MultiBarChartSpec:
+    style_name: str
+    chart_fld_name: str
+    category_fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    category_sort_order: SortOrder = SortOrder.VALUE
+    legend_lbl: str | None = None,
+    rotate_x_lbls: bool = False,
+    show_borders: bool = False,
+    show_n_records: bool = True,
+    x_axis_font_size: int = 12,
+    y_axis_title: str = 'Freq'
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        var_labels = yaml2varlabels(YAML_FPATH, vars2include=[self.category_fld_name, ], debug=False)
+        chart_fld_lbl = var_labels.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name.title())
+        category_fld_lbl = var_labels.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
+        chart_vals2lbls = var_labels.var2val2lbl.get(self.chart_fld_name, {})
+        category_vals2lbls = var_labels.var2val2lbl.get(self.category_fld_name, {})
+        ## data
+        get_by_chart_category_charting_spec_for_cur = partial(get_by_chart_category_charting_spec,
+            tbl_name='demo_tbl',
+            chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            category_vals2lbls=category_vals2lbls, category_sort_order=SortOrder.LABEL,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)
+        ## charts details
+        category_specs = intermediate_charting_spec.to_sorted_category_specs()
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = BarChartingSpec(
+            category_specs=category_specs,
+            indiv_chart_specs=indiv_chart_specs,
             legend_lbl=self.legend_lbl,
             rotate_x_lbls=self.rotate_x_lbls,
             show_borders=self.show_borders,
