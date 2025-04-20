@@ -8,7 +8,7 @@ import jinja2
 
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.interfaces import (DataSeriesSpec, IndivChartSpec,
-    DojoSeriesDetails, LeftMarginOffsetDetails, LineArea, LineChartingSpec, PlotStyle)
+    DojoSeriesSpec, LeftMarginOffsetSpec, LineArea, LineChartingSpec, PlotStyle)
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
@@ -77,7 +77,7 @@ def get_smooth_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
     return smooth_y_vals
 
 def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
-        single_data_series_spec: DataSeriesSpec) -> DojoSeriesDetails:
+        single_data_series_spec: DataSeriesSpec) -> DojoSeriesSpec:
     """
     For time-series lines we're using coordinates so can just have the end points
     e.g. [all[0], all[-1]]
@@ -106,12 +106,11 @@ def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
         marker_plot_style = PlotStyle.UNMARKED
     trend_options = (f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, """
         f"""yLbls: {LineArea.DUMMY_TOOL_TIPS}, plot: "{marker_plot_style}"}}""")
-    trend_series_dets = DojoSeriesDetails(
-        trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
+    trend_series_dets = DojoSeriesSpec(trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
     return trend_series_dets
 
 def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
-        single_data_series_spec: DataSeriesSpec) -> DojoSeriesDetails:
+        single_data_series_spec: DataSeriesSpec) -> DojoSeriesSpec:
     """
     id is 02 because only a single other series and that will be 00
     trend will be 01
@@ -131,8 +130,7 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
             smooth_y_vals, common_charting_spec.misc_spec.x_axis_title)
     else:
         smooth_series_vals = smooth_y_vals
-    smooth_series_dets = DojoSeriesDetails(
-        smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
+    smooth_series_dets = DojoSeriesSpec(smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
     return smooth_series_dets
 
 @get_common_charting_spec.register
@@ -152,7 +150,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleS
         legend_lbl = ''
     else:
         legend_lbl = charting_spec.legend_lbl
-    left_margin_offset_dets = LeftMarginOffsetDetails(
+    left_margin_offset_dets = LeftMarginOffsetSpec(
         initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
         axis_font=style_spec.chart.axis_font_colour,
@@ -211,7 +209,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
         y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
             f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
-        dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
+        dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     ## trend and smooth series (if appropriate)
     single_data_series_spec = indiv_chart_spec.data_series_specs[0]
     if common_charting_spec.options.show_trend_line:

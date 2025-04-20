@@ -1,15 +1,12 @@
 from pathlib import Path
 
-from sofalite.conf.paths import DATABASE_FPATH
-from sofalite.conf.tables.misc import Metric, Sort
-from sofalite.conf.tables.output.common import DimSpec
-from sofalite.conf.tables.output.cross_tab import TblSpec as CrossTabTblSpec
-from sofalite.conf.tables.output.freq import TblSpec as FreqTblSpec
+from sofalite.conf import DATABASE_FPATH
+from sofalite.data_extraction.db import Sqlite
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.output.tables.cross_tab import get_html as get_cross_tab_html
 from sofalite.output.tables.freq import get_html as get_freq_html
+from sofalite.output.tables.interfaces import CrossTabTblSpec, DimSpec, FreqTblSpec, Metric, Sort
 from sofalite.output.tables.utils.misc import display_tbl
-from sofalite.sql_extraction.db import Sqlite
 from sofalite.utils.misc import yaml2varlabels
 
 def run_main_poc_cross_tab():
@@ -104,6 +101,6 @@ def run_simple_freq_tbl():
 
 if __name__ == '__main__':
     pass
-    # run_main_poc_cross_tab()
-    # run_repeat_level_two_row_var_cross_tab()
+    run_main_poc_cross_tab()
+    run_repeat_level_two_row_var_cross_tab()
     run_simple_freq_tbl()

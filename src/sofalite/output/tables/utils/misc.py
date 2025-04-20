@@ -8,13 +8,10 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 import numpy as np
 
-from sofalite.conf.style import StyleSpec
-from sofalite.conf.tables.misc import TOTAL
-from sofalite.conf.tables.output.common import PctType
-from sofalite.conf.tables.output.cross_tab import TblSpec as CrossTabTblSpec
-from sofalite.conf.tables.output.freq import TblSpec as FreqTabTblSpec
-from sofalite.conf.tables.misc import PCT_METRICS, Metric
+from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_generic_css, get_placeholder_css
+from sofalite.output.tables.interfaces import CrossTabTblSpec, FreqTblSpec
+from sofalite.output.tables.interfaces import PCT_METRICS, TOTAL, Metric, PctType
 
 def correct_str_dps(val: str, *, dp: int) -> str:
     """
@@ -31,7 +28,7 @@ def correct_str_dps(val: str, *, dp: int) -> str:
     zeros2add = '0' * n_zeros2add
     return val + zeros2add
 
-def get_raw_df(cur, tbl_spec: CrossTabTblSpec | FreqTabTblSpec, *, debug=False) -> pd.DataFrame:
+def get_raw_df(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec, *, debug=False) -> pd.DataFrame:
     cur.execute(f"SELECT * FROM {tbl_spec.src_tbl}")
     data = cur.fetchall()
     df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
@@ -39,7 +36,7 @@ def get_raw_df(cur, tbl_spec: CrossTabTblSpec | FreqTabTblSpec, *, debug=False) 
         print(df)
     return df
 
-def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTabTblSpec,
+def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec,
         all_variables: Collection[str], totalled_variables: Collection[str], *, debug=False) -> list[list]:
     """
     rows: country (TOTAL) > gender (TOTAL)
@@ -250,7 +247,7 @@ def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *,
     if debug: print(df_pre_pivot_inc_pct)
     return df_pre_pivot_inc_pct
 
-def get_order_rules_for_multi_index_branches(tbl_spec: CrossTabTblSpec | FreqTabTblSpec) -> dict:
+def get_order_rules_for_multi_index_branches(tbl_spec: CrossTabTblSpec | FreqTblSpec) -> dict:
     """
     Should come from a GUI via an interface ad thence into the code using this.
 

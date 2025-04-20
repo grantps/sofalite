@@ -2,12 +2,18 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ValDets:
-    lbl: str
+    """
+    Data as taken from data source in data extraction context. Not about output of any sort at this stage.
+    """
     val: Any
+    lbl: str
 
 class ValType(StrEnum):
+    """
+    Value type - relevant to database engines, validation etc.
+    """
     IS_SEQ = 'is_sequence'
     IS_NULLABLE = 'is_nullable'
     DATA_ENTRY_OK = 'data_entry_ok'  ## e.g. not autonumber, timestamp etc

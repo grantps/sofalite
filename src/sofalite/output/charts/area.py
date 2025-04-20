@@ -3,12 +3,12 @@ import uuid
 
 import jinja2
 
-from sofalite.output.charts.interfaces import DojoSeriesDetails, PlotStyle
+from sofalite.output.charts.interfaces import DojoSeriesSpec, PlotStyle
 
 from sofalite.output.charts.interfaces import IndivChartSpec, LineArea
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import AreaChartingSpec, LeftMarginOffsetDetails
+from sofalite.output.charts.interfaces import AreaChartingSpec, LeftMarginOffsetSpec
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -39,7 +39,7 @@ def get_common_charting_spec(charting_spec: AreaChartingSpec, style_specs: Style
         else 'false')
     is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
     legend_lbl = ''
-    left_margin_offset_dets = LeftMarginOffsetDetails(
+    left_margin_offset_dets = LeftMarginOffsetSpec(
         initial_offset=18, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
         axis_font=style_specs.chart.axis_font_colour,
@@ -100,7 +100,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
         f"""fill: "{fill_colour}", """
         f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
-    dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
+    dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     indiv_context = {
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,

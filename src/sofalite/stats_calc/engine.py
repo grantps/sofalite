@@ -16,7 +16,7 @@ import numpy as np
 
 from sofalite.conf import MAX_RANK_DATA_VALS
 
-from sofalite.stats_calc.base_interfaces import (
+from sofalite.stats_calc.interfaces import (
     AnovaResult, MannWhitneyDets, MannWhitneyDetsExt, NormalTestResult,  NumericSampleDets, NumericSampleDetsExt,
     OrdinalResult, RegressionDets, Result, Sample, SpearmansDets, SpearmansInitTbl, TTestResult, WilcoxonDetsExt)
 from sofalite.utils.maths import n2d

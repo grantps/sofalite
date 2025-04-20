@@ -6,14 +6,14 @@ import jinja2
 
 from sofalite.data_extraction.charts.scatterplot import ScatterChartingSpec, ScatterIndivChartSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import LeftMarginOffsetDetails
+from sofalite.output.charts.interfaces import LeftMarginOffsetSpec
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
-left_margin_offset_dets = LeftMarginOffsetDetails(
+left_margin_offset_dets = LeftMarginOffsetSpec(
     initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
 
 @dataclass(frozen=True)
@@ -41,10 +41,15 @@ class ScatterplotConf:
 
 @dataclass(frozen=True)
 class ScatterplotDojoSeriesSpec:
+    """
+    Used for DOJO scatterplots (which have series).
+    Boxplots, and more general charts with series (e.g. bar charts and line charts),
+    have different specs of their own for DOJO series.
+    """
     series_id: str  ## e.g. 01
     lbl: str
     xy_pairs: Sequence[tuple[float, float]]
-    options: str
+    options: str  ## e.g. stroke, color, width etc. - things needed in a generic DOJO series
 
 @dataclass(frozen=True)
 class CommonColourSpec:

@@ -21,7 +21,6 @@ from functools import partial
 
 import pandas as pd
 
-from sofalite.conf.misc import VarLabels
 
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.tables.interfaces import BLANK, DimSpec, Metric, PctType
@@ -30,6 +29,8 @@ from sofalite.output.tables.utils.html_fixes import (
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
     get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
+from sofalite.output.tables.interfaces import CrossTabTblSpec
+from sofalite.utils.misc import VarLabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -37,69 +38,6 @@ pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1_000)
 
 from collections.abc import Collection
-from dataclasses import dataclass
-from itertools import product
-
-@dataclass(frozen=True, kw_only=True)
-class TblSpec:
-    src_tbl: str
-    tbl_filter: str | None
-    row_specs: list[DimSpec]
-    col_specs: list[DimSpec]
-    var_labels: VarLabels
-
-    @staticmethod
-    def _get_dupes(_vars: Collection[str]) -> set[str]:
-        dupes = set()
-        seen = set()
-        for var in _vars:
-            if var in seen:
-                dupes.add(var)
-            else:
-                seen.add(var)
-        return dupes
-
-    @property
-    def totalled_vars(self) -> list[str]:
-        tot_vars = []
-        for row_spec in self.row_specs:
-            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
-        for col_spec in self.col_specs:
-            tot_vars.extend(col_spec.self_and_descendant_totalled_vars)
-        return tot_vars
-
-    def _get_max_dim_depth(self, *, is_col=False) -> int:
-        max_depth = 0
-        dim_specs = self.col_specs if is_col else self.row_specs
-        for dim_spec in dim_specs:
-            dim_depth = len(dim_spec.self_and_descendant_vars)
-            if dim_depth > max_depth:
-                max_depth = dim_depth
-        return max_depth
-
-    @property
-    def max_row_depth(self) -> int:
-        return self._get_max_dim_depth()
-
-    @property
-    def max_col_depth(self) -> int:
-        return self._get_max_dim_depth(is_col=True)
-
-    def __post_init__(self):
-        row_dupes = TblSpec._get_dupes([spec.var for spec in self.row_specs])
-        if row_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
-        col_dupes = TblSpec._get_dupes([spec.var for spec in self.col_specs])
-        if col_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in column dimension - {sorted(col_dupes)}")
-        ## var can't be in both row and col e.g. car vs country > car
-        for row_spec, col_spec in product(self.row_specs, self.col_specs):
-            row_spec_vars = set([row_spec.var] + row_spec.descendant_vars)
-            col_spec_vars = set([col_spec.var] + col_spec.descendant_vars)
-            overlapping_vars = row_spec_vars.intersection(col_spec_vars)
-            if overlapping_vars:
-                raise ValueError("Variables can't appear in both rows and columns. "
-                    f"Found the following overlapping variable(s): {', '.join(overlapping_vars)}")
 
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str], col_vars: list[str],
         n_row_fillers: int = 0, n_col_fillers: int = 0, pct_metrics: Collection[Metric], dp: int = 2,
@@ -240,7 +178,7 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     df = df.map(correct_string_dps)
     return df
 
-def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_row_df(cur, tbl_spec: CrossTabTblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
     e.g.
@@ -305,7 +243,7 @@ def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False
         df = df.merge(df_next_col, how='outer', on=row_merge_on)
     return df
 
-def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_tbl_df(cur, tbl_spec: CrossTabTblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
     to avoid repeating the row dimension columns e.g. country and gender.
@@ -375,7 +313,7 @@ def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFr
     if debug: print(f"\nORDERED:\n{df}")
     return df
 
-def get_html(cur, tbl_spec: TblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
+def get_html(cur, tbl_spec: CrossTabTblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
     df = get_tbl_df(cur, tbl_spec, dp=dp, debug=debug)
     pd_styler = set_table_styles(df.style)
     pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')

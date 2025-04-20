@@ -6,11 +6,10 @@ Precision level
 """
 from collections.abc import Sequence
 
-from sofalite.conf.data import ValDets
-from sofalite.conf.stats import interfaces as stats_interfaces
-from sofalite.sql_extraction.db import ExtendedCursor
-from sofalite.sql_extraction.utils import get_sample
-from sofalite.stats_calc import engine
+from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.interfaces import ValDets
+from sofalite.data_extraction.utils import get_sample
+from sofalite.stats_calc import interfaces as stats_interfaces, engine
 from sofalite.utils.misc import todict
 
 def get_results(cur: ExtendedCursor, tbl_name: str,

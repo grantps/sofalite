@@ -20,7 +20,7 @@ from sofalite.output.charts.line import LineChartingSpec
 from sofalite.output.charts.pie import PieChartingSpec
 from sofalite.output.charts.scatterplot import ScatterChartingSpec
 from sofalite.output.styles.misc import get_style_spec
-from sofalite.stats_calc.base_interfaces import BoxplotType, SortOrder
+from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)

@@ -1,10 +1,10 @@
+from collections.abc import Sequence
 import base64
 from io import BytesIO
-from typing import Sequence
 
-from sofalite.conf.charts.misc import HistogramConf, HistogramData
-from sofalite.conf.style import ChartStyleSpec
-from sofalite.output import mpl_pngs
+from sofalite.output.charts import mpl_pngs
+from sofalite.output.charts.histogram import HistogramConf, HistogramData
+from sofalite.output.styles.interfaces import ChartStyleSpec
 
 def get_group_histogram_html(measure_fld_lbl: str, style_spec: ChartStyleSpec,
         var_lbl: str, vals: Sequence[float]) -> str:

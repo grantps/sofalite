@@ -1,18 +1,18 @@
 import jinja2
 
-from sofalite.conf.stats.interfaces import AnovaResultExt, NumericSampleDetsFormatted
-from sofalite.conf.stats.output import (
+from sofalite.data_extraction.stats.msgs import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
     p_explain_multiple_groups,
     skew_explain, std_dev_explain,
 )
-from sofalite.conf.style import StyleSpec
-from sofalite.stats_calc.utils import get_p_str
-from sofalite.output import mpl_pngs
+from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
+from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
+from sofalite.stats_calc.interfaces import AnovaResultExt, NumericSampleDetsFormatted
 from sofalite.utils.maths import format_num
+from sofalite.utils.stats import get_p_str
 
 def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
         dp: int, show_workings=False) -> str:

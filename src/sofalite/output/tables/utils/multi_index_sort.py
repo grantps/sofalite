@@ -121,7 +121,7 @@ from typing import Any
 
 import pandas as pd
 
-from sofalite.conf.tables.misc import BLANK, TOTAL, Metric, Sort
+from sofalite.output.tables.interfaces import BLANK, TOTAL, Metric, Sort
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)

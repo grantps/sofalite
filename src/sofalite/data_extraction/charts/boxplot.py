@@ -1,6 +1,3 @@
-"""
-TODO: add fricking comments about what the differences are and how they're used
-"""
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -8,7 +5,7 @@ from itertools import groupby  ## actually quite performant
 
 from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.output.charts.interfaces import CategorySpec
-from sofalite.stats_calc.base_interfaces import BoxDets, BoxplotType, SortOrder
+from sofalite.stats_calc.interfaces import BoxDets, BoxplotType, SortOrder
 from sofalite.stats_calc.utils import get_optimal_axis_bounds
 
 @dataclass(frozen=False)

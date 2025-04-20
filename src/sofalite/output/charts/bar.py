@@ -13,12 +13,12 @@ from sofalite.data_extraction.charts.freq_specs import (
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import (
-    ChartingSpecAxes, DojoSeriesDetails, IndivChartSpec, LeftMarginOffsetDetails)
+    ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
-from sofalite.stats_calc.base_interfaces import SortOrder
+from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict, yaml2varlabels
 
@@ -27,7 +27,7 @@ MIN_CLUSTER_WIDTH_PIXELS = 60
 PADDING_PIXELS = 35
 DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 10  ## whatever works. Tested on cluster of Age vs Cars
 
-left_margin_offset_dets = LeftMarginOffsetDetails(
+left_margin_offset_dets = LeftMarginOffsetSpec(
     initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
 
 @dataclass(frozen=True)
@@ -412,7 +412,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
         y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "white", width: "{common_charting_spec.misc_spec.stroke_width}px"}}, """
             f"""fill: "{fill_colour}", yLbls: {y_lbls_str}}}""")
-        dojo_series_dets.append(DojoSeriesDetails(series_id, series_lbl, series_vals, options))
+        dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     indiv_context = {
         'chart_uuid': chart_uuid,
         'dojo_series_dets': dojo_series_dets,

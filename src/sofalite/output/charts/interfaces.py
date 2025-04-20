@@ -1,44 +1,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 from typing import Any, Literal
 
 from sofalite.conf import AVG_CHAR_WIDTH_PIXELS
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
-
-class PlotStyle(StrEnum):
-    """
-    Self-defined plot names added with addPlot in the sofalite chart js file.
-     Each has different settings re: tension and markers.
-    """
-    UNMARKED = 'unmarked'
-    DEFAULT = 'default'
-    CURVED = 'curved'
-
-## The categories e.g. NZ (common across all individual charts and series within any charts)
-@dataclass(frozen=True)
-class CategorySpec:
-    """
-    lbl: HTML label e.g. "Ubuntu<br>Linux" - ready for display in chart
-    """
-    val: Any
-    lbl: str
-
-@dataclass(frozen=True)
-class DojoSeriesDetails:
-    series_id: str  ## e.g. 01
-    lbl: str
-    vals: Sequence[float]
-    options: str
-
-@dataclass(frozen=True)
-class LeftMarginOffsetDetails:
-    initial_offset: int
-    wide_offset: int
-    rotate_offset: int
-    multi_chart_offset: int
+## Data Chart parts - multi-chart, chart, category, then series, containing data points
+## =====================================================================================================================
 
 ## Not the categories now but the data per category e.g. 123
 @dataclass(frozen=True)
@@ -71,6 +40,16 @@ class DataSeriesSpec:
                 self.amounts.append(0)
                 self.lbls.append('')
                 self.tooltips.append('')
+
+## everything with categories i.e. all charts with frequencies + box plots
+## The categories e.g. NZ (common across all individual charts and series within any charts)
+@dataclass(frozen=True)
+class CategorySpec:
+    """
+    lbl: HTML label e.g. "Ubuntu<br>Linux" - ready for display in chart
+    """
+    val: Any
+    lbl: str
 
 @dataclass
 class IndivChartSpec:
@@ -143,11 +122,6 @@ class ChartingSpecAxes(ChartingSpec):
         self.max_y_val = max_y_val
 
 @dataclass
-class ChartingSpecNoAxes(ChartingSpec):
-    def __post_init__(self):
-        super().__post_init__()
-
-@dataclass
 class AreaChartingSpec(ChartingSpecAxes):
     is_time_series: bool
     show_major_ticks_only: bool
@@ -166,8 +140,51 @@ class LineChartingSpec(ChartingSpecAxes):
         if (self.show_smooth_line or self.show_trend_line) and not self.is_single_series:
             raise Exception("Only single-series line charts can have a trend line or the smoothed option.")
 
+@dataclass
+class ChartingSpecNoAxes(ChartingSpec):
+    def __post_init__(self):
+        super().__post_init__()
+
+
+## DOJO chart specs
+## =====================================================================================================================
+
+class PlotStyle(StrEnum):
+    """
+    Line / Area chart plot style (markers etc.)
+    Self-defined plot names added with addPlot in the sofalite chart js file.
+    Each has different settings re: tension and markers.
+    """
+    UNMARKED = 'unmarked'
+    DEFAULT = 'default'
+    CURVED = 'curved'
+
+@dataclass(frozen=True)
+class DojoSeriesSpec:
+    """
+    Used for DOJO charts which have series e.g. a bar chart or a line chart.
+    Boxplots and scatterplots have different and specific specs of their own for DOJO series.
+    """
+    series_id: str  ## e.g. 01
+    lbl: str
+    vals: Sequence[float]
+    options: str  ## e.g. stroke, color, width etc. - things needed in a generic DOJO series
+
+@dataclass(frozen=True)
+class LeftMarginOffsetSpec:
+    """
+    Set the various levers we have to control left margins depending on chart characteristics
+    """
+    initial_offset: int
+    wide_offset: int
+    rotate_offset: int
+    multi_chart_offset: int
+
 
 class LineArea:
+    """
+    Used by both Line AND Area charts so not in the individual modules as you would otherwise expect
+    """
 
     MIN_PIXELS_PER_X_ITEM = 10
     DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 8

@@ -3,50 +3,14 @@ from functools import partial
 
 import pandas as pd
 
-from sofalite.conf.misc import VarLabels
+from sofalite.utils.misc import VarLabels
 
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.tables.interfaces import BLANK, DimSpec, PctType
+from sofalite.output.tables.interfaces import BLANK, FreqTblSpec, PctType
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
     get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_metric2order, get_sorted_multi_index_list
-
-@dataclass(frozen=True, kw_only=True)
-class TblSpec:
-    src_tbl: str
-    tbl_filter: str | None
-    row_specs: list[DimSpec]
-    var_labels: VarLabels
-    inc_col_pct: bool = False
-
-    @property
-    def totalled_vars(self) -> list[str]:
-        tot_vars = []
-        for row_spec in self.row_specs:
-            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
-        return tot_vars
-
-    @property
-    def max_row_depth(self) -> int:
-        max_depth = 0
-        for row_spec in self.row_specs:
-            row_depth = len(row_spec.self_and_descendant_vars)
-            if row_depth > max_depth:
-                max_depth = row_depth
-        return max_depth
-
-    def __post_init__(self):
-        row_vars = [spec.var for spec in self.row_specs]
-        row_dupes = set()
-        seen = set()
-        for row_var in row_vars:
-            if row_var in seen:
-                row_dupes.add(row_var)
-            else:
-                seen.add(row_var)
-        if row_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
 
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str],
         n_row_fillers: int = 0, inc_col_pct=False, dp: int = 2, debug=False) -> pd.DataFrame:
@@ -152,7 +116,7 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     df = df.map(correct_string_dps)
     return df
 
-def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_row_df(cur, tbl_spec: FreqTblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     See cross_tab docs
     """
@@ -167,7 +131,7 @@ def get_row_df(cur, tbl_spec: TblSpec, *, row_idx: int, dp: int = 2, debug=False
         dp=dp, debug=debug)
     return df
 
-def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
+def get_tbl_df(cur, tbl_spec: FreqTblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
     """
     See cross_tab docs
     """
@@ -196,7 +160,7 @@ def get_tbl_df(cur, tbl_spec: TblSpec, *, dp: int = 2, debug=False) -> pd.DataFr
     if debug: print(f"\nORDERED:\n{df}")
     return df
 
-def get_html(cur, tbl_spec: TblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
+def get_html(cur, tbl_spec: FreqTblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
     df = get_tbl_df(cur, tbl_spec, dp=dp, debug=debug)
     pd_styler = set_table_styles(df.style)
     pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')

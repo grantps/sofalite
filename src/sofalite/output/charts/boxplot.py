@@ -7,7 +7,7 @@ import jinja2
 from sofalite.conf import AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED
 from sofalite.data_extraction.charts.boxplot import BoxplotChartingSpec, BoxplotIndivChartSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import LeftMarginOffsetDetails
+from sofalite.output.charts.interfaces import LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbl_dets,
     get_x_axis_font_size, get_y_axis_title_offset)
@@ -16,7 +16,7 @@ from sofalite.output.styles.misc import get_long_colour_list
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
-left_margin_offset_dets = LeftMarginOffsetDetails(
+left_margin_offset_dets = LeftMarginOffsetSpec(
     initial_offset=25, wide_offset=35, rotate_offset=10, multi_chart_offset=0)
 
 @dataclass(frozen=True)
@@ -41,6 +41,11 @@ class DojoBoxSpec:
 
 @dataclass(frozen=True)
 class BoxplotDojoSeriesSpec:
+    """
+    Used for DOJO boxplots (which have series).
+    Scatterplots, and more general charts with series (e.g. bar charts and line charts),
+    have different specs of their own for DOJO series.
+    """
     box_specs: Sequence[DojoBoxSpec]
     lbl: str
     series_id: str  ## e.g. 01

@@ -8,6 +8,7 @@ authors = [
 dependencies = [
     "beautifulsoup4>=4.12.3",
     "jinja2>=3.1.3",
+    "matplotlib>=3.10.1",
     "numpy>=1.26.4",
     "pandas>=2.2.2",
     "ruamel-yaml>=0.18.10",
@@ -33,6 +34,8 @@ packages = ["src/sofalite"]
 
 ## >>> lint-imports
 ## https://import-linter.readthedocs.io/en/stable/contract_types.html#layers
+## cd ~/projects/sofalite && c && lint-imports
+## TODO: cripple dcs in data_extraction that we currently take from outputs, then enrich them in outputs after importing from data_extraction
 
 [tool.importlinter]
 root_packages = [ "sofalite" ]
@@ -53,23 +56,141 @@ exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "stats_calc_engine"
+name = "data_extraction levels"
 type = "layers"
 layers = [
-    "engine",  ## engine can enrich base interface to produce "smart" interfaces with calculated properties if required
-    "base_interfaces",
+    "charts | stats",
+    "utils",
+    "interfaces | db",
+]
+containers = ["sofalite.data_extraction"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "data_extraction charts"
+type = "layers"
+layers = [
+    "boxplot | freq_specs | histogram | scatterplot | xys",
+]
+containers = ["sofalite.data_extraction.charts"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "data_extraction stats"
+type = "layers"
+layers = [
+    "anova | msgs | ttest_indep",
+]
+containers = ["sofalite.data_extraction.stats"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "stats_calc_interfaces"
+type = "layers"
+layers = [
+    "interfaces",
+    "boxplot | histogram",
 ]
 containers = ["sofalite.stats_calc"]
 exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "stats_calc"
+name = "engine relies on interfaces but not circular"
 type = "layers"
 layers = [
-    "boxplot | engine | histogram | utils",
+    "engine",
+    "interfaces",
 ]
 containers = ["sofalite.stats_calc"]
 exhaustive = false
 exhaustive_ignores = []
 
+[[tool.importlinter.contracts]]
+name = "stats_calc engine only relies on interfaces"
+type = "forbidden"
+source_modules = [
+    "sofalite.stats_calc.engine",
+]
+allow_indirect_imports = true
+forbidden_modules = [  ## everything other than sofalite.stats_calc.interfaces
+    "sofalite.stats_calc.boxplot",
+    "sofalite.stats_calc.histogram",
+    "sofalite.stats_calc.utils",
+]
+
+[[tool.importlinter.contracts]]
+name = "output.charts"
+type = "layers"
+layers = [
+    "area | bar | boxplot | histogram | line | pie | scatterplot",
+    "common",
+    "interfaces | html",
+]
+containers = ["sofalite.output.charts"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "mpl_pngs relies on boxplot & scatterplot and not circular"
+type = "layers"
+layers = [
+    "mpl_pngs",
+    "boxplot | histogram",
+]
+containers = ["sofalite.output.charts"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "output.stats common not circular"
+type = "layers"
+layers = [
+    "anova | ttest_indep",
+    "common",
+]
+containers = ["sofalite.output.stats"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "output.styles levels"
+type = "layers"
+layers = [
+    "default | grey_spirals | prestige_screen | two_degrees",
+    "misc",
+    "interfaces",
+]
+containers = ["sofalite.output.styles"]
+exhaustive = false
+exhaustive_ignores = []
+ignore_imports = [
+    "sofalite.output.styles.misc -> sofalite.output.styles.default",  ## reads a style to get the general pattern for all of them
+]
+
+[[tool.importlinter.contracts]]
+name = "output.tables levels"
+type = "layers"
+layers = [
+    "freq | cross_tab",
+    "interfaces",
+]
+containers = ["sofalite.output.tables"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "utils all independent"
+type = "layers"
+layers = [
+    "dates | maths | misc | stats",
+]
+containers = ["sofalite.utils"]
+exhaustive = false
+exhaustive_ignores = []
+ignore_imports = [
+    "sofalite.utils.stats -> sofalite.utils.maths",  ## stats can rely on maths
+]

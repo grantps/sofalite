@@ -8,9 +8,10 @@ from matplotlib import rcParams as mpl_settings
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
-from sofalite.conf.charts.misc import HistogramConf, HistogramData, ScatterplotConf,ScatterplotSeries
+from sofalite.stats_calc.engine import get_normal_ys, get_regression_dets
+from sofalite.output.charts.histogram import HistogramConf, HistogramData
+from sofalite.output.charts.scatterplot import ScatterplotConf, ScatterplotSeries
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
-from sofalite.conf.stats.engine import get_normal_ys, get_regression_dets
 
 def set_gen_mpl_settings(axes_lbl_size=14, xtick_lbl_size=10, ytick_lbl_size=10):
     mpl_settings['axes.labelsize'] = axes_lbl_size

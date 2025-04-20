@@ -1,6 +1,6 @@
-from sofalite.conf.data import ValDets
-from sofalite.conf.stats.interfaces import Sample
-from sofalite.sql_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.interfaces import ValDets
+from sofalite.stats_calc.interfaces import Sample
 
 def get_sample(cur: ExtendedCursor,
         tbl_name: str,

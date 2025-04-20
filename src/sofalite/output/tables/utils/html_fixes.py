@@ -3,8 +3,8 @@ from itertools import count
 from bs4 import BeautifulSoup
 import pandas as pd
 
-from sofalite.conf.style import StyleSpec
-from sofalite.conf.tables.misc import BLANK
+from sofalite.output.styles.interfaces import StyleSpec
+from sofalite.output.tables.interfaces import BLANK
 
 def is_empty_th(th) -> bool:
     return th.string in (None, ' ', '\xa0')

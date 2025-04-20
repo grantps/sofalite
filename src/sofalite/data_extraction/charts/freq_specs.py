@@ -28,7 +28,7 @@ from textwrap import dedent
 
 from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.output.charts.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
-from sofalite.stats_calc.base_interfaces import SortOrder
+from sofalite.stats_calc.interfaces import SortOrder
 
 ## by category only (one chart, one series)
 
