@@ -9,7 +9,6 @@ e.g. to_indiv_chart_spec().
 Sort order always includes by value and by label. Only single chart, single series charts
 also sort by increasing and decreasing.
 
-TODO: what does the following refer to now conf.charts.intermediate is gone?
 The job of these functions is to get all the details you could possibly want about the data -
 including labels, amounts etc. - into a dataclass.
 
@@ -27,7 +26,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 
 from sofalite.data_extraction.db import ExtendedCursor
-from sofalite.output.charts.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
+from sofalite.data_extraction.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
 from sofalite.stats_calc.interfaces import SortOrder
 
 ## by category only (one chart, one series)

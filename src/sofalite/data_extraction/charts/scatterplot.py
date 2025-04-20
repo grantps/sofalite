@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sofalite.stats_calc.utils import get_optimal_axis_bounds
-
 @dataclass
 class ScatterDataSeriesSpec:
     lbl: str | None

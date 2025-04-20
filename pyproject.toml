@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.2.3"
+version = "0.3.1"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -71,7 +71,8 @@ exhaustive_ignores = []
 name = "data_extraction charts"
 type = "layers"
 layers = [
-    "boxplot | freq_specs | histogram | scatterplot | xys",
+    "freq_specs | xys",
+    "boxplot | histogram | scatterplot",
 ]
 containers = ["sofalite.data_extraction.charts"]
 exhaustive = false
