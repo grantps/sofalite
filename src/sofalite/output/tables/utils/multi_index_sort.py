@@ -117,10 +117,10 @@ so
 """
 from functools import partial
 from itertools import count
-from typing import Any
 
 import pandas as pd
 
+from sofalite.conf.var_labels import VarLabels
 from sofalite.output.tables.interfaces import BLANK, TOTAL, Metric, Sort
 
 pd.set_option('display.max_rows', 200)
@@ -189,8 +189,7 @@ def by_freq(variable: str, lbl: str, df: pd.DataFrame, filts: tuple[tuple[str, s
         sort_val = (0, sort_val)
     return sort_val
 
-def get_branch_of_variables_key(
-        index_with_lbls: tuple, var_lbl2var: dict[str, int | str], *, debug=False) -> tuple:
+def get_branch_of_variables_key(index_with_lbls: tuple, var_lbl2var: dict[str, int | str], *, debug=False) -> tuple:
     """
     How should we sort the multi-index? The details are configured against variable branch trees. E.g.
     {
@@ -220,8 +219,7 @@ def get_branch_of_variables_key(
     return branch_of_variables_key
 
 def get_tuple_for_sorting(orig_index_tuple: tuple, *, order_rules_for_multi_index_branches: dict,
-        var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], Any],
-        raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> tuple:
+        var_labels: VarLabels, raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> tuple:
     """
     Use this method for the key arg for sorting
     such as sorting(unsorted_multi_index_list, key=SortUtils.get_tuple_for_sorting)
@@ -241,7 +239,8 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, order_rules_for_multi_inde
     """
     max_idx = len(orig_index_tuple) - 1
     metric_idx = max_idx if has_metrics else None
-    branch_of_variables_key = get_branch_of_variables_key(index_with_lbls=orig_index_tuple, var_lbl2var=var_lbl2var)
+    branch_of_variables_key = get_branch_of_variables_key(
+        index_with_lbls=orig_index_tuple, var_lbl2var=var_labels.var_lbl2var)
     order_rule = order_rules_for_multi_index_branches[branch_of_variables_key]  ## e.g. (1, Sort.LBL, 0, Sort.INCREASING)
     list_for_sorting = []
     variable_value_lbl_pairs = []  ## so we know what filters apply depending on how far across the index we have come e.g. if we have passed Gender Female then we need to filter to that
@@ -264,24 +263,29 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, order_rules_for_multi_inde
                 print(f"{variable_lbl=}; {variable_order=}")
             list_for_sorting.append(variable_order)
         elif is_val_idx:
+            """
+            Because we want TOTAL to come last we namespace everything else with 0, and TOTAL with 1. Elegant 😙🤌 
+            """
             val_lbl = orig_index_tuple[idx]
             if val_lbl == BLANK:
-                value_order = 0  ## never more than one so no order
+                value_order = (0, "doesn't matter - doesn't splay below this so nothing to sort beyond the order already set so far in the ordering tuple")  ## never more than one BLANK in vals (because all the rest to the right will also be BLANKs and there will be nothing to sort within the parent branch this BLANK was under) so not more than one to sort so sort order doesn't matter
             else:
                 variable_lbl = orig_index_tuple[idx - 1]
-                variable = var_lbl2var[variable_lbl]
+                variable = var_labels.var_lbl2var.get(variable_lbl, variable_lbl)  ## if unconfigured, left alone - not title-cased or anything
                 value_order_rule = order_rule[idx]
                 if value_order_rule == Sort.LBL:
                     value_order = (1, val_lbl) if val_lbl == TOTAL else (0, val_lbl)  ## want TOTAL last
                 elif value_order_rule == Sort.VAL:
-                    raw_val_order = var_and_val_lbl2val.get((variable, val_lbl))
-                    if val_lbl == TOTAL:  ## want TOTAL last
-                        value_order = (1, 'anything - the 1 is enough to ensure sort order')
-                    else:
-                        if raw_val_order is None:
-                            value_order = (0, val_lbl.title())
+                    if val_lbl != TOTAL:
+                        val2lbl = var_labels.var2val2lbl.get(variable)
+                        if val2lbl:
+                            lbl2val = {v: k for k, v in val2lbl.items()}
+                            val = lbl2val.get(val_lbl, val_lbl)  ## on assumption (validated) that a val lbl cannot apply to more than one val for any given variable
                         else:
-                            value_order = (0, raw_val_order)
+                            val = val_lbl  ## If unconfigured, left alone. Note - if val was an integer it is on the user to define a val lbl explicitly in the YAML or accept potential sort issues e.g. 1, 11, 12, 2, 3 etc
+                        value_order = (0, val)
+                    else:  ## want TOTAL last
+                        value_order = (1, 'anything - the 1 is enough to ensure sort order')
                 elif value_order_rule in (Sort.INCREASING, Sort.DECREASING):
                     increasing = (value_order_rule == Sort.INCREASING)
                     filts = tuple(variable_value_lbl_pairs)
@@ -300,8 +304,7 @@ def get_tuple_for_sorting(orig_index_tuple: tuple, *, order_rules_for_multi_inde
     return tuple_for_sorting
 
 def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order_rules_for_multi_index_branches: dict,
-        var_lbl2var: dict[str, int | str], var_and_val_lbl2val: dict[tuple[str, str], int | str],
-        raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> list[tuple]:
+        var_labels: VarLabels, raw_df: pd.DataFrame, has_metrics: bool, debug=False) -> list[tuple]:
     """
     1) Convert variable labels to variables. E.g.
     'Web Browser' => 'browser'
@@ -325,21 +328,11 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order
 
     5) Sort by the sortable tuple
 
-    :param orders_for_col_tree: e.g.
+    :param order_rules_for_multi_index_branches: e.g.
         {
             ('age', ): (0, Sort.VAL),
             ('browser', 'age', ): (1, Sort.LBL, 0, Sort.VAL),
             ('browser', 'car', ): (1, Sort.LBL, 1, Sort.LBL),
-        }
-    :param var_and_val_lbl2val: so we can get from label to value when all we have is the label.
-     Used when we need to sort by value even though the cell content is the label. E.g.
-        {
-            ('age', '< 20'): 1,
-            ('age', '20-29'): 2,
-            ...
-            ('car', 'BMW'): 1,
-            ('car', 'PORSCHE'): 2,
-            ...
         }
     :param raw_df: e.g.
                 id  age            browser  car
@@ -349,8 +342,7 @@ def get_sorted_multi_index_list(unsorted_multi_index_list: list[tuple], *, order
     """
     multi_index_sort_fn = partial(get_tuple_for_sorting,
         order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_lbl2var=var_lbl2var, var_and_val_lbl2val=var_and_val_lbl2val,
-        raw_df=raw_df, has_metrics=has_metrics, debug=debug)
+        var_labels=var_labels, raw_df=raw_df, has_metrics=has_metrics, debug=debug)
     sorted_multi_index_list = sorted(unsorted_multi_index_list, key=multi_index_sort_fn)
     if debug:
         for row in sorted_multi_index_list:

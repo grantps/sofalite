@@ -4,7 +4,7 @@ from enum import StrEnum
 from itertools import product
 from typing import Self
 
-from sofalite.utils.misc import VarLabels
+from sofalite.conf.main import VAR_LABELS
 
 BLANK = '__blank__'
 TOTAL = 'TOTAL'
@@ -96,7 +96,7 @@ class FreqTblSpec:
     src_tbl: str
     tbl_filter: str | None
     row_specs: list[DimSpec]
-    var_labels: VarLabels
+    var_labels: VAR_LABELS
     inc_col_pct: bool = False
 
     @property
@@ -133,7 +133,7 @@ class CrossTabTblSpec:
     tbl_filter: str | None
     row_specs: list[DimSpec]
     col_specs: list[DimSpec]
-    var_labels: VarLabels
+    var_labels: VAR_LABELS
 
     @staticmethod
     def _get_dupes(_vars: Collection[str]) -> set[str]:

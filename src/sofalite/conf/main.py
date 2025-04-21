@@ -5,6 +5,8 @@ import platform
 from subprocess import Popen, PIPE
 from typing import Literal
 
+from sofalite.conf.var_labels import yaml2varlabels
+
 SOFALITE_WEB_RESOURCES_ROOT = 'http://www.sofastatistics.com/sofalite'
 SOFALITE_FS_RESOURCES_ROOT = Path('/home/g/Documents/sofastats/reports/sofastats_report_extras')
 
@@ -77,3 +79,4 @@ INTERNAL_REPORT_JS_FPATH = INTERNAL_REPORT_FPATH / 'js'
 INTERNAL_REPORT_IMG_FPATH = INTERNAL_REPORT_FPATH / 'img'
 
 YAML_FPATH = Path('/home/g/projects/sofalite/store/var_labels.yaml')
+VAR_LABELS = yaml2varlabels(YAML_FPATH)

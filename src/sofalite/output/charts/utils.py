@@ -3,7 +3,7 @@ import logging
 
 from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetSpec
 
-from sofalite.conf import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
+from sofalite.conf.main import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetSpec,

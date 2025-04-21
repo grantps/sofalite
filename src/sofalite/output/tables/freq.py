@@ -1,10 +1,8 @@
-from dataclasses import dataclass
 from functools import partial
 
 import pandas as pd
 
-from sofalite.utils.misc import VarLabels
-
+from sofalite.conf.var_labels import VarLabels
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.tables.interfaces import BLANK, FreqTblSpec, PctType
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
@@ -150,8 +148,7 @@ def get_tbl_df(cur, tbl_spec: FreqTblSpec, *, dp: int = 2, debug=False) -> pd.Da
     unsorted_row_multi_index_list = list(df.index)
     sorted_row_multi_index_list = get_sorted_multi_index_list(
         unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
-        raw_df=raw_df, has_metrics=False, debug=debug)
+        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=False, debug=debug)
     sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     sorted_col_multi_index_list = sorted(
         df.columns, key=lambda metric_lbl_and_metric: get_metric2order(metric_lbl_and_metric[1]))

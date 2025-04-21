@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.3.1"
+version = "0.3.2"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -35,7 +35,6 @@ packages = ["src/sofalite"]
 ## >>> lint-imports
 ## https://import-linter.readthedocs.io/en/stable/contract_types.html#layers
 ## cd ~/projects/sofalite && c && lint-imports
-## TODO: cripple dcs in data_extraction that we currently take from outputs, then enrich them in outputs after importing from data_extraction
 
 [tool.importlinter]
 root_packages = [ "sofalite" ]
@@ -44,7 +43,6 @@ root_packages = [ "sofalite" ]
 name = "Layered Design"
 type = "layers"
 layers = [
-    "start",
     "output",
     "data_extraction",  ## can define and populate interfaces used by output
     "stats_calc",  ## low down so interfaces higher up can draw on it
@@ -52,6 +50,33 @@ layers = [
     "conf",  ## actual conf, not interfaces
 ]
 containers = ["sofalite"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "utils.misc relies on nothing"
+type = "forbidden"
+source_modules = [
+    "sofalite.utils.misc",
+]
+allow_indirect_imports = false
+forbidden_modules = [  ## everything other than itself
+    "sofalite.utils.dates",
+    "sofalite.utils.maths",
+    "sofalite.utils.stats",
+    "sofalite.data_extraction",
+    "sofalite.output",
+    "sofalite.stats_calc",
+]
+
+[[tool.importlinter.contracts]]
+name = "conf.main not called by other conf"
+type = "layers"
+layers = [
+    "main",
+    "var_labels",
+]
+containers = ["sofalite.conf"]
 exhaustive = false
 exhaustive_ignores = []
 
@@ -89,7 +114,7 @@ exhaustive = false
 exhaustive_ignores = []
 
 [[tool.importlinter.contracts]]
-name = "stats_calc_interfaces"
+name = "stats_calc interfaces"
 type = "layers"
 layers = [
     "interfaces",
@@ -124,7 +149,7 @@ forbidden_modules = [  ## everything other than sofalite.stats_calc.interfaces
 ]
 
 [[tool.importlinter.contracts]]
-name = "output.charts"
+name = "output.charts levels"
 type = "layers"
 layers = [
     "area | bar | boxplot | histogram | line | pie | scatterplot",

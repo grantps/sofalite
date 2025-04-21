@@ -2,7 +2,7 @@ from webbrowser import open_new_tab
 
 import pandas as pd
 
-from sofalite.conf import DATABASE_FPATH
+from sofalite.conf.main import DATABASE_FPATH
 from sofalite.data_extraction.charts import freq_specs, xys
 from sofalite.data_extraction.charts.boxplot import (get_by_category_charting_spec as box_get_by_category_charting_spec,
     get_by_series_category_charting_spec as box_get_by_series_category_charting_spec)

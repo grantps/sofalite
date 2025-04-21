@@ -5,7 +5,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf import HISTO_AVG_CHAR_WIDTH_PIXELS
+from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS
 from sofalite.data_extraction.charts.histogram import HistoIndivChartSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec

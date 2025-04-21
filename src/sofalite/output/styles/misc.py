@@ -33,7 +33,7 @@ from typing import Sequence
 
 import jinja2
 
-from sofalite.conf import DOJO_COLOURS
+from sofalite.conf.main import DOJO_COLOURS
 from sofalite.output.styles.interfaces import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
 from sofalite.utils.misc import todict
 

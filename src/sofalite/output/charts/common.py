@@ -20,7 +20,7 @@ import jinja2
 from sofalite.output.charts.html import html_bottom, tpl_html_top
 from sofalite.output.styles.interfaces import StyleSpec
 
-from sofalite.conf import SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
 
 def get_html_styling_top(style_spec: StyleSpec) -> str:

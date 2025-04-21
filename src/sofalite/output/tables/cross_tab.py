@@ -21,16 +21,15 @@ from functools import partial
 
 import pandas as pd
 
-
+from sofalite.conf.var_labels import VarLabels
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.tables.interfaces import BLANK, DimSpec, Metric, PctType
+from sofalite.output.tables.interfaces import BLANK, Metric, PctType
 from sofalite.output.tables.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
     get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
 from sofalite.output.tables.interfaces import CrossTabTblSpec
-from sofalite.utils.misc import VarLabels
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -299,15 +298,13 @@ def get_tbl_df(cur, tbl_spec: CrossTabTblSpec, *, dp: int = 2, debug=False) -> p
     unsorted_col_multi_index_list = list(df.columns)
     sorted_col_multi_index_list = get_sorted_multi_index_list(
         unsorted_col_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
-        raw_df=raw_df, has_metrics=True, debug=debug)
+        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=True, debug=debug)
     sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     ## ROWS
     unsorted_row_multi_index_list = list(df.index)
     sorted_row_multi_index_list = get_sorted_multi_index_list(
         unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_lbl2var=tbl_spec.var_labels.var_lbl2var, var_and_val_lbl2val=tbl_spec.var_labels.var_and_val_lbl2val,
-        raw_df=raw_df, has_metrics=False, debug=debug)
+        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=False, debug=debug)
     sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
     df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
     if debug: print(f"\nORDERED:\n{df}")

@@ -6,8 +6,8 @@ import uuid
 
 import jinja2
 
-from sofalite.conf import (
-    AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, YAML_FPATH)
+from sofalite.conf.main import (
+    AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS)
 from sofalite.data_extraction.charts.freq_specs import (
     get_by_category_charting_spec, get_by_chart_category_charting_spec)
 from sofalite.data_extraction.db import Sqlite
@@ -20,7 +20,7 @@ from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
-from sofalite.utils.misc import todict, yaml2varlabels
+from sofalite.utils.misc import todict
 
 MIN_PIXELS_PER_X_ITEM = 30
 MIN_CLUSTER_WIDTH_PIXELS = 60
@@ -49,9 +49,8 @@ class SimpleBarChartSpec:
         ## style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
-        var_labels = yaml2varlabels(YAML_FPATH, vars2include=[self.category_fld_name, ], debug=False)
-        category_fld_lbl = var_labels.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
-        category_vals2lbls = var_labels.var2val2lbl.get(self.category_fld_name, {})
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, {})
         ## data
         get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
             tbl_name=self.tbl_name,
@@ -102,11 +101,10 @@ class MultiBarChartSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
-        var_labels = yaml2varlabels(YAML_FPATH, vars2include=[self.category_fld_name, ], debug=False)
-        chart_fld_lbl = var_labels.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name.title())
-        category_fld_lbl = var_labels.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
-        chart_vals2lbls = var_labels.var2val2lbl.get(self.chart_fld_name, {})
-        category_vals2lbls = var_labels.var2val2lbl.get(self.category_fld_name, {})
+        chart_fld_lbl = VAR_LABELS.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name.title())
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
+        chart_vals2lbls = VAR_LABELS.var2val2lbl.get(self.chart_fld_name, {})
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, {})
         ## data
         get_by_chart_category_charting_spec_for_cur = partial(get_by_chart_category_charting_spec,
             tbl_name='demo_tbl',

@@ -4,7 +4,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf import AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED
+from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED
 from sofalite.data_extraction.charts.boxplot import BoxplotChartingSpec, BoxplotIndivChartSpec
 from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
 from sofalite.output.charts.interfaces import LeftMarginOffsetSpec

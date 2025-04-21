@@ -1,4 +1,4 @@
-from sofalite.conf import SOFALITE_FS_RESOURCES_ROOT, SOFALITE_WEB_RESOURCES_ROOT
+from sofalite.conf.main import SOFALITE_FS_RESOURCES_ROOT, SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.output.styles.interfaces import (
     ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
 

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
 
-from sofalite.conf import AVG_CHAR_WIDTH_PIXELS
+from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS
 from sofalite.data_extraction.interfaces import CategorySpec, IndivChartSpec
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 

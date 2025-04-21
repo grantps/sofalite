@@ -1,11 +1,6 @@
-"""
-Will point at GUI later but good for running functions in the meanwhile.
-
-TODO: get mappings from YAML
-"""
 from webbrowser import open_new_tab
 
-from sofalite.conf import DATABASE_FPATH
+from sofalite.conf.main import DATABASE_FPATH
 from sofalite.data_extraction.db import Sqlite
 from sofalite.data_extraction.interfaces import ValDets
 from sofalite.data_extraction.stats import anova as anova_data_extraction, ttest_indep as ttest_indep_data_extraction
