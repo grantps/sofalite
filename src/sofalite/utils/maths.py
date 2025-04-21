@@ -1,6 +1,34 @@
 import decimal
 import math
 
+def is_numeric(val, *, comma_dec_sep_ok=False):
+    """
+    Is a value numeric?  This is operationalised to mean can a value be cast as a float.
+
+    NB the string 5 is numeric. Scientific notation is numeric.
+    Complex numbers are considered not numeric for general use.
+
+    The type may not be numeric (e.g. might be the string '5') but the "content" must be.
+
+    http://www.rosettacode.org/wiki/IsNumeric#Python
+    """
+    if type(val).__name__ == 'time':
+        return False
+    elif val is None:
+        return False
+    else:
+        try:
+            if comma_dec_sep_ok:
+                val = val.replace(',', '.')
+        except AttributeError:
+            pass  ## Only needed to succeed if a string. Presumably wasn't so OK.
+        try:
+            unused = float(val)
+        except (ValueError, TypeError):
+            return False
+        else:
+            return True
+
 def format_num(num):
     try:
         formatted = f'{num:,}'  ## e.g. 1_000 -> '1,000'

@@ -178,7 +178,7 @@ class TTestIndepSpec:
         group_a_val_dets = ValDets(val=self.group_a_val, lbl=val2lbl.get(self.group_a_val, str(self.group_a_val)))
         group_b_val_dets = ValDets(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
         ## data
-        get_ttest_indep_results_for_cur = partial(get_results,
+        get_results_for_cur = partial(get_results,
             tbl_name=self.tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             group_a_val_dets=group_a_val_dets, group_b_val_dets=group_b_val_dets,
@@ -188,8 +188,8 @@ class TTestIndepSpec:
         local_cur = not bool(self.cur)
         if local_cur:
             with Sqlite(DATABASE_FPATH) as (_con, cur):
-                results = get_ttest_indep_results_for_cur(cur)
+                results = get_results_for_cur(cur)
         else:
-            results = get_ttest_indep_results_for_cur(self.cur)
+            results = get_results_for_cur(self.cur)
         html = make_ttest_indep_html(results, style_spec, dp=3, show_workings=False)
         return html
