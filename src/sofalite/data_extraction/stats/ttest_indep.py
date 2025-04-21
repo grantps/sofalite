@@ -5,9 +5,9 @@ from sofalite.stats_calc import interfaces as stats_interfaces, engine
 from sofalite.utils.misc import todict
 
 def get_results(cur: ExtendedCursor, tbl_name: str,
-        grouping_fld_lbl: str, grouping_fld_name: str,
+        grouping_fld_name: str, grouping_fld_lbl: str,
         group_a_val_dets: ValDets, group_b_val_dets: ValDets, grouping_val_is_numeric,
-        measure_fld_lbl: str, measure_fld_name: str,
+        measure_fld_name: str, measure_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> stats_interfaces.TTestIndepResultExt:
     """
     Get independent t-test results.

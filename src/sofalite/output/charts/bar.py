@@ -49,7 +49,7 @@ class SimpleBarChartSpec:
         ## style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
-        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name.title())
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name)
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, {})
         ## data
         get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
