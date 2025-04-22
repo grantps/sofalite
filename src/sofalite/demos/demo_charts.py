@@ -17,7 +17,7 @@ from sofalite.output.charts.bar import (
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec
-from sofalite.output.charts.line import LineChartingSpec
+from sofalite.output.charts.line import LineChartingSpec, MultiLineChartSpec
 from sofalite.output.charts.pie import PieChartingSpec
 from sofalite.output.charts.scatterplot import ScatterChartingSpec
 from sofalite.output.styles.misc import get_style_spec
@@ -118,46 +118,28 @@ def multi_clustered_bar_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def multi_line_chart_from_data():
-    ## conf
-    style_spec = get_style_spec(style_name='default')
-    series_fld_name = 'country'
-    series_fld_lbl = 'Country'
-    category_fld_name = 'browser'
-    category_fld_lbl = 'Web Browser'
-    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {'Chrome': 'Google Chrome'}
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_series_category_charting_spec(
-            cur, tbl_name='demo_tbl',
-            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            series_vals2lbls=series_vals2lbls,
-            category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None,
-            category_sort_order=SortOrder.LABEL)
-    ## charts details
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
-    charting_spec = LineChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=[indiv_chart_spec],
+def multi_line_chart():
+    chart = MultiLineChartSpec(
+        style_name='default',
+        series_fld_name='country',
+        category_fld_name='browser',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.LABEL,
         is_time_series=False,
-        legend_lbl=intermediate_charting_spec.series_fld_lbl,
-        rotate_x_lbls=False,
         show_major_ticks_only=True,
         show_markers=True,
         show_smooth_line=False,
         show_trend_line=False,
+        rotate_x_lbls=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=intermediate_charting_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart_from_data.html'
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -536,7 +518,7 @@ if __name__ == '__main__':
     # multi_bar_chart()
     # clustered_bar_chart()
     # multi_clustered_bar_chart()
-    multi_line_chart_from_data()
+    multi_line_chart()
     # area_chart_from_data()
     # pie_chart_from_data()
     # single_series_scatterplot_from_data()

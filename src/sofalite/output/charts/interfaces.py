@@ -7,6 +7,8 @@ from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS
 from sofalite.data_extraction.interfaces import CategorySpec, IndivChartSpec
 from sofalite.utils.dates import get_epoch_secs_from_datetime_str
 
+JSBool = Literal['false', 'true']
+
 ## the lower-level components are needed by data_extraction e.g. CategorySpec, IndivChartSpec
 
 @dataclass
@@ -119,7 +121,7 @@ class DojoSeriesSpec:
     """
     series_id: str  ## e.g. 01
     lbl: str
-    vals: Sequence[float]
+    vals: Sequence[float | str]  ## str if time series
     options: str  ## e.g. stroke, color, width etc. - things needed in a generic DOJO series
 
 @dataclass(frozen=True)
@@ -237,14 +239,14 @@ class LineArea:
         connector_style: str
         grid_line_width: int
         height: float  ## pixels
-        left_margin_offset: int
+        left_margin_offset: float
         legend_lbl: str
         x_axis_font_size: float
         x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
         x_axis_specs: Sequence[CategorySpec] | None
         x_axis_title: str
         y_axis_title: str
-        y_axis_max: int
+        y_axis_max: float
         y_axis_title_offset: int
         width: float  ## pixels
 

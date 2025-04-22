@@ -12,7 +12,7 @@ agegroup:
 browser:
   var_lbl: Web Browser
   val_lbls:
-    "Google Chrome": "Chrome"
+    "Chrome": "Google Chrome" 
 car:
   var_lbl: Car
   val_lbls:

@@ -1,17 +1,24 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import partial
 import logging
 from statistics import median
+from typing import Any
 import uuid
 
 import jinja2
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
+from sofalite.data_extraction.charts.freq_specs import get_by_series_category_charting_spec
+from sofalite.data_extraction.db import Sqlite
 from sofalite.data_extraction.interfaces import DataSeriesSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import (IndivChartSpec,
-    DojoSeriesSpec, LeftMarginOffsetSpec, LineArea, LineChartingSpec, PlotStyle)
+from sofalite.output.charts.common import (
+    get_common_charting_spec, get_html, get_indiv_chart_html, get_line_area_misc_spec)
+from sofalite.output.charts.interfaces import (
+    DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec, LineArea, LineChartingSpec, PlotStyle)
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list
+from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -142,11 +149,11 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleS
         colour_mappings = colour_mappings[:3]  ## only need the first 1-3 depending on whether trend and smoothed lines
     colours = get_long_colour_list(colour_mappings)
     ## misc
-    has_minor_ticks_js_bool = ('true' if charting_spec.n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM
+    has_minor_ticks_js_bool: JSBool = ('true' if charting_spec.n_x_items >= LineArea.DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM
         else 'false')
-    has_micro_ticks_js_bool = ('true' if charting_spec.n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM
+    has_micro_ticks_js_bool: JSBool = ('true' if charting_spec.n_x_items > LineArea.DOJO_MICRO_TICKS_NEEDED_PER_X_ITEM
         else 'false')
-    is_time_series_js_bool = 'true' if charting_spec.is_time_series else 'false'
+    is_time_series_js_bool: JSBool = 'true' if charting_spec.is_time_series else 'false'
     if charting_spec.is_single_series and not (charting_spec.show_smooth_line or charting_spec.show_trend_line):
         legend_lbl = ''
     else:
@@ -163,7 +170,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleS
         plot_font_filled=style_spec.chart.plot_font_colour_filled,
         tooltip_border=style_spec.chart.tooltip_border_colour,
     )
-    misc_spec = LineArea.get_misc_spec(charting_spec, style_spec, legend_lbl, left_margin_offset_dets)
+    misc_spec = get_line_area_misc_spec(charting_spec, style_spec, legend_lbl, left_margin_offset_dets)
     options = CommonOptions(
         has_micro_ticks_js_bool=has_micro_ticks_js_bool,
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,
@@ -238,3 +245,66 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     template = environment.from_string(LineArea.tpl_chart)
     html_result = template.render(context)
     return html_result
+
+@dataclass(frozen=True)
+class MultiLineChartSpec:
+    style_name: str
+    series_fld_name: str
+    category_fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    category_sort_order: SortOrder = SortOrder.VALUE
+    is_time_series: bool = False
+    show_major_ticks_only: bool = True
+    show_markers: bool = True
+    show_smooth_line: bool = False
+    show_trend_line: bool = False
+    rotate_x_lbls: bool = False
+    show_n_records: bool = True
+    x_axis_font_size: int = 12
+    y_axis_title: str = 'Freq'
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        series_fld_lbl = VAR_LABELS.var2var_lbl.get(self.series_fld_name, self.series_fld_name)
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name)
+        series_vals2lbls = VAR_LABELS.var2val2lbl.get(self.series_fld_name, self.series_fld_name)
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
+        ## data
+        get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
+            tbl_name=self.tbl_name,
+            series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            series_vals2lbls=series_vals2lbls,
+            category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
+        ## chart details
+        category_specs = intermediate_charting_spec.to_sorted_category_specs()
+        indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
+        charting_spec = LineChartingSpec(
+            category_specs=category_specs,
+            indiv_chart_specs=[indiv_chart_spec, ],
+            legend_lbl=intermediate_charting_spec.series_fld_lbl,
+            rotate_x_lbls=self.rotate_x_lbls,
+            show_n_records=self.show_n_records,
+            is_time_series=self.is_time_series,
+            show_major_ticks_only=self.show_major_ticks_only,
+            show_markers=self.show_markers,
+            show_smooth_line=self.show_smooth_line,
+            show_trend_line=self.show_trend_line,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_title=intermediate_charting_spec.category_fld_lbl,
+            y_axis_title=self.y_axis_title,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
