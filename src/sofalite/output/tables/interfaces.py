@@ -1,10 +1,7 @@
 from collections.abc import Collection
 from dataclasses import dataclass
 from enum import StrEnum
-from itertools import product
 from typing import Self
-
-from sofalite.conf.main import VAR_LABELS
 
 BLANK = '__blank__'
 TOTAL = 'TOTAL'
@@ -90,100 +87,3 @@ class DimSpec:
         if self.var in self.descendant_vars:
             raise ValueError(
                 f"Variables can't be repeated in the same dimension spec e.g. Car > Country > Car. Variable {self.var}")
-
-@dataclass(frozen=True, kw_only=True)
-class FreqTblSpec:
-    src_tbl: str
-    tbl_filter: str | None
-    row_specs: list[DimSpec]
-    var_labels: VAR_LABELS
-    inc_col_pct: bool = False
-
-    @property
-    def totalled_vars(self) -> list[str]:
-        tot_vars = []
-        for row_spec in self.row_specs:
-            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
-        return tot_vars
-
-    @property
-    def max_row_depth(self) -> int:
-        max_depth = 0
-        for row_spec in self.row_specs:
-            row_depth = len(row_spec.self_and_descendant_vars)
-            if row_depth > max_depth:
-                max_depth = row_depth
-        return max_depth
-
-    def __post_init__(self):
-        row_vars = [spec.var for spec in self.row_specs]
-        row_dupes = set()
-        seen = set()
-        for row_var in row_vars:
-            if row_var in seen:
-                row_dupes.add(row_var)
-            else:
-                seen.add(row_var)
-        if row_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
-
-@dataclass(frozen=True, kw_only=True)
-class CrossTabTblSpec:
-    src_tbl: str
-    tbl_filter: str | None
-    row_specs: list[DimSpec]
-    col_specs: list[DimSpec]
-    var_labels: VAR_LABELS
-
-    @staticmethod
-    def _get_dupes(_vars: Collection[str]) -> set[str]:
-        dupes = set()
-        seen = set()
-        for var in _vars:
-            if var in seen:
-                dupes.add(var)
-            else:
-                seen.add(var)
-        return dupes
-
-    @property
-    def totalled_vars(self) -> list[str]:
-        tot_vars = []
-        for row_spec in self.row_specs:
-            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
-        for col_spec in self.col_specs:
-            tot_vars.extend(col_spec.self_and_descendant_totalled_vars)
-        return tot_vars
-
-    def _get_max_dim_depth(self, *, is_col=False) -> int:
-        max_depth = 0
-        dim_specs = self.col_specs if is_col else self.row_specs
-        for dim_spec in dim_specs:
-            dim_depth = len(dim_spec.self_and_descendant_vars)
-            if dim_depth > max_depth:
-                max_depth = dim_depth
-        return max_depth
-
-    @property
-    def max_row_depth(self) -> int:
-        return self._get_max_dim_depth()
-
-    @property
-    def max_col_depth(self) -> int:
-        return self._get_max_dim_depth(is_col=True)
-
-    def __post_init__(self):
-        row_dupes = CrossTabTblSpec._get_dupes([spec.var for spec in self.row_specs])
-        if row_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
-        col_dupes = CrossTabTblSpec._get_dupes([spec.var for spec in self.col_specs])
-        if col_dupes:
-            raise ValueError(f"Duplicate top-level variable(s) detected in column dimension - {sorted(col_dupes)}")
-        ## var can't be in both row and col e.g. car vs country > car
-        for row_spec, col_spec in product(self.row_specs, self.col_specs):
-            row_spec_vars = set([row_spec.var] + row_spec.descendant_vars)
-            col_spec_vars = set([col_spec.var] + col_spec.descendant_vars)
-            overlapping_vars = row_spec_vars.intersection(col_spec_vars)
-            if overlapping_vars:
-                raise ValueError("Variables can't appear in both rows and columns. "
-                    f"Found the following overlapping variable(s): {', '.join(overlapping_vars)}")

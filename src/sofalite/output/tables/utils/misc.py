@@ -10,7 +10,7 @@ import numpy as np
 
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_generic_css, get_placeholder_css
-from sofalite.output.tables.interfaces import CrossTabTblSpec, FreqTblSpec
+from sofalite.output.tables.interfaces import DimSpec
 from sofalite.output.tables.interfaces import PCT_METRICS, TOTAL, Metric, PctType
 
 def correct_str_dps(val: str, *, dp: int) -> str:
@@ -28,15 +28,15 @@ def correct_str_dps(val: str, *, dp: int) -> str:
     zeros2add = '0' * n_zeros2add
     return val + zeros2add
 
-def get_raw_df(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec, *, debug=False) -> pd.DataFrame:
-    cur.execute(f"SELECT * FROM {tbl_spec.src_tbl}")
+def get_raw_df(cur, src_tbl: str, *, debug=False) -> pd.DataFrame:
+    cur.execute(f"SELECT * FROM {src_tbl}")
     data = cur.fetchall()
     df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
     if debug:
         print(df)
     return df
 
-def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec,
+def get_data_from_spec(cur, src_tbl: str, tbl_filt_clause: str,
         all_variables: Collection[str], totalled_variables: Collection[str], *, debug=False) -> list[list]:
     """
     rows: country (TOTAL) > gender (TOTAL)
@@ -90,8 +90,8 @@ def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec,
     main_flds = ', '.join(all_variables)
     sql_main = f"""\
     SELECT {main_flds}, COUNT(*) AS n
-    FROM {tbl_spec.src_tbl}
-    {tbl_spec.tbl_filter}
+    FROM {src_tbl}
+    {tbl_filt_clause}
     GROUP BY {main_flds}
     """
     cur.execute(sql_main)
@@ -120,8 +120,8 @@ def get_data_from_spec(cur, tbl_spec: CrossTabTblSpec | FreqTblSpec,
         group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
         sql_totalled = f"""\
         {select_str}
-        FROM {tbl_spec.src_tbl}
-        {tbl_spec.tbl_filter}
+        FROM {src_tbl}
+        {tbl_filt_clause}
         {group_by}
         """
         if debug: print(f"sql_totalled={sql_totalled}")
@@ -247,7 +247,7 @@ def get_df_pre_pivot_with_pcts(df: pd.DataFrame, *,
     if debug: print(df_pre_pivot_inc_pct)
     return df_pre_pivot_inc_pct
 
-def get_order_rules_for_multi_index_branches(tbl_spec: CrossTabTblSpec | FreqTblSpec) -> dict:
+def get_order_rules_for_multi_index_branches(row_specs: list[DimSpec], col_specs: list[DimSpec] | None = None) -> dict:
     """
     Should come from a GUI via an interface ad thence into the code using this.
 
@@ -257,11 +257,9 @@ def get_order_rules_for_multi_index_branches(tbl_spec: CrossTabTblSpec | FreqTbl
     the index for any variables after the first (top-level) are always 0.
     """
     orders = {}
-    dims_type_specs = [tbl_spec.row_specs, ]
-    try:
-        dims_type_specs.append(tbl_spec.col_specs)
-    except AttributeError:
-        pass
+    dims_type_specs = [row_specs, ]
+    if col_specs:
+        dims_type_specs.append(col_specs)
     for dim_type_specs in dims_type_specs:
         for top_level_idx, dim_type_spec in enumerate(dim_type_specs):
             dim_vars = tuple(dim_type_spec.self_and_descendant_vars)

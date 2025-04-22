@@ -17,19 +17,24 @@ e.g. for each country (rows) age break down, browser breakdown, and car breakdow
 
 But that's enough complexity. Anything more, better making multiple, individually clear tables.
 """
+from dataclasses import dataclass
 from functools import partial
+from itertools import product
+from typing import Any
 
 import pandas as pd
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.styles.misc import get_style_spec
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.tables.interfaces import BLANK, Metric, PctType
+from sofalite.output.tables.interfaces import BLANK, DimSpec, Metric, PctType
 from sofalite.output.tables.utils.html_fixes import (
     fix_top_left_box, merge_cols_of_blanks, merge_rows_of_blanks)
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
-    get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
+    get_df_pre_pivot_with_pcts, get_html_start, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_sorted_multi_index_list
-from sofalite.output.tables.interfaces import CrossTabTblSpec
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.min_rows', 30)
@@ -177,153 +182,231 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     df = df.map(correct_string_dps)
     return df
 
-def get_row_df(cur, tbl_spec: CrossTabTblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
-    """
-    get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
-    e.g.
-    row_spec_1 = DimSpec(var='country', has_total=True,
-        child=(var='gender', has_total=True))
-    vs
-    col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
-    col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
-        child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
-    col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
 
-    ==>
+@dataclass(frozen=True, kw_only=True)
+class CrossTabTblSpec:
+    style_name: str
+    src_tbl: str
+    row_specs: list[DimSpec]
+    col_specs: list[DimSpec]
+    var_labels: VAR_LABELS
+    cur: Any | None = None
+    tbl_filt_clause: str | None = None
+    dp: int = 2
+    debug: bool = False
+    verbose: bool = False
 
-    row_vars = ['country', 'gender']
-    filter = '''\
-        WHERE agegroup <> 4
-        AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
-        '''
-    according to col_spec:
-        col_vars = ['agegroup']
-        totalled_variables = ['country', 'gender', 'agegroup']
+    @staticmethod
+    def _get_dupes(_vars: Collection[str]) -> set[str]:
+        dupes = set()
+        seen = set()
+        for var in _vars:
+            if var in seen:
+                dupes.add(var)
+            else:
+                seen.add(var)
+        return dupes
 
-        col_vars = ['browser', 'agegroup']
-        totalled_variables = ['country', 'gender', 'browser', 'agegroup']
+    @property
+    def totalled_vars(self) -> list[str]:
+        tot_vars = []
+        for row_spec in self.row_specs:
+            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
+        for col_spec in self.col_specs:
+            tot_vars.extend(col_spec.self_and_descendant_totalled_vars)
+        return tot_vars
 
-        col_vars = ['std_agegroup']
-        totalled_variables = ['country', 'gender', 'std_agegroup']
+    def _get_max_dim_depth(self, *, is_col=False) -> int:
+        max_depth = 0
+        dim_specs = self.col_specs if is_col else self.row_specs
+        for dim_spec in dim_specs:
+            dim_depth = len(dim_spec.self_and_descendant_vars)
+            if dim_depth > max_depth:
+                max_depth = dim_depth
+        return max_depth
 
-        all_variables = row_vars + col_vars
-        data = get_data_from_spec(
-            all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
-        df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
-            pct_metrics=[], debug=debug)
+    @property
+    def max_row_depth(self) -> int:
+        return self._get_max_dim_depth()
+
+    @property
+    def max_col_depth(self) -> int:
+        return self._get_max_dim_depth(is_col=True)
+
+    def __post_init__(self):
+        row_dupes = CrossTabTblSpec._get_dupes([spec.var for spec in self.row_specs])
+        if row_dupes:
+            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
+        col_dupes = CrossTabTblSpec._get_dupes([spec.var for spec in self.col_specs])
+        if col_dupes:
+            raise ValueError(f"Duplicate top-level variable(s) detected in column dimension - {sorted(col_dupes)}")
+        ## var can't be in both row and col e.g. car vs country > car
+        for row_spec, col_spec in product(self.row_specs, self.col_specs):
+            row_spec_vars = set([row_spec.var] + row_spec.descendant_vars)
+            col_spec_vars = set([col_spec.var] + col_spec.descendant_vars)
+            overlapping_vars = row_spec_vars.intersection(col_spec_vars)
+            if overlapping_vars:
+                raise ValueError("Variables can't appear in both rows and columns. "
+                    f"Found the following overlapping variable(s): {', '.join(overlapping_vars)}")
+
+    def get_row_df(self, cur, *, row_idx: int) -> pd.DataFrame:
+        """
+        get a combined df for, e.g. the combined top df. Or the middle df. Or the bottom df. Or whatever you have.
+        e.g.
+        row_spec_1 = DimSpec(var='country', has_total=True,
+            child=(var='gender', has_total=True))
+        vs
+        col_spec_0 = DimSpec(var='agegroup', has_total=True, is_col=True)
+        col_spec_1 = DimSpec(var='browser', has_total=True, is_col=True,
+            child=DimSpec(var='agegroup', has_total=True, is_col=True, pct_metrics=[Metric.ROW_PCT, Metric.COL_PCT]))
+        col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
+
+        ==>
+
+        row_vars = ['country', 'gender']
+        filter = '''\
+            WHERE agegroup <> 4
+            AND browser NOT IN ('Internet Explorer', 'Opera', 'Safari')
+            '''
+        according to col_spec:
+            col_vars = ['agegroup']
+            totalled_variables = ['country', 'gender', 'agegroup']
+
+            col_vars = ['browser', 'agegroup']
+            totalled_variables = ['country', 'gender', 'browser', 'agegroup']
+
+            col_vars = ['std_agegroup']
+            totalled_variables = ['country', 'gender', 'std_agegroup']
+
+            all_variables = row_vars + col_vars
+            data = get_data_from_spec(
+                all_variables=all_variables, totalled_variables=totalled_variables, filter=filter, debug=debug)
+            df = get_metrics_df_from_vars(data, row_vars=row_vars, col_vars=col_vars,
+                n_row_fillers=N_ROWS_IN_TOTAL_TBL - len(row_vars), n_col_fillers=N_COLS_IN_TOTAL_TBL - len(col_vars),
+                pct_metrics=[], debug=debug)
+            return df
+        """
+        row_spec = self.row_specs[row_idx]
+        row_vars = row_spec.self_and_descendant_vars
+        n_row_fillers = self.max_row_depth - len(row_vars)
+        df_cols = []
+        for col_spec in self.col_specs:
+            col_vars = col_spec.self_and_descendant_vars
+            totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
+            all_variables = row_vars + col_vars
+            data = get_data_from_spec(cur, src_tbl=self.src_tbl, tbl_filt_clause=self.tbl_filt_clause,
+                all_variables=all_variables, totalled_variables=totalled_variables, debug=self.debug)
+            df_col = get_all_metrics_df_from_vars(data, self.var_labels, row_vars=row_vars, col_vars=col_vars,
+                n_row_fillers=n_row_fillers, n_col_fillers=self.max_col_depth - len(col_vars),
+                pct_metrics=col_spec.self_or_descendant_pct_metrics, dp=self.dp, debug=self.debug)
+            df_cols.append(df_col)
+        df = df_cols[0]
+        df_cols_remaining = df_cols[1:]
+        row_merge_on = []
+        for row_var in row_vars:
+            val_labels = self.var_labels.var2var_label_spec[row_var]
+            row_merge_on.append(val_labels.pandas_var)
+            row_merge_on.append(val_labels.name)
+        for i in range(n_row_fillers):
+            row_merge_on.append(f'row_filler_var_{i}')
+            row_merge_on.append(f'row_filler_{i}')
+        for df_next_col in df_cols_remaining:
+            df = df.merge(df_next_col, how='outer', on=row_merge_on)
         return df
-    """
-    row_spec = tbl_spec.row_specs[row_idx]
-    row_vars = row_spec.self_and_descendant_vars
-    n_row_fillers = tbl_spec.max_row_depth - len(row_vars)
-    df_cols = []
-    for col_spec in tbl_spec.col_specs:
-        col_vars = col_spec.self_and_descendant_vars
-        totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
-        all_variables = row_vars + col_vars
-        data = get_data_from_spec(cur, tbl_spec=tbl_spec,
-            all_variables=all_variables, totalled_variables=totalled_variables, debug=debug)
-        df_col = get_all_metrics_df_from_vars(data, tbl_spec.var_labels, row_vars=row_vars, col_vars=col_vars,
-            n_row_fillers=n_row_fillers, n_col_fillers=tbl_spec.max_col_depth - len(col_vars),
-            pct_metrics=col_spec.self_or_descendant_pct_metrics, dp=dp, debug=debug)
-        df_cols.append(df_col)
-    df = df_cols[0]
-    df_cols_remaining = df_cols[1:]
-    row_merge_on = []
-    for row_var in row_vars:
-        val_labels = tbl_spec.var_labels.var2var_label_spec[row_var]
-        row_merge_on.append(val_labels.pandas_var)
-        row_merge_on.append(val_labels.name)
-    for i in range(n_row_fillers):
-        row_merge_on.append(f'row_filler_var_{i}')
-        row_merge_on.append(f'row_filler_{i}')
-    for df_next_col in df_cols_remaining:
-        df = df.merge(df_next_col, how='outer', on=row_merge_on)
-    return df
 
-def get_tbl_df(cur, tbl_spec: CrossTabTblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
-    """
-    Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
-    to avoid repeating the row dimension columns e.g. country and gender.
+    def get_tbl_df(self, cur) -> pd.DataFrame:
+        """
+        Note - using pd.concat or df.merge(how='outer') has the same result but I use merge for horizontal joining
+        to avoid repeating the row dimension columns e.g. country and gender.
 
-    Basically we are merging left and right dfs. Merging is typically on an id field that both parts share.
-    In this case there are as many fields to merge on as there are fields in the row index -
-    in this example there are 4 (var_00, val_00, var_01, and val_01).
-    There is one added complexity because the column is multi-index.
-    We need to supply a tuple with an item (possibly an empty string) for each level.
-    In this case there are two levels (browser and age_group). So we merge on
-    [('var_00', ''), ('val_00', ''), ('var_01', ''), ('val_01', '')]
-    If there were three row levels and four col levels we would need something like:
-    [('var_00', '', '', ''), ('val_00', '', '', ''), ... ('val_02', '', '', '')]
+        Basically we are merging left and right dfs. Merging is typically on an id field that both parts share.
+        In this case there are as many fields to merge on as there are fields in the row index -
+        in this example there are 4 (var_00, val_00, var_01, and val_01).
+        There is one added complexity because the column is multi-index.
+        We need to supply a tuple with an item (possibly an empty string) for each level.
+        In this case there are two levels (browser and age_group). So we merge on
+        [('var_00', ''), ('val_00', ''), ('var_01', ''), ('val_01', '')]
+        If there were three row levels and four col levels we would need something like:
+        [('var_00', '', '', ''), ('val_00', '', '', ''), ... ('val_02', '', '', '')]
 
-    BOTTOM LEFT:
-    browser    var_00       val_00     var_01     val_01 Chrome                       Firefox
-    agegroup                                                <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
-    0         Country           NZ  __blank__  __blank__     10    19    17    28  44      25    26    14    38  48
-    ...
+        BOTTOM LEFT:
+        browser    var_00       val_00     var_01     val_01 Chrome                       Firefox
+        agegroup                                                <20 20-29 30-39 40-64 65+     <20 20-29 30-39 40-64 65+
+        0         Country           NZ  __blank__  __blank__     10    19    17    28  44      25    26    14    38  48
+        ...
 
-    BOTTOM RIGHT:
-    agegroup   var_00       val_00     var_01     val_01 <20 20-29 30-39 40-64 65+
-    dummy
-    0         Country           NZ  __blank__  __blank__  35    45    31    66  92
-    ...
+        BOTTOM RIGHT:
+        agegroup   var_00       val_00     var_01     val_01 <20 20-29 30-39 40-64 65+
+        dummy
+        0         Country           NZ  __blank__  __blank__  35    45    31    66  92
+        ...
 
-    Note - we flatten out the row multi-index using reset_index().
-    This flattening results in a column per row variable e.g. one for country and one for gender
-     (at this point we're ignoring the labelling step where we split each row variable e.g. for country into Country (var) and NZ (val)).
-    Given it is a column, it has to have as many levels as the column dimension columns.
-    So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
-    If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
-    """
-    dfs = [get_row_df(cur, tbl_spec=tbl_spec, row_idx=row_idx, dp=dp, debug=debug)
-        for row_idx in range(len(tbl_spec.row_specs))]
-    ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
-    ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
-    ## And there is a bug (from my point of view) whenever tables are merged with the same variables at the top level.
-    ## To prevent this we have to disallow variable re-use at top-level.
-    ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
-    ## E.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
-    ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally
-    df_t = dfs[0].T
-    dfs_remaining = dfs[1:]
-    for df_next in dfs_remaining:
-        df_t = df_t.join(df_next.T, how='outer')
-    df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
-    if debug: print(f"\nCOMBINED:\n{df}")
-    ## Sorting indexes
-    raw_df = get_raw_df(cur, tbl_spec=tbl_spec, debug=debug)
-    order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(tbl_spec)
-    ## COLS
-    unsorted_col_multi_index_list = list(df.columns)
-    sorted_col_multi_index_list = get_sorted_multi_index_list(
-        unsorted_col_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=True, debug=debug)
-    sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
-    ## ROWS
-    unsorted_row_multi_index_list = list(df.index)
-    sorted_row_multi_index_list = get_sorted_multi_index_list(
-        unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=False, debug=debug)
-    sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
-    df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
-    if debug: print(f"\nORDERED:\n{df}")
-    return df
+        Note - we flatten out the row multi-index using reset_index().
+        This flattening results in a column per row variable e.g. one for country and one for gender
+         (at this point we're ignoring the labelling step where we split each row variable e.g. for country into Country (var) and NZ (val)).
+        Given it is a column, it has to have as many levels as the column dimension columns.
+        So if there are two column dimension levels each row column will need to be a two-tuple e.g. ('gender', '').
+        If there were three column dimension levels the row column would need to be a three-tuple e.g. ('gender', '', '').
+        """
+        dfs = [self.get_row_df(cur, row_idx=row_idx) for row_idx in range(len(self.row_specs))]
+        ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
+        ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
+        ## And there is a bug (from my point of view) whenever tables are merged with the same variables at the top level.
+        ## To prevent this we have to disallow variable re-use at top-level.
+        ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
+        ## E.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
+        ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally
+        df_t = dfs[0].T
+        dfs_remaining = dfs[1:]
+        for df_next in dfs_remaining:
+            df_t = df_t.join(df_next.T, how='outer')
+        df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
+        if self.debug: print(f"\nCOMBINED:\n{df}")
+        ## Sorting indexes
+        raw_df = get_raw_df(cur, src_tbl=self.src_tbl, debug=self.debug)
+        order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(self.row_specs, self.col_specs)
+        ## COLS
+        unsorted_col_multi_index_list = list(df.columns)
+        sorted_col_multi_index_list = get_sorted_multi_index_list(
+            unsorted_col_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
+            var_labels=self.var_labels, raw_df=raw_df, has_metrics=True, debug=self.debug)
+        sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+        ## ROWS
+        unsorted_row_multi_index_list = list(df.index)
+        sorted_row_multi_index_list = get_sorted_multi_index_list(
+            unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
+            var_labels=self.var_labels, raw_df=raw_df, has_metrics=False, debug=self.debug)
+        sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+        df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
+        if self.debug: print(f"\nORDERED:\n{df}")
+        return df
 
-def get_html(cur, tbl_spec: CrossTabTblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
-    df = get_tbl_df(cur, tbl_spec, dp=dp, debug=debug)
-    pd_styler = set_table_styles(df.style)
-    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')
-    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='columns')
-    raw_tbl_html = pd_styler.to_html()
-    if debug:
-        print(raw_tbl_html)
-    ## Fix
-    tbl_html = raw_tbl_html
-    tbl_html = fix_top_left_box(tbl_html, style_spec, debug=debug, verbose=verbose)
-    tbl_html = merge_cols_of_blanks(tbl_html, debug=debug)
-    tbl_html = merge_rows_of_blanks(tbl_html, debug=debug, verbose=verbose)
-    if debug:
-        print(pd_styler.uuid)
-        print(tbl_html)
-    return tbl_html
+    def to_html(self) -> str:
+        get_tbl_df_for_cur = partial(self.get_tbl_df)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                df = get_tbl_df_for_cur(cur)
+        else:
+            df = get_tbl_df_for_cur(self.cur)
+        pd_styler = set_table_styles(df.style)
+        style_spec = get_style_spec(style_name=self.style_name)
+        pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')
+        pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='columns')
+        raw_tbl_html = pd_styler.to_html()
+        if self.debug:
+            print(raw_tbl_html)
+        ## Fix
+        tbl_html = raw_tbl_html
+        tbl_html = fix_top_left_box(tbl_html, style_spec, debug=self.debug, verbose=self.verbose)
+        tbl_html = merge_cols_of_blanks(tbl_html, debug=self.debug)
+        tbl_html = merge_rows_of_blanks(tbl_html, debug=self.debug, verbose=self.verbose)
+        if self.debug:
+            print(pd_styler.uuid)
+            print(tbl_html)
+        html_start = get_html_start(self.style_name)
+        html = f"""\
+        {html_start}
+        {tbl_html}
+        """
+        return html

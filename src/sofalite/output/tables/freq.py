@@ -1,13 +1,17 @@
+from dataclasses import dataclass
 from functools import partial
+from typing import Any
 
 import pandas as pd
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
-from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.tables.interfaces import BLANK, FreqTblSpec, PctType
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.tables.interfaces import BLANK, DimSpec, PctType
+from sofalite.output.styles.misc import get_style_spec
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
-    get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
+    get_df_pre_pivot_with_pcts, get_html_start, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_metric2order, get_sorted_multi_index_list
 
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str],
@@ -114,62 +118,116 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     df = df.map(correct_string_dps)
     return df
 
-def get_row_df(cur, tbl_spec: FreqTblSpec, *, row_idx: int, dp: int = 2, debug=False) -> pd.DataFrame:
-    """
-    See cross_tab docs
-    """
-    row_spec = tbl_spec.row_specs[row_idx]
-    totalled_variables = row_spec.self_and_descendant_totalled_vars
-    row_vars = row_spec.self_and_descendant_vars
-    data = get_data_from_spec(cur, tbl_spec=tbl_spec, all_variables=row_vars, totalled_variables=totalled_variables,
-        debug=debug)
-    n_row_fillers = tbl_spec.max_row_depth - len(row_vars)
-    df = get_all_metrics_df_from_vars(
-        data, tbl_spec.var_labels, row_vars=row_vars, n_row_fillers=n_row_fillers, inc_col_pct=tbl_spec.inc_col_pct,
-        dp=dp, debug=debug)
-    return df
 
-def get_tbl_df(cur, tbl_spec: FreqTblSpec, *, dp: int = 2, debug=False) -> pd.DataFrame:
-    """
-    See cross_tab docs
-    """
-    dfs = [get_row_df(cur, tbl_spec=tbl_spec, row_idx=row_idx, dp=dp, debug=debug)
-           for row_idx in range(len(tbl_spec.row_specs))]
-    df_t = dfs[0].T
-    dfs_remaining = dfs[1:]
-    for df_next in dfs_remaining:
-        df_t = df_t.join(df_next.T, how='outer')
-    df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
-    if debug: print(f"\nCOMBINED:\n{df}")
-    ## Sorting indexes
-    raw_df = get_raw_df(cur, tbl_spec=tbl_spec, debug=debug)
-    order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(tbl_spec)
-    ## ROWS
-    unsorted_row_multi_index_list = list(df.index)
-    sorted_row_multi_index_list = get_sorted_multi_index_list(
-        unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
-        var_labels=tbl_spec.var_labels, raw_df=raw_df, has_metrics=False, debug=debug)
-    sorted_row_multi_index = pd.MultiIndex.from_tuples(sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
-    sorted_col_multi_index_list = sorted(
-        df.columns, key=lambda metric_lbl_and_metric: get_metric2order(metric_lbl_and_metric[1]))
-    sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)
-    df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
-    if debug: print(f"\nORDERED:\n{df}")
-    return df
+@dataclass(frozen=True, kw_only=True)
+class FreqTblSpec:
+    style_name: str
+    src_tbl: str
+    row_specs: list[DimSpec]
+    var_labels: VAR_LABELS
+    cur: Any | None = None
+    tbl_filt_clause: str | None = None
+    inc_col_pct: bool = False
+    dp: int = 3
+    debug: bool = False
+    verbose: bool = False
 
-def get_html(cur, tbl_spec: FreqTblSpec, *, style_spec: StyleSpec, dp: int = 2, debug=False, verbose=False) -> str:
-    df = get_tbl_df(cur, tbl_spec, dp=dp, debug=debug)
-    pd_styler = set_table_styles(df.style)
-    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')
-    pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='columns')
-    raw_tbl_html = pd_styler.to_html()
-    if debug:
-        print(raw_tbl_html)
-    ## Fix
-    tbl_html = raw_tbl_html
-    tbl_html = fix_top_left_box(tbl_html, style_spec, debug=debug, verbose=verbose)
-    tbl_html = merge_cols_of_blanks(tbl_html, debug=debug)
-    if debug:
-        print(pd_styler.uuid)
-        print(tbl_html)
-    return tbl_html
+    @property
+    def totalled_vars(self) -> list[str]:
+        tot_vars = []
+        for row_spec in self.row_specs:
+            tot_vars.extend(row_spec.self_and_descendant_totalled_vars)
+        return tot_vars
+
+    @property
+    def max_row_depth(self) -> int:
+        max_depth = 0
+        for row_spec in self.row_specs:
+            row_depth = len(row_spec.self_and_descendant_vars)
+            if row_depth > max_depth:
+                max_depth = row_depth
+        return max_depth
+
+    def __post_init__(self):
+        row_vars = [spec.var for spec in self.row_specs]
+        row_dupes = set()
+        seen = set()
+        for row_var in row_vars:
+            if row_var in seen:
+                row_dupes.add(row_var)
+            else:
+                seen.add(row_var)
+        if row_dupes:
+            raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
+
+    def get_row_df(self, cur, *, row_idx: int, dp: int = 2) -> pd.DataFrame:
+        """
+        See cross_tab docs
+        """
+        row_spec = self.row_specs[row_idx]
+        totalled_variables = row_spec.self_and_descendant_totalled_vars
+        row_vars = row_spec.self_and_descendant_vars
+        data = get_data_from_spec(cur, src_tbl=self.src_tbl, tbl_filt_clause=self.tbl_filt_clause,
+            all_variables=row_vars, totalled_variables=totalled_variables, debug=self.debug)
+        n_row_fillers = self.max_row_depth - len(row_vars)
+        df = get_all_metrics_df_from_vars(
+            data, self.var_labels, row_vars=row_vars, n_row_fillers=n_row_fillers, inc_col_pct=self.inc_col_pct,
+            dp=dp, debug=self.debug)
+        return df
+
+    def get_tbl_df(self, cur) -> pd.DataFrame:
+        """
+        See cross_tab docs
+        """
+        dfs = [self.get_row_df(cur, row_idx=row_idx, dp=self.dp) for row_idx in range(len(self.row_specs))]
+        df_t = dfs[0].T
+        dfs_remaining = dfs[1:]
+        for df_next in dfs_remaining:
+            df_t = df_t.join(df_next.T, how='outer')
+        df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
+        if self.debug: print(f"\nCOMBINED:\n{df}")
+        ## Sorting indexes
+        raw_df = get_raw_df(cur, src_tbl=self.src_tbl)
+        order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(self.row_specs)
+        ## ROWS
+        unsorted_row_multi_index_list = list(df.index)
+        sorted_row_multi_index_list = get_sorted_multi_index_list(
+            unsorted_row_multi_index_list, order_rules_for_multi_index_branches=order_rules_for_multi_index_branches,
+            var_labels=self.var_labels, raw_df=raw_df, has_metrics=False, debug=self.debug)
+        sorted_row_multi_index = pd.MultiIndex.from_tuples(
+            sorted_row_multi_index_list)  ## https://pandas.pydata.org/docs/user_guide/advanced.html
+        sorted_col_multi_index_list = sorted(
+            df.columns, key=lambda metric_lbl_and_metric: get_metric2order(metric_lbl_and_metric[1]))
+        sorted_col_multi_index = pd.MultiIndex.from_tuples(sorted_col_multi_index_list)
+        df = df.reindex(index=sorted_row_multi_index, columns=sorted_col_multi_index)
+        if self.debug: print(f"\nORDERED:\n{df}")
+        return df
+
+    def to_html(self) -> str:
+        get_tbl_df_for_cur = partial(self.get_tbl_df)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                df = get_tbl_df_for_cur(cur)
+        else:
+            df = get_tbl_df_for_cur(self.cur)
+        pd_styler = set_table_styles(df.style)
+        style_spec = get_style_spec(style_name=self.style_name)
+        pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')
+        pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='columns')
+        raw_tbl_html = pd_styler.to_html()
+        if self.debug:
+            print(raw_tbl_html)
+        ## Fix
+        tbl_html = raw_tbl_html
+        tbl_html = fix_top_left_box(tbl_html, style_spec, debug=self.debug, verbose=self.verbose)
+        tbl_html = merge_cols_of_blanks(tbl_html, debug=self.debug)
+        if self.debug:
+            print(pd_styler.uuid)
+            print(tbl_html)
+        html_start = get_html_start(self.style_name)
+        html = f"""\
+        {html_start}
+        {tbl_html}
+        """
+        return html
