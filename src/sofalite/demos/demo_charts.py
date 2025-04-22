@@ -12,7 +12,8 @@ from sofalite.data_extraction.db import Sqlite
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.area import AreaChartingSpec
-from sofalite.output.charts.bar import BarChartingSpec, MultiBarChartSpec, SimpleBarChartSpec
+from sofalite.output.charts.bar import (
+    BarChartingSpec, ClusteredBarChartSpec, MultiBarChartSpec, SimpleBarChartSpec, ClusteredBarChartSpec)
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec
@@ -43,6 +44,7 @@ def simple_bar_chart():
         y_axis_title='Freq',
     )
     html = chart.to_html()
+
     fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -65,46 +67,29 @@ def multi_bar_chart():
         y_axis_title='Freq',
     )
     html = chart.to_html()
+
     fpath = '/home/g/Documents/sofalite/reports/test_multi_bar_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def clustered_bar_chart_from_data():
-    ## conf
-    style_spec = get_style_spec(style_name='default')
-    series_fld_name = 'country'
-    series_fld_lbl = 'Country'
-    category_fld_name = 'gender'
-    category_fld_lbl = 'Gender'
-    series_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {1: 'Male', 2: 'Female'}
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_series_category_charting_spec(
-            cur, tbl_name='demo_tbl',
-            series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            series_vals2lbls=series_vals2lbls,
-            category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None,
-            category_sort_order=SortOrder.LABEL)
-    ## charts details
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
-    charting_spec = BarChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=[indiv_chart_spec, ],
-        legend_lbl=intermediate_charting_spec.series_fld_lbl,
+def clustered_bar_chart():
+    chart = ClusteredBarChartSpec(
+        style_name='default',
+        series_fld_name='country',
+        category_fld_name='gender',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.LABEL,
         rotate_x_lbls=False,
         show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=intermediate_charting_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
+    html = chart.to_html()
+
     fpath = '/home/g/Documents/sofalite/reports/test_clustered_bar_chart_from_data.html'
     with open(fpath, 'w') as f:
         f.write(html)
@@ -569,9 +554,9 @@ def multi_series_boxplot_from_data():
 
 if __name__ == '__main__':
     pass
-    simple_bar_chart()
-    multi_bar_chart()
-    # clustered_bar_chart_from_data()
+    # simple_bar_chart()
+    # multi_bar_chart()
+    clustered_bar_chart()
     # multi_clustered_bar_chart_from_data()
     # multi_line_chart_from_data()
     # area_chart_from_data()

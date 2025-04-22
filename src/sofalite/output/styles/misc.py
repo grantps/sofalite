@@ -1,4 +1,8 @@
 """
+TODO: understand this; and see if get_styled_misc_css() can be killed off.
+TODO: understand what is needed for blended reports with different things with different styles
+  e.g. default AND grey_spirals
+
 CSS needed for header:
 
 General e.g. body - font, background colour etc. (see get_generic_css())

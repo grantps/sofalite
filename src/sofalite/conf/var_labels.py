@@ -40,7 +40,7 @@ class VarLabelSpec:
 
     def __post_init__(self):
         if self.lbl is None:
-            self.lbl = self.name.title()
+            self.lbl = str(self.name)
         val_lbls = sorted(val_lbl for val, val_lbl in self.val2lbl.items())
         duplicate_lbls = [k for k, g in groupby(val_lbls) if len(list(g)) > 1]
         if duplicate_lbls:
@@ -121,7 +121,7 @@ def yaml2varlabels(yaml_fpath: Path, *, debug=False) -> VarLabels:
     for var, var_spec in raw_yaml.items():
         kwargs = {
             'name': var,
-            'lbl': var_spec.get('var_lbl', var.title()),
+            'lbl': var_spec.get('var_lbl', var),
             'val2lbl': var_spec.get('val_lbls', {}),
         }
         if var_spec.get('var_comment'):
