@@ -19,8 +19,8 @@ from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec
 from sofalite.output.charts.line import MultiLineChartSpec
 from sofalite.output.charts.pie import PieChartSpec
-from sofalite.output.charts.scatterplot import (MultiSeriesScatterChartSpec, ScatterChartingSpec,
-    SingleSeriesScatterChartSpec)
+from sofalite.output.charts.scatterplot import (MultiChartScatterChartSpec, MultiSeriesScatterChartSpec,
+    ScatterChartingSpec, SingleSeriesScatterChartSpec)
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 
@@ -233,39 +233,23 @@ def multi_series_scatterplot():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def multi_chart_scatterplot_from_data():
-    ## conf
-    style_spec = get_style_spec(style_name='default')
-    chart_fld_name = 'gender'
-    chart_fld_lbl = 'Gender'
-    chart_vals2lbls = {1: 'Male', 2: 'Female'}
-    x_fld_name = 'age'
-    x_fld_lbl = 'Age'
-    y_fld_name = 'weight'
-    y_fld_lbl = 'Weight'
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = xys.get_by_chart_xy_charting_spec(cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
-            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
-            chart_vals2lbls=chart_vals2lbls,
-            tbl_filt_clause=None)
-    ## charts details
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    charting_spec = ScatterChartingSpec(
-        indiv_chart_specs=indiv_chart_specs,
-        legend_lbl=None,
+def multi_chart_scatterplot():
+    chart = MultiChartScatterChartSpec(
+        style_name='default',
+        chart_fld_name='gender',
+        x_fld_name='age',
+        y_fld_name='weight',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=intermediate_charting_spec.x_fld_lbl,
-        y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_scatterplot_from_data.html'
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_scatterplot.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -465,8 +449,8 @@ if __name__ == '__main__':
     # area_chart()
     # pie_chart()
     # single_series_scatterplot()
-    multi_series_scatterplot()
-    # multi_chart_scatterplot_from_data()
+    # multi_series_scatterplot()
+    multi_chart_scatterplot()
     # multi_chart_series_scatterplot_from_data()
     # histogram_from_data()
     # multi_chart_histogram_from_data()
