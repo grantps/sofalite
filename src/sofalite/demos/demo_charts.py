@@ -191,6 +191,9 @@ def pie_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+def single_series_scatterplot():
+    pass
+
 def single_series_scatterplot_from_data():
     # ## conf
     style_spec = get_style_spec(style_name='default')
@@ -491,8 +494,9 @@ if __name__ == '__main__':
     # multi_clustered_bar_chart()
     # multi_line_chart()
     # area_chart()
-    pie_chart()
-    # single_series_scatterplot_from_data()
+    # pie_chart()
+    single_series_scatterplot()
+    single_series_scatterplot_from_data()
     # multi_series_scatterplot_from_data()
     # multi_chart_scatterplot_from_data()
     # multi_chart_series_scatterplot_from_data()
