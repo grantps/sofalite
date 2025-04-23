@@ -11,14 +11,14 @@ from sofalite.data_extraction.charts.histogram import (get_by_chart_charting_spe
 from sofalite.data_extraction.db import Sqlite
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
-from sofalite.output.charts.area import AreaChartSpec, AreaChartingSpec
+from sofalite.output.charts.area import AreaChartSpec
 from sofalite.output.charts.bar import (
-    BarChartingSpec, ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
+    ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec
-from sofalite.output.charts.line import LineChartingSpec, MultiLineChartSpec
-from sofalite.output.charts.pie import PieChartingSpec
+from sofalite.output.charts.line import MultiLineChartSpec
+from sofalite.output.charts.pie import PieChartSpec, PieChartingSpec
 from sofalite.output.charts.scatterplot import ScatterChartingSpec
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
@@ -168,78 +168,25 @@ def area_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def area_chart_from_data():
-    ## conf
-    style_spec = get_style_spec(style_name='default')
-    chart_fld_name = 'country'
-    chart_fld_lbl = 'Country'
-    category_fld_name = 'browser'
-    category_fld_lbl = 'Web Browser'
-    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {'Chrome': 'Google Chrome'}
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_chart_category_charting_spec(
-            cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            chart_vals2lbls=chart_vals2lbls,
-            category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None,
-            category_sort_order=SortOrder.LABEL)
-    ## charts details
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    charting_spec = AreaChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=indiv_chart_specs,
-        is_time_series=False,
-        legend_lbl='Country',
+def pie_chart():
+    chart = PieChartSpec(
+        style_name='default',
+        chart_fld_name='country',
+        category_fld_name='browser',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.VALUE,
+        legend_lbl=None,
         rotate_x_lbls=False,
-        show_major_ticks_only=False,
-        show_markers=True,
+        show_borders=False,
         show_n_records=True,
         x_axis_font_size=12,
-        x_axis_title=intermediate_charting_spec.category_fld_lbl,
         y_axis_title='Freq',
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_area_chart_from_data.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
-    open_new_tab(url=f"file://{fpath}")
+    html = chart.to_html()
 
-def pie_chart_from_data():
-    ## design
-    style_spec = get_style_spec(style_name='default')
-    chart_fld_name = 'country'
-    chart_fld_lbl = 'Country'
-    category_fld_name = 'browser'
-    category_fld_lbl = 'Web Browser'
-    chart_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    category_vals2lbls = {'Chrome': 'Google Chrome'}
-    ## intermediate charting spec (including data)
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = freq_specs.get_by_chart_category_charting_spec(
-            cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            chart_vals2lbls=chart_vals2lbls,
-            category_vals2lbls=category_vals2lbls,
-            tbl_filt_clause=None,
-            category_sort_order=SortOrder.LABEL)
-    ## charting spec
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    charting_spec = PieChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=indiv_chart_specs,
-        show_n_records=True,
-    )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_pie_chart_from_data.html'
+    fpath = '/home/g/Documents/sofalite/reports/test_pie_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -543,9 +490,8 @@ if __name__ == '__main__':
     # clustered_bar_chart()
     # multi_clustered_bar_chart()
     # multi_line_chart()
-    area_chart()
-    area_chart_from_data()
-    # pie_chart_from_data()
+    # area_chart()
+    pie_chart()
     # single_series_scatterplot_from_data()
     # multi_series_scatterplot_from_data()
     # multi_chart_scatterplot_from_data()

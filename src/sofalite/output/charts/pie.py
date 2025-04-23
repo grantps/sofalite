@@ -1,13 +1,19 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
+from functools import partial
+from typing import Any
 import uuid
 
 import jinja2
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
+from sofalite.data_extraction.charts.freq_specs import get_by_chart_category_charting_spec
+from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.interfaces import ChartingSpecNoAxes, IndivChartSpec
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.styles.misc import get_long_colour_list
+from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
+from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.misc import todict
 
 @dataclass
@@ -194,3 +200,53 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
+
+@dataclass(frozen=True)
+class PieChartSpec:
+    style_name: str
+    chart_fld_name: str
+    category_fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    category_sort_order: SortOrder = SortOrder.VALUE
+    legend_lbl: str | None = None,
+    rotate_x_lbls: bool = False,
+    show_borders: bool = False,
+    show_n_records: bool = True,
+    x_axis_font_size: int = 12,
+    y_axis_title: str = 'Freq'
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        chart_fld_lbl = VAR_LABELS.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name)
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name)
+        chart_vals2lbls = VAR_LABELS.var2val2lbl.get(self.chart_fld_name, self.chart_fld_name)
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
+        ## data
+        get_by_chart_category_charting_spec_for_cur = partial(get_by_chart_category_charting_spec,
+            tbl_name=self.tbl_name,
+            chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            category_vals2lbls=category_vals2lbls, category_sort_order=SortOrder.LABEL,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)
+        ## charts details
+        category_specs = intermediate_charting_spec.to_sorted_category_specs()
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = PieChartingSpec(
+            category_specs=category_specs,
+            indiv_chart_specs=indiv_chart_specs,
+            show_n_records=self.show_n_records,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
