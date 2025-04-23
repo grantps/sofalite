@@ -11,7 +11,7 @@ from sofalite.data_extraction.charts.histogram import (get_by_chart_charting_spe
 from sofalite.data_extraction.db import Sqlite
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
-from sofalite.output.charts.area import AreaChartingSpec
+from sofalite.output.charts.area import AreaChartSpec, AreaChartingSpec
 from sofalite.output.charts.bar import (
     BarChartingSpec, ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
@@ -140,6 +140,30 @@ def multi_line_chart():
     html = chart.to_html()
 
     fpath = '/home/g/Documents/sofalite/reports/test_multi_line_chart.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
+def area_chart():
+    chart = AreaChartSpec(
+        style_name='default',
+        chart_fld_name='country',
+        category_fld_name='browser',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.LABEL,
+        is_time_series=False,
+        show_major_ticks_only=True,
+        show_markers=True,
+        rotate_x_lbls=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        y_axis_title='Freq',
+    )
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_area_chart.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -518,8 +542,9 @@ if __name__ == '__main__':
     # multi_bar_chart()
     # clustered_bar_chart()
     # multi_clustered_bar_chart()
-    multi_line_chart()
-    # area_chart_from_data()
+    # multi_line_chart()
+    area_chart()
+    area_chart_from_data()
     # pie_chart_from_data()
     # single_series_scatterplot_from_data()
     # multi_series_scatterplot_from_data()

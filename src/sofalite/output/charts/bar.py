@@ -14,7 +14,7 @@ from sofalite.data_extraction.charts.freq_specs import (get_by_category_charting
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import (
-    ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, LeftMarginOffsetSpec)
+    ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
@@ -108,7 +108,7 @@ class MultiBarChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_chart_category_charting_spec_for_cur = partial(get_by_chart_category_charting_spec,
-            tbl_name='demo_tbl',
+            tbl_name=self.tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
@@ -282,7 +282,7 @@ class CommonMiscSpec:
     connector_style: str
     grid_line_width: int
     height: float  ## pixels
-    left_margin_offset: int
+    left_margin_offset: float
     legend_lbl: str
     stroke_width: int
     width: float  ## pixels
@@ -439,7 +439,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSp
     x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
     y_axis_max = charting_spec.max_y_val * 1.1
-    has_minor_ticks_js_bool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
+    has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     stroke_width = style_spec.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
