@@ -16,7 +16,7 @@ from sofalite.output.charts.bar import (
     ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
 from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
-from sofalite.output.charts.histogram import HistoChartingSpec, HistogramChartSpec
+from sofalite.output.charts.histogram import HistoChartingSpec, HistogramChartSpec, MultiChartHistogramChartSpec
 from sofalite.output.charts.line import MultiLineChartSpec
 from sofalite.output.charts.pie import PieChartSpec
 from sofalite.output.charts.scatterplot import (MultiChartScatterChartSpec, MultiChartSeriesScatterChartSpec,
@@ -296,39 +296,23 @@ def histogram_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def multi_chart_histogram_from_data():
-    ## conf
-    dp = 3
-    style_spec = get_style_spec(style_name='default')
-    chart_fld_name = 'gender'
-    chart_fld_lbl = 'Gender'
-    chart_vals2lbls = {1: 'Male', 2: 'Female'}
-    fld_name = 'age'
-    fld_lbl = 'Age'
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = histo_get_by_chart_charting_spec(cur, tbl_name='demo_tbl',
-            chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
-            fld_name=fld_name, fld_lbl=fld_lbl,
-            chart_vals2lbls=chart_vals2lbls,
-            tbl_filt_clause=None)
-    ## charts details
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=dp)
-    x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
-    charting_spec = HistoChartingSpec(
-        bin_lbls=bin_lbls,
-        indiv_chart_specs=indiv_chart_specs,
+def multi_chart_histogram():
+    chart = MultiChartHistogramChartSpec(
+        style_name='default',
+        chart_fld_name='gender',
+        fld_name='age',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
-        var_lbl=intermediate_charting_spec.fld_lbl,
         x_axis_font_size=12,
-        x_axis_max_val=x_axis_max_val,
-        x_axis_min_val=x_axis_min_val,
+        dp=3,
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_histogram_from_data.html'
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_multi_chart_histogram.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -421,7 +405,7 @@ if __name__ == '__main__':
     # multi_series_scatterplot()
     # multi_chart_scatterplot()
     # multi_chart_series_scatterplot()
-    histogram_chart()
-    # multi_chart_histogram_from_data()
+    # histogram_chart()
+    multi_chart_histogram()
     # boxplot_from_data()
     # multi_series_boxplot_from_data()

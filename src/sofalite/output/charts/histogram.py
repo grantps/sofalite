@@ -8,7 +8,8 @@ import jinja2
 
 from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS
-from sofalite.data_extraction.charts.histogram import HistoIndivChartSpec, get_by_vals_charting_spec
+from sofalite.data_extraction.charts.histogram import (
+    HistoIndivChartSpec, get_by_chart_charting_spec, get_by_vals_charting_spec)
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool
@@ -309,6 +310,59 @@ class HistogramChartSpec:
                 intermediate_charting_spec = get_by_vals_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
+        bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
+        x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
+        ## charts details
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = HistoChartingSpec(
+            bin_lbls=bin_lbls,
+            indiv_chart_specs=indiv_chart_specs,
+            show_borders=self.show_borders,
+            show_n_records=self.show_n_records,
+            show_normal_curve=self.show_normal_curve,
+            var_lbl=intermediate_charting_spec.fld_lbl,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_max_val=x_axis_max_val,
+            x_axis_min_val=x_axis_min_val,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
+
+@dataclass(frozen=True)
+class MultiChartHistogramChartSpec:
+    style_name: str
+    chart_fld_name: str
+    fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    show_borders: bool = False
+    show_n_records: bool = True
+    show_normal_curve: bool = True
+    x_axis_font_size: int = 12
+    dp: int = 3
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        chart_fld_lbl = VAR_LABELS.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name)
+        chart_vals2lbls = VAR_LABELS.var2val2lbl.get(self.chart_fld_name, self.chart_fld_name)
+        fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
+        ## data
+        get_by_chart_charting_spec_for_cur = partial(get_by_chart_charting_spec,
+            tbl_name=self.tbl_name,
+            chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            fld_name=self.fld_name, fld_lbl=fld_lbl,
+            chart_vals2lbls=chart_vals2lbls,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_chart_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_chart_charting_spec_for_cur(self.cur)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
         ## charts details
