@@ -3,7 +3,7 @@ from webbrowser import open_new_tab
 import pandas as pd
 
 from sofalite.conf.main import DATABASE_FPATH
-from sofalite.data_extraction.charts import freq_specs, xys
+from sofalite.data_extraction.charts import xys
 from sofalite.data_extraction.charts.boxplot import (get_by_category_charting_spec as box_get_by_category_charting_spec,
     get_by_series_category_charting_spec as box_get_by_series_category_charting_spec)
 from sofalite.data_extraction.charts.histogram import (get_by_chart_charting_spec as histo_get_by_chart_charting_spec,
@@ -18,8 +18,8 @@ from sofalite.output.charts.boxplot import BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec
 from sofalite.output.charts.line import MultiLineChartSpec
-from sofalite.output.charts.pie import PieChartSpec, PieChartingSpec
-from sofalite.output.charts.scatterplot import ScatterChartingSpec
+from sofalite.output.charts.pie import PieChartSpec
+from sofalite.output.charts.scatterplot import ScatterChartingSpec, SingleSeriesScatterChartSpec
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 
@@ -192,37 +192,21 @@ def pie_chart():
     open_new_tab(url=f"file://{fpath}")
 
 def single_series_scatterplot():
-    pass
-
-def single_series_scatterplot_from_data():
-    # ## conf
-    style_spec = get_style_spec(style_name='default')
-    x_fld_name = 'age'
-    x_fld_lbl = 'Age'
-    y_fld_name = 'weight'
-    y_fld_lbl = 'Weight'
-    ## data details
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = xys.get_by_series_xy_charting_spec(
-            cur, tbl_name='demo_tbl',
-            x_fld_name=x_fld_name, x_fld_lbl=x_fld_lbl,
-            y_fld_name=y_fld_name, y_fld_lbl=y_fld_lbl,
-            tbl_filt_clause=None)
-    ## charts details
-    indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
-    charting_spec = ScatterChartingSpec(
-        indiv_chart_specs=indiv_chart_specs,
-        legend_lbl=None,
+    chart = SingleSeriesScatterChartSpec(
+        style_name='default',
+        x_fld_name='age',
+        y_fld_name='weight',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
         x_axis_font_size=10,
-        x_axis_title=intermediate_charting_spec.x_fld_lbl,
-        y_axis_title=intermediate_charting_spec.y_fld_lbl,
     )
-    ## output
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_single_series_scatterplot_from_data.html'
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_single_series_scatterplot.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -496,7 +480,6 @@ if __name__ == '__main__':
     # area_chart()
     # pie_chart()
     single_series_scatterplot()
-    single_series_scatterplot_from_data()
     # multi_series_scatterplot_from_data()
     # multi_chart_scatterplot_from_data()
     # multi_chart_series_scatterplot_from_data()

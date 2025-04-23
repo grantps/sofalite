@@ -1,5 +1,7 @@
 # Based on original demo table in SOFA Statistics
 ---
+age:
+  var_lbl: Age (at date of study)
 agegroup:
   var_lbl: Age Group
   var_comment: Standard age groupings for SOFA
@@ -60,4 +62,7 @@ std_agegroup:
     3: "30-39"
     4: "40-64"
     5: "65+"
+weight:
+  var_lbl: Body Weight
+
 

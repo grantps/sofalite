@@ -105,8 +105,9 @@ class ChartSeriesXYSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_xy_charting_space(cur: ExtendedCursor, tbl_name: str,
-        x_fld_name: str, x_fld_lbl: str, y_fld_name: str, y_fld_lbl: str,
+def get_by_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
+        x_fld_name: str, x_fld_lbl: str,
+        y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''

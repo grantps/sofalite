@@ -1,15 +1,20 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from functools import partial
+from typing import Any, Literal
 import uuid
 
 import jinja2
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.data_extraction.charts.scatterplot import ScatterChartingSpec, ScatterIndivChartSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import LeftMarginOffsetSpec
+from sofalite.data_extraction.charts.xys import get_by_xy_charting_spec
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
+from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list
+from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -77,7 +82,7 @@ class CommonMiscSpec:
     connector_style: str
     grid_line_width: int
     height: float  ## pixels
-    left_margin_offset: int
+    left_margin_offset: float
     legend_lbl: str
     stroke_width: int
     width: float  ## pixels
@@ -182,9 +187,9 @@ def get_common_charting_spec(charting_spec: ScatterChartingSpec, style_spec: Sty
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]
     ## misc
-    has_minor_ticks_js_bool = 'true' if charting_spec.has_minor_ticks else 'false'
+    has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.has_minor_ticks else 'false'
     stroke_width = style_spec.chart.stroke_width if charting_spec.show_dot_borders else 0
-    show_regression_line_js_bool = 'true' if charting_spec.show_regression_line else 'false'
+    show_regression_line_js_bool: JSBool = 'true' if charting_spec.show_regression_line else 'false'
     ## sizing
     if charting_spec.is_multi_chart:
         width, height = (630, 350)
@@ -272,3 +277,50 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
+
+@dataclass(frozen=True)
+class SingleSeriesScatterChartSpec:
+    style_name: str
+    x_fld_name: str
+    y_fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    show_dot_borders: bool = True
+    show_n_records: bool = True
+    show_regression_line: bool = True
+    x_axis_font_size: int = 10
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
+        y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
+        ## data
+        get_by_xy_charting_spec_for_cur = partial(get_by_xy_charting_spec,
+            tbl_name=self.tbl_name,
+            x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_xy_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_xy_charting_spec_for_cur(self.cur)
+        ## charts details
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = ScatterChartingSpec(
+            indiv_chart_specs=indiv_chart_specs,
+            legend_lbl=None,
+            show_dot_borders=self.show_dot_borders,
+            show_n_records=self.show_n_records,
+            show_regression_line=self.show_regression_line,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_title=intermediate_charting_spec.x_fld_lbl,
+            y_axis_title=intermediate_charting_spec.y_fld_lbl,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
