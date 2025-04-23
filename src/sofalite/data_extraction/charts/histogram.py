@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import pandas as pd
 
 from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.stats_calc.engine import get_normal_ys
+from sofalite.stats_calc.histogram import get_bin_details_from_vals
 
 @dataclass
 class HistoIndivChartSpec:
@@ -37,8 +39,8 @@ class HistoValsSpec:
         norm_y_vals = get_normal_ys(self.vals, np.array(bin_starts))
         sum_y_vals = sum(self.bin_freqs)
         sum_norm_y_vals = sum(norm_y_vals)
-        norm_multiplier = sum_y_vals / sum_norm_y_vals
-        adjusted_norm_y_vals = [val * norm_multiplier for val in norm_y_vals]
+        norm_multiplier = float(sum_y_vals / sum_norm_y_vals)
+        adjusted_norm_y_vals = [float(val) * norm_multiplier for val in norm_y_vals]
         indiv_chart_spec = HistoIndivChartSpec(
             lbl=self.chart_lbl,
             n_records=len(self.vals),

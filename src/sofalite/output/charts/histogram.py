@@ -1,14 +1,19 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from functools import partial
+from typing import Any, Literal
 import uuid
 
 import jinja2
 
+from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS
-from sofalite.data_extraction.charts.histogram import HistoIndivChartSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
+from sofalite.data_extraction.charts.histogram import HistoIndivChartSpec, get_by_vals_charting_spec
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
+from sofalite.output.charts.interfaces import JSBool
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
+from sofalite.output.styles.misc import get_style_spec
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -203,7 +208,7 @@ def get_common_charting_spec(charting_spec: HistoChartingSpec, style_spec: Style
     left_margin_offset = 25
     stroke_width = style_spec.chart.stroke_width if charting_spec.show_borders else 0
     normal_stroke_width = 4
-    show_normal_curve_js_bool = 'true' if charting_spec.show_normal_curve else 'false'
+    show_normal_curve_js_bool: JSBool = 'true' if charting_spec.show_normal_curve else 'false'
     width = get_width(charting_spec.var_lbl, n_bins=charting_spec.n_bins,
         x_axis_min_val=charting_spec.x_axis_min_val, x_axis_max_val=charting_spec.x_axis_max_val,
         is_multi_chart=charting_spec.is_multi_chart)
@@ -276,3 +281,49 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
+
+@dataclass(frozen=True)
+class HistogramChartSpec:
+    style_name: str
+    fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    show_borders: bool = False
+    show_n_records: bool = True
+    show_normal_curve: bool = True
+    x_axis_font_size: int = 12
+    dp: int = 3
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
+        ## data
+        get_by_vals_charting_spec_for_cur = partial(get_by_vals_charting_spec,
+            tbl_name=self.tbl_name, fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_vals_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
+        bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
+        x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
+        ## charts details
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = HistoChartingSpec(
+            bin_lbls=bin_lbls,
+            indiv_chart_specs=indiv_chart_specs,
+            show_borders=self.show_borders,
+            show_n_records=self.show_n_records,
+            show_normal_curve=self.show_normal_curve,
+            var_lbl=intermediate_charting_spec.fld_lbl,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_max_val=x_axis_max_val,
+            x_axis_min_val=x_axis_min_val,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
