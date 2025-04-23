@@ -8,8 +8,8 @@ import jinja2
 
 from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.data_extraction.charts.scatterplot import ScatterChartingSpec, ScatterIndivChartSpec
-from sofalite.data_extraction.charts.xys import (get_by_chart_xy_charting_spec, get_by_series_xy_charting_spec,
-    get_by_xy_charting_spec)
+from sofalite.data_extraction.charts.xys import (get_by_chart_series_xy_charting_spec, get_by_chart_xy_charting_spec,
+    get_by_series_xy_charting_spec, get_by_xy_charting_spec)
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
@@ -419,6 +419,62 @@ class MultiChartScatterChartSpec:
         charting_spec = ScatterChartingSpec(
             indiv_chart_specs=indiv_chart_specs,
             legend_lbl=None,
+            show_dot_borders=self.show_dot_borders,
+            show_n_records=self.show_n_records,
+            show_regression_line=self.show_regression_line,
+            x_axis_font_size=self.x_axis_font_size,
+            x_axis_title=intermediate_charting_spec.x_fld_lbl,
+            y_axis_title=intermediate_charting_spec.y_fld_lbl,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
+
+@dataclass(frozen=True)
+class MultiChartSeriesScatterChartSpec:
+    style_name: str
+    chart_fld_name: str
+    series_fld_name: str
+    x_fld_name: str
+    y_fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    show_dot_borders: bool = True
+    show_n_records: bool = True
+    show_regression_line: bool = True
+    x_axis_font_size: int = 10
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        chart_fld_lbl = VAR_LABELS.var2var_lbl.get(self.chart_fld_name, self.chart_fld_name)
+        series_fld_lbl = VAR_LABELS.var2var_lbl.get(self.series_fld_name, self.series_fld_name)
+        chart_vals2lbls = VAR_LABELS.var2val2lbl.get(self.chart_fld_name, self.chart_fld_name)
+        series_vals2lbls = VAR_LABELS.var2val2lbl.get(self.series_fld_name, self.series_fld_name)
+        x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
+        y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
+        ## data
+        get_by_chart_series_xy_charting_spec_for_cur = partial(get_by_chart_series_xy_charting_spec,
+            tbl_name=self.tbl_name,
+            chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
+            series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
+            x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
+            y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
+            chart_vals2lbls=chart_vals2lbls, series_vals2lbls=series_vals2lbls,
+            tbl_filt_clause=self.tbl_filt_clause)
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(self.cur)
+        ## charts details
+        indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
+        charting_spec = ScatterChartingSpec(
+            indiv_chart_specs=indiv_chart_specs,
+            legend_lbl=intermediate_charting_spec.series_fld_lbl,
             show_dot_borders=self.show_dot_borders,
             show_n_records=self.show_n_records,
             show_regression_line=self.show_regression_line,
