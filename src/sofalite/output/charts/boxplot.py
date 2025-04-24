@@ -17,7 +17,7 @@ from sofalite.output.charts.utils import (
     get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
-from sofalite.stats_calc.interfaces import BoxplotType
+from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -179,7 +179,7 @@ class CommonColourSpec:
 
 @dataclass(frozen=True)
 class CommonOptions:
-    has_minor_ticks_js_bool: Literal['true', 'false']
+    has_minor_ticks_js_bool: JSBool
     show_n_records: bool
 
 @dataclass(frozen=True)
@@ -367,6 +367,7 @@ class BoxplotChartSpec:
     tbl_name: str
     tbl_filt_clause: str | None = None
     cur: Any | None = None
+    category_sort_order: SortOrder = SortOrder.VALUE
     boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
     rotate_x_lbls: bool = False
     show_n_records: bool = True
@@ -385,7 +386,7 @@ class BoxplotChartSpec:
             tbl_name=self.tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
-            category_vals2lbls=category_vals2lbls,
+            category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause,
             boxplot_type=self.boxplot_type,
         )
@@ -395,6 +396,64 @@ class BoxplotChartSpec:
                 intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
+        ## charts details
+        category_specs = intermediate_charting_spec.to_sorted_category_specs()
+        indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)
+        charting_spec = BoxplotChartingSpec(
+            category_specs=category_specs,
+            indiv_chart_specs=[indiv_chart_spec, ],
+            legend_lbl=intermediate_charting_spec.series_fld_lbl,
+            rotate_x_lbls=self.rotate_x_lbls,
+            show_n_records=self.show_n_records,
+            x_axis_title=intermediate_charting_spec.category_fld_lbl,
+            y_axis_title=intermediate_charting_spec.fld_lbl,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html
+
+@dataclass(frozen=True)
+class MultiSeriesBoxplotChartSpec:
+    style_name: str
+    series_fld_name: str
+    category_fld_name: str
+    fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    category_sort_order: SortOrder = SortOrder.VALUE
+    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+    rotate_x_lbls: bool = False
+    show_n_records: bool = True
+    x_axis_font_size: int = 12
+    dp: int = 3
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        series_fld_lbl = VAR_LABELS.var2var_lbl.get(self.series_fld_name, self.series_fld_name)
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name)
+        series_vals2lbls = VAR_LABELS.var2val2lbl.get(self.series_fld_name, self.series_fld_name)
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
+        fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
+        ## data
+        get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
+            tbl_name=self.tbl_name,
+            series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            fld_name=self.fld_name, fld_lbl=fld_lbl,
+            series_vals2lbls=series_vals2lbls,
+            category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
+            tbl_filt_clause=self.tbl_filt_clause,
+            boxplot_type=self.boxplot_type,
+        )
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)

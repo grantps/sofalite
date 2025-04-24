@@ -639,13 +639,16 @@ makeBoxAndWhisker = function(chartname, series, series_conf, conf){
          tooltipBorderColour: conf['tooltip_border_colour'],
          connectorStyle: conf['connector_style']});
     mychart.render();
-    // dummy chart needed for automatic legend creation to work from - will be invisible
-    // Needs stroke (text), label (to display), and fill (colour of boxplot)
-    var dummychart = new dc.Chart2D("dummy_" + chartname);  // must use _this_ exact name as div id so legend can be put there
-    dummychart.addPlot("default", {type: "ClusteredColumns"});
-    for (i in series_conf){  // Dojo expects data so we supply dummy data [1,2] - the only things we supply are what is required to build legend
-        dummychart.addSeries(series_conf[i]["seriesLabel"], [1,2], series_conf[i]["seriesStyle"]);
+    if (series_conf.length > 1) {
+        // dummy chart needed for automatic legend creation to work from - will be invisible
+        // Needs stroke (text), label (to display), and fill (colour of boxplot)
+        console.log(chartname)
+        var dummychart = new dc.Chart2D("dummy_" + chartname);  // must use _this_ exact name as div id so legend can be put there
+        dummychart.addPlot("default", {type: "ClusteredColumns"});
+        for (i in series_conf){  // Dojo expects data so we supply dummy data [1,2] - the only things we supply are what is required to build legend
+            dummychart.addSeries(series_conf[i]["seriesLabel"], [1,2], series_conf[i]["seriesStyle"]);
+        }
+        dummychart.render();
+        var legend = new dojox.charting.widget.Legend({chart: dummychart}, "legend_for_" + chartname);
     }
-    dummychart.render();
-    var legend = new dojox.charting.widget.Legend({chart: dummychart}, "legend_for_" + chartname);
 }

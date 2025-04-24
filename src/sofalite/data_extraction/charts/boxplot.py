@@ -168,7 +168,7 @@ def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         category_vals_specs.append(category_vals_spec)
     result = BoxplotCategoryValsSpecs(
         chart_lbl=None,
-        series_fld_lbl=None,
+        series_fld_lbl='',
         category_fld_lbl=category_fld_lbl,
         fld_lbl=fld_lbl,
         category_vals_specs=category_vals_specs,
@@ -214,7 +214,7 @@ class BoxplotSeriesCategoryValsSpecs:
                 )
                 box_items.append(box_item)
             data_series_spec = BoxplotDataSeriesSpec(
-                lbl=None,
+                lbl=series_item_category_vals_specs.series_val_lbl,
                 box_items=box_items,
             )
             data_series_specs.append(data_series_spec)
@@ -225,7 +225,7 @@ class BoxplotSeriesCategoryValsSpecs:
         return indiv_chart_spec
 
 def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
-        series_fld_name: str, series_fld_lbl: str,  ## TODO - lbl used?
+        series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None,
@@ -274,7 +274,7 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         )
         series_category_vals_specs.append(series_category_vals_spec)
     result = BoxplotSeriesCategoryValsSpecs(
-        series_fld_lbl=None,
+        series_fld_lbl=series_fld_lbl,
         category_fld_lbl=category_fld_lbl,
         fld_lbl=fld_lbl,
         series_category_vals_specs=series_category_vals_specs,
