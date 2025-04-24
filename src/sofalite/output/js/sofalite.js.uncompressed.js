@@ -500,7 +500,7 @@ dojo.provide("dojox.gfx._base");
 	//	derived from Morris John's emResized measurer
 	b._getFontMeasurements = function(){
 		//	summary:
-		//		Returns an object that has pixel equivilents of standard font
+		//		Returns an object that has pixel equivalents of standard font
 		//		size values.
 		var heights = {
 			'1em': 0, '1ex': 0, '100%': 0, '12pt': 0, '16px': 0, 'xx-small': 0,
@@ -948,7 +948,7 @@ dojo.provide("dojox.lang.functional.lambda");
 // This module adds high-level functions and related constructs:
 //	- anonymous functions built from the string
 
-// Acknoledgements:
+// Acknowledgements:
 //	- lambda() is based on work by Oliver Steele
 //		(http://osteele.com/sources/javascript/functional/functional.js)
 //		which was published under MIT License
@@ -2134,7 +2134,7 @@ dojo.provide("dojox.color.Palette");
 			//		all of the colors in a palette using any of 5 formulae:
 			//		RGBA, HSL, HSV, CMYK or CMY.
 			//
-			//		Once the forumula to be used is determined, you can pass any
+			//		Once the formula to be used is determined, you can pass any
 			//		number of parameters based on the formula "d"[param]; for instance,
 			//		{ use: "rgba", dr: 20, dg: -50 } will take all of the colors in
 			//		palette, add 20 to the R value and subtract 50 from the G value.
@@ -4106,7 +4106,7 @@ dojo.declare("dojox.charting.axis2d.Base", dojox.charting.Element, {
 	},
 	calculate: function(min, max, span){
 		//	summary:
-		//		Stub function to run the calcuations needed for drawing this axis.
+		//		Stub function to run the calculations needed for drawing this axis.
 		//	returns: dojox.charting.axis2d.Base
 		//		A reference to the axis for functional chaining.
 		return this;	//	dojox.charting.axis2d.Base
@@ -5649,7 +5649,7 @@ dojo.declare("dojox.charting.plot2d.Base", [dojox.charting.Element, dojox.charti
 	},
 	calculateAxes: function(dim){
 		//	summary:
-		//		Stub function for running the axis calculations (depricated).
+		//		Stub function for running the axis calculations (deprecated).
 		//	dim: Object
 		//		An object of the form { width, height }
 		//	returns: dojox.charting.plot2d.Base
@@ -10716,7 +10716,7 @@ dojox.charting.__Chart2DCtorArgs = function(margins, stroke, fill, delayInMs){
 			//	scale: Number
 			//		The scale on the target axis.
 			//	offset: Number
-			//		Any offest, as measured by axis tick
+			//		Any offset, as measured by axis tick
 			//	zoom: Boolean|Object?
 			//		The chart zooming animation trigger.  This is null by default,
 			//		e.g. {duration: 1200}, or just set true.
@@ -11257,7 +11257,7 @@ dojo.fx.easing = {
 	//
 	//		Easing functions are used to manipulate the iteration through
 	//		an `dojo.Animation`s _Line. _Line being the properties of an Animation,
-	//		and the easing function progresses through that Line determing
+	//		and the easing function progresses through that Line determining
 	//		how quickly (or slowly) it should go. Or more accurately: modify
 	//		the value of the _Line based on the percentage of animation completed.
 	//
@@ -11829,14 +11829,14 @@ dojo.declare("dojo.fx.Toggler", null, {
 	show: function(delay){
 		// summary: Toggle the node to showing
 		// delay: Integer?
-		//		Ammount of time to stall playing the show animation
+		//		Amount of time to stall playing the show animation
 		return this.showAnim.play(delay || 0);
 	},
 
 	hide: function(delay){
 		// summary: Toggle the node to hidden
 		// delay: Integer?
-		//		Ammount of time to stall playing the hide animation
+		//		Amount of time to stall playing the hide animation
 		return this.hideAnim.play(delay || 0);
 	}
 });
@@ -12071,7 +12071,7 @@ dojo.fx = {
 		//
 		// description:
 		//		Combine an array of `dojo.Animation`s to run in parallel,
-		//		providing a new `dojo.Animation` instance encompasing each
+		//		providing a new `dojo.Animation` instance encompassing each
 		//		animation, firing standard animation events.
 		//
 		// example:
@@ -13049,7 +13049,7 @@ dojo.declare("dijit.WidgetSet", null, {
 
 	some: function(func, thisObj){
 		// summary:
-		// 		A synthetic clone of `dojo.some` acting explictly on this WidgetSet
+		// 		A synthetic clone of `dojo.some` acting explicitly on this WidgetSet
 		//
 		// func: Function
 		//		A callback function run for every widget in this list. Exits loop
@@ -13321,7 +13321,7 @@ dojo.declare("dijit.WidgetSet", null, {
 		// defaultDuration: Integer
 		//		The default animation speed (in ms) to use for all Dijit
 		//		transitional animations, unless otherwise specified
-		//		on a per-instance basis. Defaults to 200, overrided by
+		//		on a per-instance basis. Defaults to 200, overridden by
 		//		`djConfig.defaultDuration`
 		defaultDuration: 200
 	});
@@ -13402,7 +13402,7 @@ dojo.mixin(dijit, {
 		}else if(sel){
 			// If the current focus was a input of some sort and no selection, don't bother saving
 			// a native bookmark.  This is because it causes issues with dialog/page selection restore.
-			// So, we need to create psuedo bookmarks to work with.
+			// So, we need to create pseudo bookmarks to work with.
 			tg = cf ? cf.tagName : "";
 			tg = tg.toLowerCase();
 			if(cf && tg && (tg == "button" || tg == "textarea" || tg == "input")){
@@ -13698,7 +13698,7 @@ dojo.mixin(dijit, {
 	_onBlurNode: function(/*DomNode*/ node){
 		// summary:
 		// 		Called when focus leaves a node.
-		//		Usually ignored, _unless_ it *isn't* follwed by touching another node,
+		//		Usually ignored, _unless_ it *isn't* followed by touching another node,
 		//		which indicates that we tabbed off the last field on the page,
 		//		in which case every widget is marked inactive
 		dijit._prevFocus = dijit._curFocus;
@@ -14602,7 +14602,7 @@ dijit._frames = new function(){
 				iframe.className = "dijitBackgroundIframe";
 				dojo.style(iframe, "opacity", 0.1);
 			}
-			iframe.tabIndex = -1; // Magic to prevent iframe from getting focus on tab keypress - as style didnt work.
+			iframe.tabIndex = -1; // Magic to prevent iframe from getting focus on tab keypress - as style didn't work.
 			dijit.setWaiRole(iframe,"presentation");
 		}
 		return iframe;
@@ -15848,7 +15848,7 @@ dojo.declare("dijit._Widget", null, {
 
 	_setStyleAttr: function(/*String||Object*/ value){
 		// summary:
-		//		Sets the style attribut of the widget according to value,
+		//		Sets the style attribute of the widget according to value,
 		//		which is either a hash like {height: "5px", width: "3px"}
 		//		or a plain string
 		// description:
@@ -16229,7 +16229,7 @@ dojo.declare("dijit._Widget", null, {
 		//		somewhere in the dom, and allow chaining.
 		//
 		// reference:
-		//		The String id of a domNode, a domNode reference, or a reference to a Widget posessing
+		//		The String id of a domNode, a domNode reference, or a reference to a Widget possessing
 		//		an addChild method.
 		//
 		// position:
@@ -16967,7 +16967,7 @@ dojo.cache = {
 		// 		|	//text variable will contain just "<h1>Hello</h1>".
 		//		|	var text = dojo["cache"]("my.module", "template.html", {sanitize: true});
 		//	example:
-		//		Same example as previous, but demostrates how an object can be passed in as
+		//		Same example as previous, but demonstrates how an object can be passed in as
 		//		the first argument, then the value argument can then be the second argument.
 		// 		|	//If template.html contains "<html><body><h1>Hello</h1></body></html>", the
 		// 		|	//text variable will contain just "<h1>Hello</h1>".
@@ -17047,7 +17047,7 @@ dojo.declare("dijit._Templated",
 		//		Mixin for widgets that are instantiated from a template
 
 		// templateString: [protected] String
-		//		A string that represents the widget template. Pre-empts the
+		//		A string that represents the widget template. Preempts the
 		//		templatePath. In builds that have their strings "interned", the
 		//		templatePath is converted to an inline templateString, thereby
 		//		preventing a synchronous network call.
@@ -18604,7 +18604,7 @@ dojo.extend(dojox.gfx.Shape, dojox.gfx.shape._eventsProcessing);
 dojox.gfx.shape.Container = {
 	// summary: a container of shapes, which can be used
 	//	as a foundation for renderer-specific groups, or as a way
-	//	to logically group shapes (e.g, to propagate matricies)
+	//	to logically group shapes (e.g, to propagate matrices)
 
 	_init: function() {
 		// children: Array: a list of children

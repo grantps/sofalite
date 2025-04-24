@@ -352,7 +352,7 @@ class CrossTabTblSpec:
         ## COMBINE using pandas JOINing (the big magic trick at the middle of this approach to complex table-making)
         ## Unfortunately, delegating to Pandas means we can't fix anything intrinsic to what Pandas does.
         ## And there is a bug (from my point of view) whenever tables are merged with the same variables at the top level.
-        ## To prevent this we have to disallow variable re-use at top-level.
+        ## To prevent this we have to disallow variable reuse at top-level.
         ## transpose, join, and re-transpose back. JOINing on rows works differently from columns and will include all items in sub-levels under the correct upper levels even if missing from the first multi-index
         ## E.g. if Age Group > 40-64 is missing from the first index it will not be appended on the end but will be alongside all its siblings so we end up with Age Group > >20, 20-29 30-39, 40-64, 65+
         ## Note - variable levels (odd numbered levels if 1 is the top level) should be in the same order as they were originally

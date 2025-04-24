@@ -1285,7 +1285,7 @@ def betai(a, b, x, *, high=False):
 
     where a,b>0 and B(a,b) = G(a)*G(b)/(G(a+b)) where G(a) is the gamma
     function of a.  The continued fraction formulation is implemented here,
-    using the betacf function.  (Adapted from: Numerical Recipies in C.)
+    using the betacf function.  (Adapted from: Numerical Recipes in C.)
 
     Usage:   betai(a,b,x)
     """
@@ -1358,7 +1358,7 @@ def gammln(xx, *, high=False):
     -------------------------------------
     Returns the gamma function of xx.
         Gamma(z) = Integral(0,infinity) of t^(z-1)exp(-t) dt.
-    (Adapted from: Numerical Recipies in C.)
+    (Adapted from: Numerical Recipes in C.)
 
     Usage:   gammln(xx)
     """
@@ -1408,7 +1408,7 @@ def betacf(a, b, x, *, high=False):
     From stats.py. No changes.
     -------------------------------------
     This function evaluates the continued fraction form of the incomplete
-    Beta function, betai.  (Adapted from: Numerical Recipies in C.)
+    Beta function, betai.  (Adapted from: Numerical Recipes in C.)
 
     Usage:   betacf(a,b,x)
     """
@@ -1523,7 +1523,7 @@ def simpleabut(source, addon):
     From pstat.py.  No changes except type test updated.
     -------------------------------------
     Concatenates two lists as columns and returns the result.  '2D' lists
-    are also accomodated for either argument (source or addon).  This DOES NOT
+    are also accommodated for either argument (source or addon).  This DOES NOT
     repeat either list to make the 2 lists of equal length.  Beware of list
     pairs with different lengths ... the resulting list will be the length of
     the FIRST list passed.

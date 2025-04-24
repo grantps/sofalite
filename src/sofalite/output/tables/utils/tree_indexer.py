@@ -54,7 +54,7 @@ col_tree = [
     ['Age Group Repeated', ['__blank__', ['__blank__', ['freq', ]]]],
 ]
 
-Goal: Capture the order so the oder of the merged / joined dataframe can be restored
+Goal: Capture the order so the order of the merged / joined dataframe can be restored
 after pandas sorts everything alphabetically.
 
 [
