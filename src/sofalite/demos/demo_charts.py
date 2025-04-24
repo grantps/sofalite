@@ -48,6 +48,28 @@ def simple_bar_chart():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
+def simple_bar_chart_lots_of_x_vals():
+    chart = SimpleBarChartSpec(
+        style_name='prestige_screen',
+        category_fld_name='car',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        category_sort_order=SortOrder.VALUE,
+        legend_lbl=None,
+        rotate_x_lbls=False,
+        show_borders=False,
+        show_n_records=True,
+        x_axis_font_size=12,
+        y_axis_title='Freq',
+    )
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart.html'
+    with open(fpath, 'w') as f:
+        f.write(html)
+    open_new_tab(url=f"file://{fpath}")
+
 def multi_bar_chart():
     chart = MultiBarChartSpec(
         style_name='default',
@@ -360,17 +382,18 @@ def multi_series_boxplot():
 if __name__ == '__main__':
     pass
     simple_bar_chart()
-    multi_bar_chart()
-    clustered_bar_chart()
-    multi_clustered_bar_chart()
-    multi_line_chart()
-    area_chart()
-    pie_chart()
-    single_series_scatterplot()
-    multi_series_scatterplot()
-    multi_chart_scatterplot()
-    multi_chart_series_scatterplot()
-    histogram_chart()
-    multi_chart_histogram()
-    boxplot_chart()
-    multi_series_boxplot()
+    simple_bar_chart_lots_of_x_vals()
+    # multi_bar_chart()
+    # clustered_bar_chart()
+    # multi_clustered_bar_chart()
+    # multi_line_chart()
+    # area_chart()
+    # pie_chart()
+    # single_series_scatterplot()
+    # multi_series_scatterplot()
+    # multi_chart_scatterplot()
+    # multi_chart_series_scatterplot()
+    # histogram_chart()
+    # multi_chart_histogram()
+    # boxplot_chart()
+    # multi_series_boxplot()

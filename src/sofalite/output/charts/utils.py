@@ -58,8 +58,7 @@ def get_y_axis_title_offset(*, x_axis_title_len: int, rotated_x_lbls=False) -> i
 
 def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
     """
-    Note - can be a risk that a split label for the middle x value
-    will overlap with x-axis label below
+    Note - can be a risk that a split label for the middle x value will overlap with x-axis label below
     """
     lbl_dets = []
     for n, x_axis_spec in enumerate(x_axis_specs, 1):

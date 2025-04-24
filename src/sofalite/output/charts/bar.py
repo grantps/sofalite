@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Literal
@@ -23,7 +23,7 @@ from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
-MIN_PIXELS_PER_X_ITEM = 30
+MIN_PIXELS_PER_X_ITEM = 60
 MIN_CLUSTER_WIDTH_PIXELS = 60
 PADDING_PIXELS = 35
 DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 10  ## whatever works. Tested on cluster of Age vs Cars
@@ -389,17 +389,17 @@ def get_x_gap(*, n_x_items: int, is_multi_chart: bool) -> int:
     x_gap = x_gap * 0.8 if is_multi_chart else x_gap
     return x_gap
 
-def get_width_after_left_margin(*, is_multi_chart: bool, n_x_items: int, n_series: int,
+def get_width_after_left_margin(*, is_multi_chart: bool, x_lbls: Collection[str], n_series: int,
         max_x_lbl_width: int, x_axis_title: str) -> float:
     """
     Get initial width (will make a final adjustment based on left margin offset).
     If wide labels, may not display almost any if one is too wide.
     Widen to take account.
     """
-    min_width_per_cluster_pixels = (n_x_items * MIN_PIXELS_PER_X_ITEM)
-    max_x_lbl_width_pixels = max_x_lbl_width * AVG_CHAR_WIDTH_PIXELS
+    min_width_per_cluster_pixels = sum(len(x_lbl) * AVG_CHAR_WIDTH_PIXELS for x_lbl in x_lbls)
+    max_x_lbl_width_pixels = max_x_lbl_width * AVG_CHAR_WIDTH_PIXELS  ## e.g. label for x-axis is "This is a really long label and we need a wide enough chart"
     widest_pixels = max(
-        [min_width_per_cluster_pixels, MIN_CLUSTER_WIDTH_PIXELS, max_x_lbl_width_pixels]
+        [MIN_CLUSTER_WIDTH_PIXELS, min_width_per_cluster_pixels, max_x_lbl_width_pixels]
     )
     width_per_cluster_pixels = widest_pixels + PADDING_PIXELS
     width_x_axis_title_pixels = len(x_axis_title) * AVG_CHAR_WIDTH_PIXELS + PADDING_PIXELS
@@ -443,10 +443,10 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSp
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     stroke_width = style_spec.chart.stroke_width if charting_spec.show_borders else 0
     ## sizing
+    x_lbls = [category_spec.lbl for category_spec in charting_spec.category_specs]
     max_x_lbl_width = (TEXT_WIDTH_WHEN_ROTATED if charting_spec.rotate_x_lbls else charting_spec.max_x_axis_lbl_len)
     width_after_left_margin = get_width_after_left_margin(
-        is_multi_chart=charting_spec.is_multi_chart,
-        n_x_items=charting_spec.n_x_items, n_series=charting_spec.n_series,
+        is_multi_chart=charting_spec.is_multi_chart, x_lbls=x_lbls, n_series=charting_spec.n_series,
         max_x_lbl_width=max_x_lbl_width, x_axis_title=charting_spec.x_axis_title)
     x_axis_font_size = get_x_axis_font_size(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     x_gap = get_x_gap(n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
