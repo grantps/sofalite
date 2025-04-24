@@ -20370,7 +20370,7 @@ dojo.require("dojox.lang.functional.reversed");
 				            plot:    this,
 				            hAxis:   this.hAxis || null,
 				            vAxis:   this.vAxis || null,
-				            y:       indiv_boxlbl + " [" + lq_rounded + ", " + uq_rounded + "]"
+				            y:       indiv_boxlbl + " [lower quartile: " + lq_rounded + ", upper quartile: " + uq_rounded + "]"
 				        };
 				        this._connectEvents(o);
 				        o = {
@@ -20381,7 +20381,7 @@ dojo.require("dojox.lang.functional.reversed");
 				            hAxis:   this.hAxis || null,
 				            vAxis:   this.vAxis || null,
 				            shape:   lowerLine,
-				            y:       indiv_boxlbl + " " + lw_rounded
+				            y:       indiv_boxlbl + " - lower whisker: " + lw_rounded
 				        }
 				        this._connectEvents(o);
 				        o = {
@@ -20392,7 +20392,7 @@ dojo.require("dojox.lang.functional.reversed");
 				            hAxis:   this.hAxis || null,
 				            vAxis:   this.vAxis || null,
 				            shape:   medianLine,
-				            y:       indiv_boxlbl + " " + med_rounded
+				            y:       indiv_boxlbl + " - median: " + med_rounded
 				        }
 				        this._connectEvents(o);
 				        o = {
@@ -20403,7 +20403,7 @@ dojo.require("dojox.lang.functional.reversed");
 				            hAxis:   this.hAxis || null,
 				            vAxis:   this.vAxis || null,
 				            shape:   upperLine,
-				            y:       indiv_boxlbl + " " + uw_rounded
+				            y:       indiv_boxlbl + " - upper whisker: " + uw_rounded
 				        }
 				        this._connectEvents( o);
 			            }

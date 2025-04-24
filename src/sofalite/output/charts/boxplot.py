@@ -1,18 +1,23 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from functools import partial
+from typing import Any, Literal
 import uuid
 
 import jinja2
 
-from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED
-from sofalite.data_extraction.charts.boxplot import BoxplotChartingSpec, BoxplotIndivChartSpec
-from sofalite.output.charts.common import get_common_charting_spec, get_indiv_chart_html
-from sofalite.output.charts.interfaces import LeftMarginOffsetSpec
+from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS
+from sofalite.data_extraction.charts.boxplot import (
+    BoxplotChartingSpec, BoxplotIndivChartSpec, get_by_category_charting_spec, get_by_series_category_charting_spec)
+from sofalite.data_extraction.db import Sqlite
+from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
+from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbl_dets,
     get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list
+from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.stats_calc.interfaces import BoxplotType
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -184,7 +189,7 @@ class CommonMiscSpec:
     connector_style: str
     grid_line_width: int
     height: float  ## pixels
-    left_margin_offset: int
+    left_margin_offset: float
     legend_lbl: str
     width: float  ## pixels
     x_axis_lbls: str  ## e.g. [{value: 1, text: "Female"}, {value: 2, text: "Male"}]
@@ -231,7 +236,7 @@ def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_spec: Sty
         is_multi_chart=False, rotated_x_lbls=charting_spec.rotate_x_lbls,
         max_x_axis_lbl_lines=charting_spec.max_x_axis_lbl_lines)
     axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
-    has_minor_ticks_js_bool = 'true' if charting_spec.has_minor_ticks else 'false'
+    has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.has_minor_ticks else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
     x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
@@ -353,3 +358,55 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     template = environment.from_string(tpl_chart)
     html_result = template.render(context)
     return html_result
+
+@dataclass(frozen=True)
+class BoxplotChartSpec:
+    style_name: str
+    category_fld_name: str
+    fld_name: str
+    tbl_name: str
+    tbl_filt_clause: str | None = None
+    cur: Any | None = None
+    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+    rotate_x_lbls: bool = False
+    show_n_records: bool = True
+    x_axis_font_size: int = 12
+    dp: int = 3
+
+    def to_html(self) -> str:
+        # style
+        style_spec = get_style_spec(style_name=self.style_name)
+        ## lbls
+        category_fld_lbl = VAR_LABELS.var2var_lbl.get(self.category_fld_name, self.category_fld_name)
+        category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
+        fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
+        ## data
+        get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
+            tbl_name=self.tbl_name,
+            category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
+            fld_name=self.fld_name, fld_lbl=fld_lbl,
+            category_vals2lbls=category_vals2lbls,
+            tbl_filt_clause=self.tbl_filt_clause,
+            boxplot_type=self.boxplot_type,
+        )
+        local_cur = not bool(self.cur)
+        if local_cur:
+            with Sqlite(DATABASE_FPATH) as (_con, cur):
+                intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
+        else:
+            intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
+        ## charts details
+        category_specs = intermediate_charting_spec.to_sorted_category_specs()
+        indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)
+        charting_spec = BoxplotChartingSpec(
+            category_specs=category_specs,
+            indiv_chart_specs=[indiv_chart_spec, ],
+            legend_lbl=intermediate_charting_spec.series_fld_lbl,
+            rotate_x_lbls=self.rotate_x_lbls,
+            show_n_records=self.show_n_records,
+            x_axis_title=intermediate_charting_spec.category_fld_lbl,
+            y_axis_title=intermediate_charting_spec.fld_lbl,
+        )
+        ## output
+        html = get_html(charting_spec, style_spec)
+        return html

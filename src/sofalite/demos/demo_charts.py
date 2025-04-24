@@ -14,7 +14,7 @@ from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, sca
 from sofalite.output.charts.area import AreaChartSpec
 from sofalite.output.charts.bar import (
     ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
-from sofalite.output.charts.boxplot import BoxplotChartingSpec
+from sofalite.output.charts.boxplot import BoxplotChartSpec, BoxplotChartingSpec
 from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistoChartingSpec, HistogramChartSpec, MultiChartHistogramChartSpec
 from sofalite.output.charts.line import MultiLineChartSpec
@@ -317,37 +317,22 @@ def multi_chart_histogram():
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
 
-def boxplot_from_data():
-    ## conf
-    dp = 3
-    style_spec = get_style_spec(style_name='default')
-    category_fld_name = 'country'
-    category_fld_lbl = 'Country'
-    category_vals2lbls = {1: 'Japan', 2: 'Italy', 3: 'Germany'}
-    fld_name = 'age'
-    fld_lbl = 'Age'
-    with Sqlite(DATABASE_FPATH) as (_con, cur):
-        intermediate_charting_spec = box_get_by_series_category_charting_spec(cur, tbl_name='demo_tbl',
-            category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
-            fld_name=fld_name, fld_lbl=fld_lbl,
-            tbl_filt_clause=None,
-            category_vals2lbls=category_vals2lbls,
-            category_sort_order=SortOrder.VALUE,
-            boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE)
-    ## charts details
-    category_specs = intermediate_charting_spec.to_sorted_category_specs()
-    indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=dp)
-    charting_spec = BoxplotChartingSpec(
-        category_specs=category_specs,
-        indiv_chart_specs=[indiv_chart_spec, ],
-        legend_lbl=intermediate_charting_spec.series_fld_lbl,
-        rotate_x_lbls=False,
+def boxplot_chart():
+    chart = BoxplotChartSpec(
+        style_name='default',
+        category_fld_name='country',
+        fld_name='age',
+        tbl_name='demo_tbl',
+        tbl_filt_clause=None,
+        cur=None,
+        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
         show_n_records=True,
-        x_axis_title=intermediate_charting_spec.category_fld_lbl,
-        y_axis_title=intermediate_charting_spec.fld_lbl,
+        x_axis_font_size=12,
+        dp=3,
     )
-    html = get_html(charting_spec, style_spec)
-    fpath = '/home/g/Documents/sofalite/reports/test_boxplot_from_data.html'
+    html = chart.to_html()
+
+    fpath = '/home/g/Documents/sofalite/reports/test_boxplot.html'
     with open(fpath, 'w') as f:
         f.write(html)
     open_new_tab(url=f"file://{fpath}")
@@ -406,6 +391,6 @@ if __name__ == '__main__':
     # multi_chart_scatterplot()
     # multi_chart_series_scatterplot()
     # histogram_chart()
-    multi_chart_histogram()
-    # boxplot_from_data()
+    # multi_chart_histogram()
+    boxplot_chart()
     # multi_series_boxplot_from_data()

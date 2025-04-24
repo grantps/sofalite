@@ -44,9 +44,8 @@ def get_sorted_category_specs(
         raise ValueError("Boxplot categories can only be sorted by value or label")
     return sorted_category_specs
 
-@dataclass
+@dataclass(frozen=False)
 class BoxplotDataItem:
-    ## indiv_box_lbl - derived from series lbl and category spec lbls in BoxplotIndivChartSpec
     box_bottom: float
     box_bottom_rounded: float
     bottom_whisker: float
@@ -59,7 +58,8 @@ class BoxplotDataItem:
     box_top_rounded: float
     top_whisker: float
     top_whisker_rounded: float
-    ## center - derived from offset depending on which item on series (move rightwards) in BoxplotIndivChartSpec
+    indiv_box_lbl: str | None = None  ## derived later from series lbl and category spec lbls in BoxplotChartingSpec
+    center: float | None = None  ## derived later from offset depending on which item on series (move rightwards) in BoxplotIndivChartSpec
 
 @dataclass
 class BoxplotDataSeriesSpec:
@@ -225,7 +225,7 @@ class BoxplotSeriesCategoryValsSpecs:
         return indiv_chart_spec
 
 def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
-        series_fld_name: str, series_fld_lbl: str,
+        series_fld_name: str, series_fld_lbl: str,  ## TODO - lbl used?
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None,
@@ -339,4 +339,7 @@ class BoxplotChartingSpec:
                 series_lbl = data_series_spec.lbl
                 for box_item, category_spec in zip(data_series_spec.box_items, self.category_specs, strict=True):
                     if box_item:
-                        box_item.indiv_box_lbl = f"{series_lbl}, {category_spec.lbl}"
+                        if series_lbl:
+                            box_item.indiv_box_lbl = f"{series_lbl}, {category_spec.lbl}"
+                        else:
+                            box_item.indiv_box_lbl = category_spec.lbl

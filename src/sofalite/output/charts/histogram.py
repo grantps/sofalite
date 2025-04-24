@@ -6,8 +6,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
-from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS
+from sofalite.conf.main import DATABASE_FPATH, HISTO_AVG_CHAR_WIDTH_PIXELS, VAR_LABELS
 from sofalite.data_extraction.charts.histogram import (
     HistoIndivChartSpec, get_by_chart_charting_spec, get_by_vals_charting_spec)
 from sofalite.data_extraction.db import Sqlite
