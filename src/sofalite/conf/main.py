@@ -9,7 +9,7 @@ from sofalite.conf.var_labels import yaml2varlabels
 
 SOFALITE_WEB_RESOURCES_ROOT = 'http://www.sofastatistics.com/sofalite'
 # SOFALITE_WEB_RESOURCES_ROOT = 'file:///home/g/projects/sofalite/src/sofalite/output/js'  ## local development - note tooltips won't work because the pngs aren't in the same place in dev as in prod - don't worry about that
-SOFALITE_FS_RESOURCES_ROOT = Path('/home/g/Documents/sofastats/reports/sofastats_report_extras')
+SOFALITE_FS_RESOURCES_ROOT = Path('/home/g/Documents/sofalite/reports/report_extras')
 
 MAX_RANK_DATA_VALS = 100_000
 

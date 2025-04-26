@@ -1,7 +1,20 @@
 """
 TODO: understand this; and see if get_styled_misc_css() can be killed off.
+=======
+TODO: Cleanup misc CSS so only things used remain and they get populated and work - is for stats tables and maybe something else
+  Not for main tables (under generic currently)
+  --
+  Have general CSS, main_tbl CSS, DOJO (chart) CSS, and stats_tbl CSS (and make this receive colours etc)
+  --
+  Then figure out where to store images like grey_spirals.gif including images for custom styles
+  --
+  Suspicion - get all style specs and get all DOJO are needed to create single reports with lots of charts, tables etc
+  of different styles. So it has to be able to discover all styles.
+  Won't be receiving a path so has to know how to find them all all by itself.
+
 TODO: understand what is needed for blended reports with different things with different styles
   e.g. default AND grey_spirals
+  make_report, and include all items to be built, and let code work out overall HTML header needed
 
 CSS needed for header:
 
