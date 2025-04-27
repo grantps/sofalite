@@ -1,24 +1,7 @@
 """
-TODO: understand this; and see if get_styled_misc_css() can be killed off.
-=======
-TODO: Cleanup misc CSS so only things used remain and they get populated and work - is for stats tables and maybe something else
-  Not for main tables (under generic currently)
-  --
-  Have general CSS, main_tbl CSS, DOJO (chart) CSS, and stats_tbl CSS (and make this receive colours etc)
-  --
-  Then figure out where to store images like grey_spirals.gif including images for custom styles
-  --
-  Suspicion - get all style specs and get all DOJO are needed to create single reports with lots of charts, tables etc
-  of different styles. So it has to be able to discover all styles.
-  Won't be receiving a path so has to know how to find them all all by itself.
-
-TODO: understand what is needed for blended reports with different things with different styles
-  e.g. default AND grey_spirals
-  make_report, and include all items to be built, and let code work out overall HTML header needed
-
 CSS needed for header:
 
-General e.g. body - font, background colour etc. (see get_generic_css())
+General e.g. body - font, background colour etc. (see generic_unstyled_css())
 
 Dojo for charts - want name-spaced CSS for every style in styles folder.
 Non-CSS styling, e.g. colour for pie chart slices, already set in JS functions directly.
@@ -29,7 +12,7 @@ All specifics should be either:
 In main output tables via Pandas, non-CSS styling
 OR
 in simple stats data tables via inline CSS drawing on details directly accessing
-and using style-specific values e.g. spaceholder background.
+and using style-specific values.
 
 So ...
 
@@ -40,7 +23,7 @@ want to be able to get:
   Never need to check which chart items use which styles before finalising Dojo CSS.
   KISS - not especially inefficient.
 * access to specific style settings for insertion via pandas styling and in-line styling (vs internal CSS)
-  will be based on style dets data classes
+  will be based on style spec data classes
 """
 import base64
 from enum import Enum
@@ -51,7 +34,7 @@ from typing import Sequence
 import jinja2
 
 from sofalite.conf.main import DOJO_COLOURS
-from sofalite.output.styles.interfaces import ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
+from sofalite.output.styles.interfaces import ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
 from sofalite.utils.misc import todict
 
 def get_style_names() -> list[str]:
@@ -88,14 +71,13 @@ class CSS(Enum):
     We store CSS as variables when we need to use it for specific parts of tables in the form of inline CSS.
     In such cases, individual blocks of CSS text are supplied to tables via Pandas df styling.
     Note - CSS text pulled out into individual variables can still be used as part of large, monolithic CSS text
-    for insertion at the top of HTML files - it just has to be interpolated in (see get_generic_css()).
+    for insertion at the top of HTML files - it just has to be interpolated in (see generic_unstyled_css()).
     """
     ROW_LEVEL_1_VAR = [
         "font-family: Ubuntu, Helvetica, Arial, sans-serif;",
         "font-weight: bold;",
         "font-size: 14px;"
     ]
-    CORNER_SPACEHOLDER = ROW_LEVEL_1_VAR
     COL_LEVEL_1_VAR = ROW_LEVEL_1_VAR + [
         'padding: 9px 6px;',
         'vertical-align: top;',
@@ -123,16 +105,17 @@ class CSS(Enum):
         'text-align: right; margin: 0;',
     ]
 
-def get_generic_css() -> str:
+def get_generic_unstyled_css() -> str:
     """
-    Get CSS with no style-specific aspects: includes table, Dojo, and page styling.
+    Get CSS with no style-specific aspects: includes stats tables, some parts of main tables
+    (the rest is tied to individual ids because of how Pandas-based HTML table styling works), Dojo, and page styling.
     """
 
     def flatten(items: Sequence[str]):
         flattened = '\n'.join(items)
         return flattened
 
-    generic_css = f"""\
+    generic_unstyled_css = f"""\
     body {{
         font-size: 12px;
         font-family: Ubuntu, Helvetica, Arial, sans-serif;
@@ -157,7 +140,7 @@ def get_generic_css() -> str:
         border-collapse: collapse;
     }}
 
-    /* NOT used by tables styled by pandas - they are styled at the id level <======================================= */
+    /* Main tables are also styled by Pandas - they are styled at the id level <===================================== */
 
     /* Note - tables are not just used for report tables but also in chart legends and more besides  */
     tr, td, th {{
@@ -195,9 +178,6 @@ def get_generic_css() -> str:
     .col-value {{
         {flatten(CSS.COL_VALUE.value)}
     }}
-    .corner-spaceholder {{
-        {flatten(CSS.CORNER_SPACEHOLDER.value)}
-    }}
     .ftnote-line{{
         /* for hr http://www.w3schools.com/TAGS/att_hr_align.asp*/
         width: 300px;
@@ -211,9 +191,13 @@ def get_generic_css() -> str:
         {flatten(CSS.RIGHT.value)}
     }}
     """
-    return generic_css
+    return generic_unstyled_css
 
-def get_styled_dojo_css(dojo_style_spec: DojoStyleSpec) -> str:
+def get_styled_dojo_chart_css(dojo_style_spec: DojoStyleSpec) -> str:
+    """
+    Style-specific DOJO - needed only once even if multiple items with the same style.
+    Not needed if style not used.
+    """
     tpl = """\
         /* Tool tip connector arrows */
         .dijitTooltipBelow-{{connector_style}} {
@@ -263,20 +247,42 @@ def get_styled_dojo_css(dojo_style_spec: DojoStyleSpec) -> str:
     css = template.render(context)
     return css
 
-def get_all_dojo_css_styles() -> str:
+def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list[str]:
+    defined_colours = [colour_mapping.main for colour_mapping in colour_mappings]
+    long_colour_list = defined_colours + DOJO_COLOURS
+    return long_colour_list
+
+def get_styled_stats_tbl_css(table_style_spec: TableStyleSpec) -> str:
     """
-    Grab everything in case it is needed - OK if it isn't - KISS.
+    Note - main table CSS is handled completely separately
+    (controlled by Pandas and the spaceholder CSS with embedded image)
     """
-    style_names = get_style_names()
-    css_all = []
-    for style_name in style_names:
-        style_spec = get_style_spec(style_name)
-        css_style = get_styled_dojo_css(style_spec.dojo)
-        css_all.append(css_style)
-    css = '\n\n'.join(css_all)
+    tpl = """\
+        .firstcolvar {
+            color: {{var_font_colour_first_level}};
+            background-color: {{var_bg_colour_first_level}};
+        }
+        td.lbl {
+            color: {{var_font_colour_not_first_level}};
+            background-color: {{var_bg_colour_not_first_level}};
+        }
+        td, th {
+            border: 1px solid {{var_border_colour_not_first_level}};
+        }
+        .tbl-heading-footnote{
+            color: {{heading_footnote_font_colour}};
+        }
+    """
+    environment = jinja2.Environment()
+    template = environment.from_string(tpl)
+    context = todict(table_style_spec, shallow=True)
+    css = template.render(context)
     return css
 
-def get_placeholder_css(style_name: str) -> str:
+def get_styled_placeholder_css_for_main_tbls(style_name: str) -> str:
+    """
+    Only used in main tables (cross-tab and freq) not in Stats output tables e.g. ANOVA results tables
+    """
     style_spec = get_style_spec(style_name)
     if style_spec.table.spaceholder_bg_img:
         binary_fc = open(style_spec.table.spaceholder_bg_img, 'rb').read()  ## fc a.k.a. file_content
@@ -298,65 +304,3 @@ def get_placeholder_css(style_name: str) -> str:
     }
     return placeholder_css
 
-def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list[str]:
-    defined_colours = [colour_mapping.main for colour_mapping in colour_mappings]
-    long_colour_list = defined_colours + DOJO_COLOURS
-    return long_colour_list
-
-def get_styled_misc_css(chart_style_spec: ChartStyleSpec, table_style_spec: TableStyleSpec) -> str:
-    """
-    TODO: apparently remove - but why? Because unused now? Seems like old SOFA table CSS settings
-    """
-    tpl = """\
-        .gui-msg-medium, gui-msg-small{
-            color: {{gui_msg_font_colour}};
-        }
-        .gui-note{
-            background-color: {{gui_note_bg_colour}};
-            color: {{gui_note_font_colour}};
-        }
-        th, .rowvar, .rowval, .datacell, .firstdatacell {
-            border: solid 1px {{heading_cell_border}};
-        }
-        td{
-            border: solid 1px {{main_border}};
-        }
-        .subtable{
-            border-top: solid 3px {{main_border}};
-        }
-        .firstcolvar, .firstrowvar, .spaceholder {
-            color: {{first_cell_font_colour}};
-        }
-        .firstcolvar, .firstrowvar{
-            background-color: {{first_cell_bg_colour}};
-        }
-        .firstrowvar{
-            border-left: solid 1px {{first_row_border}};
-            border-bottom:  solid 1px {{first_row_border}};
-        }
-        .topline{
-            border-top: 2px solid {{main_border}};
-        }
-        .spaceholder {
-            background-image: {{spaceholder_bg_img_or_none}} !important; /*else tundra forces none*/
-            background-color: {{spaceholder}};
-        }
-        .rowvar, .colvar{
-            color: {{var_font_colour}};
-        }
-        td.lbl{
-            background-color: {{heading_lbl_bg_colour}};
-        }
-        .tbl-heading-footnote{
-            color: {{heading_footnote_font_colour}};
-        }
-        .footnote{
-            color: {{footnote_font_colour}};
-        }
-    """
-    environment = jinja2.Environment()
-    template = environment.from_string(tpl)
-    context = todict(chart_style_spec, shallow=True)
-    context.update(todict(table_style_spec, shallow=True))
-    css = template.render(context)
-    return css

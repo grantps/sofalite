@@ -13,12 +13,9 @@ class TableStyleSpec:
     var_font_colour_not_first_level: str
     heading_footnote_font_colour: str
     footnote_font_colour: str
-    gui_msg_font_colour: str  ## TODO: used?
-    gui_note_font_colour: str
     ## background colours
     var_bg_colour_first_level: str
     var_bg_colour_not_first_level: str
-    gui_note_bg_colour: str
     ## borders
     var_border_colour_first_level: str  ## usually dark enough for heading cell and spaceholder colours (if they're dark, this must be dark)
     var_border_colour_not_first_level: str  ## usually more pale so numbers stand out

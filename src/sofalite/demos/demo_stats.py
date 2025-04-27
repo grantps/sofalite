@@ -5,7 +5,7 @@ from sofalite.output.stats.ttest_indep import TTestIndepSpec
 
 def run_anova():
     chart = AnovaSpec(
-        style_name='prestige_screen',
+        style_name='default', #'prestige_screen',
         tbl_name='demo_tbl',
         grouping_fld_name='country',
         group_vals=[1, 2, 3],
@@ -42,5 +42,5 @@ def run_ttest_indep():
 
 if __name__ == '__main__':
     pass
-    run_anova()
+    # run_anova()
     run_ttest_indep()

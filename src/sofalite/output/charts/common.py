@@ -25,17 +25,15 @@ from sofalite.output.charts.utils import (get_axis_lbl_drop, get_height, get_lef
 from sofalite.output.styles.interfaces import StyleSpec
 
 from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
-from sofalite.output.styles.misc import get_generic_css, get_styled_dojo_css, get_styled_misc_css
+from sofalite.output.styles.misc import get_generic_unstyled_css, get_styled_dojo_chart_css
 
 def get_html_styling_top(style_spec: StyleSpec) -> str:
-    generic_css = get_generic_css()
-    styled_dojo_css = get_styled_dojo_css(style_spec.dojo)
-    styled_misc_css = get_styled_misc_css(style_spec.chart, style_spec.table)
+    generic_unstyled_css = get_generic_unstyled_css()
+    styled_dojo_css = get_styled_dojo_chart_css(style_spec.dojo)
     context = {
-        'generic_css': generic_css,
+        'generic_unstyled_css': generic_unstyled_css,
         'sofalite_web_resources_root': SOFALITE_WEB_RESOURCES_ROOT,
-        'styled_dojo_css': styled_dojo_css,
-        'styled_misc_css': styled_misc_css,
+        'styled_dojo_chart_css': get_styled_dojo_chart_css,
     }
     environment = jinja2.Environment()
     template = environment.from_string(tpl_html_top)

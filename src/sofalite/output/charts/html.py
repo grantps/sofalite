@@ -39,9 +39,8 @@ tpl_html_top = """\
 </style>
 <style type="text/css">
 <!--
-{{generic_css}}
-{{styled_misc_css}}
-{{styled_dojo_css}}
+{{generic_unstyled_css}}
+{{styled_dojo_chart_css}}
 -->
 </style>
 

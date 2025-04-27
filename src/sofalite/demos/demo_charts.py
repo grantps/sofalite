@@ -28,7 +28,7 @@ pd.set_option('display.width', 500)
 
 def simple_bar_chart():
     chart = SimpleBarChartSpec(
-        style_name='prestige_screen',
+        style_name='default', #'prestige_screen',
         category_fld_name='browser',
         tbl_name='demo_tbl',
         tbl_filt_clause=None,
@@ -381,8 +381,8 @@ def multi_series_boxplot():
 
 if __name__ == '__main__':
     pass
-    simple_bar_chart()
-    simple_bar_chart_lots_of_x_vals()
+    # simple_bar_chart()
+    # simple_bar_chart_lots_of_x_vals()
     # multi_bar_chart()
     # clustered_bar_chart()
     # multi_clustered_bar_chart()
@@ -390,7 +390,7 @@ if __name__ == '__main__':
     # area_chart()
     # pie_chart()
     # single_series_scatterplot()
-    # multi_series_scatterplot()
+    multi_series_scatterplot()
     # multi_chart_scatterplot()
     # multi_chart_series_scatterplot()
     # histogram_chart()

@@ -35,12 +35,9 @@ def get_style_spec() -> StyleSpec:
         var_font_colour_not_first_level=BLACK_BLUE,
         heading_footnote_font_colour=WHITE,
         footnote_font_colour=BLACK,
-        gui_msg_font_colour=BLACK_BROWN,  ## replacing #29221c;
-        gui_note_font_colour=WHITE,
         ## background colours
         var_bg_colour_first_level=BLACK_BLUE,
         var_bg_colour_not_first_level=LIGHT_GREY,
-        gui_note_bg_colour=BURNT_ORANGE,
         ## borders
         var_border_colour_first_level=CHARCOAL_BLUE,
         var_border_colour_not_first_level=MID_GREY,

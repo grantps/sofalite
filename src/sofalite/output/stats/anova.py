@@ -18,7 +18,8 @@ from sofalite.data_extraction.stats.msgs import (
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_generic_css, get_style_spec, get_styled_dojo_css, get_styled_misc_css
+from sofalite.output.styles.misc import (
+    get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css, get_styled_stats_tbl_css)
 from sofalite.stats_calc.interfaces import AnovaResultExt, NumericSampleDetsFormatted
 from sofalite.utils.maths import format_num, is_numeric
 from sofalite.utils.stats import get_p_str
@@ -27,9 +28,9 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{generic_css}}
-        {{styled_misc_css}}
-        {{styled_dojo_css}}
+        {{generic_unstyled_css}}
+        {{styled_stats_tbl_css}}
+        {{styled_dojo_chart_css}}
     </style>
 
     <div class='default'>
@@ -48,7 +49,7 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
     </thead>
     <tbody>
       <tr>
-        <td>Between</td>
+        <td class='lbl'>Between</td>
         <td class='right'>{{sum_squares_between_groups}}</td>
         <td class='right'>{{degrees_freedom_between_groups}}</td>
         <td class='right'>{{mean_squares_between_groups}}</td>
@@ -56,7 +57,7 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
         <td>{{p}}</td>
       </tr>
       <tr>
-        <td>Within</td>
+        <td class='lbl'>Within</td>
         <td class='right'>{{sum_squares_within_groups}}</td>
         <td class='right'>{{degrees_freedom_within_groups}}</td>
         <td class='right'>{{mean_squares_within_groups}}</td>
@@ -115,9 +116,9 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
     {% endif %}
     </div>
     """
-    generic_css = get_generic_css()
-    styled_misc_css = get_styled_misc_css(style_spec.chart, style_spec.table)
-    styled_dojo_css = get_styled_dojo_css(style_spec.dojo)
+    generic_unstyled_css = get_generic_unstyled_css()
+    styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
+    styled_dojo_chart_css = get_styled_dojo_chart_css(style_spec.dojo)
     group_vals = [group_dets.lbl for group_dets in results.groups_dets]
     if len(group_vals) < 2:
         raise Exception(f"Expected multiple groups in ANOVA. Details:\n{results}")
@@ -164,9 +165,9 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
         histograms2show.append(html_or_msg)
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
-        'generic_css': generic_css,
-        'styled_misc_css': styled_misc_css,
-        'styled_dojo_css': styled_dojo_css,
+        'generic_unstyled_css': generic_unstyled_css,
+        'styled_stats_tbl_css': styled_stats_tbl_css,
+        'styled_dojo_chart_css': styled_dojo_chart_css,
         'title': title,
         'degrees_freedom_between_groups': f"{results.degrees_freedom_between_groups:,}",
         'sum_squares_between_groups': num_tpl.format(round(results.sum_squares_between_groups, dp)),
@@ -211,7 +212,7 @@ class AnovaSpec:
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
         grouping_fld_lbl = VAR_LABELS.var2var_lbl.get(self.grouping_fld_name, self.grouping_fld_name)
-        measure_fld_lbl = VAR_LABELS.var2val2lbl.get(self.measure_fld_name, self.measure_fld_name)
+        measure_fld_lbl = VAR_LABELS.var2var_lbl.get(self.measure_fld_name, self.measure_fld_name)
         val2lbl = VAR_LABELS.var2val2lbl.get(self.grouping_fld_name)
         grouping_fld_vals_dets = {
             ValDets(val=group_val, lbl=val2lbl.get(group_val, str(group_val))) for group_val in self.group_vals}

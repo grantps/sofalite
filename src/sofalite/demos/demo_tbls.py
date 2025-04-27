@@ -18,7 +18,7 @@ def run_main_poc_cross_tab():
     col_spec_2 = DimSpec(var='std_agegroup', has_total=True, is_col=True)
 
     tbl = CrossTabTblSpec(
-        style_name='two_degrees',  #'default', 'two_degrees', 'grey_spirals'
+        style_name='default',  #'default', 'two_degrees', 'grey_spirals'
         src_tbl='demo_cross_tab',
         row_specs=[row_spec_0, row_spec_1, row_spec_2],
         col_specs=[col_spec_0, col_spec_1, col_spec_2],
@@ -94,5 +94,5 @@ def run_simple_freq_tbl():
 if __name__ == '__main__':
     pass
     run_main_poc_cross_tab()
-    run_repeat_level_two_row_var_cross_tab()
-    run_simple_freq_tbl()
+    # run_repeat_level_two_row_var_cross_tab()
+    # run_simple_freq_tbl()

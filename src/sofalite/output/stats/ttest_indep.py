@@ -17,7 +17,8 @@ from sofalite.data_extraction.stats.ttest_indep import get_results
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_generic_css, get_style_spec, get_styled_dojo_css, get_styled_misc_css
+from sofalite.output.styles.misc import (
+    get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css, get_styled_stats_tbl_css)
 from sofalite.stats_calc.interfaces import NumericSampleDetsFormatted, TTestIndepResultExt
 from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
@@ -26,9 +27,9 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{generic_css}}
-        {{styled_misc_css}}
-        {{styled_dojo_css}}
+        {{generic_unstyled_css}}
+        {{styled_stats_tbl_css}}
+        {{styled_dojo_chart_css}}
     </style>
 
     <div class='default'>
@@ -88,9 +89,9 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
     {% endif %}
     </div>
     """
-    generic_css = get_generic_css()
-    styled_misc_css = get_styled_misc_css(style_spec.chart, style_spec.table)
-    styled_dojo_css = get_styled_dojo_css(style_spec.dojo)
+    generic_unstyled_css = get_generic_unstyled_css()
+    styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
+    styled_dojo_chart_css = get_styled_dojo_chart_css(style_spec.dojo)
     title = (f"Results of independent samples t-test of average {results.measure_fld_lbl} "
         f'''for "{results.group_lbl}" groups "{results.group_a_dets.lbl}" and "{results.group_b_dets.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
@@ -132,9 +133,9 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
         histograms2show.append(html_or_msg)
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
-        'generic_css': generic_css,
-        'styled_misc_css': styled_misc_css,
-        'styled_dojo_css': styled_dojo_css,
+        'generic_unstyled_css': generic_unstyled_css,
+        'styled_stats_tbl_css': styled_stats_tbl_css,
+        'styled_dojo_chart_css': styled_dojo_chart_css,
         'title': title,
         't': round(results.t, dp),
         'p': get_p_str(results.p),
@@ -173,7 +174,7 @@ class TTestIndepSpec:
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
         grouping_fld_lbl = VAR_LABELS.var2var_lbl.get(self.grouping_fld_name, self.grouping_fld_name)
-        measure_fld_lbl = VAR_LABELS.var2val2lbl.get(self.measure_fld_name, {})
+        measure_fld_lbl = VAR_LABELS.var2var_lbl.get(self.measure_fld_name, {})
         val2lbl = VAR_LABELS.var2val2lbl.get(self.grouping_fld_name)
         group_a_val_dets = ValDets(val=self.group_a_val, lbl=val2lbl.get(self.group_a_val, str(self.group_a_val)))
         group_b_val_dets = ValDets(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
