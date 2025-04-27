@@ -17,8 +17,7 @@ from sofalite.data_extraction.stats.ttest_indep import get_results
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import (
-    get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css, get_styled_stats_tbl_css)
+from sofalite.output.styles.misc import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
 from sofalite.stats_calc.interfaces import NumericSampleDetsFormatted, TTestIndepResultExt
 from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
@@ -29,7 +28,6 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
     <style>
         {{generic_unstyled_css}}
         {{styled_stats_tbl_css}}
-        {{styled_dojo_chart_css}}
     </style>
 
     <div class='default'>
@@ -91,7 +89,6 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
     """
     generic_unstyled_css = get_generic_unstyled_css()
     styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
-    styled_dojo_chart_css = get_styled_dojo_chart_css(style_spec.dojo)
     title = (f"Results of independent samples t-test of average {results.measure_fld_lbl} "
         f'''for "{results.group_lbl}" groups "{results.group_a_dets.lbl}" and "{results.group_b_dets.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
@@ -135,7 +132,6 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
     context = {
         'generic_unstyled_css': generic_unstyled_css,
         'styled_stats_tbl_css': styled_stats_tbl_css,
-        'styled_dojo_chart_css': styled_dojo_chart_css,
         'title': title,
         't': round(results.t, dp),
         'p': get_p_str(results.p),

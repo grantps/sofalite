@@ -7,45 +7,23 @@ Dojo for charts - want name-spaced CSS for every style in styles folder.
 Non-CSS styling, e.g. colour for pie chart slices, already set in JS functions directly.
 
 Tables - only want general table settings in CSS (e.g. spacing) - nothing style-specific.
-All specifics should be either:
+All specifics styling should be either:
 
 In main output tables via Pandas, non-CSS styling
 OR
 in simple stats data tables via inline CSS drawing on details directly accessing
 and using style-specific values.
-
-So ...
-
-want to be able to get:
-
-* general (i.e. not style-specific) CSS for table, Dojo, and page styling
-* Dojo CSS for all available styles (whether or not used in specific chart in HTML output).
-  Never need to check which chart items use which styles before finalising Dojo CSS.
-  KISS - not especially inefficient.
-* access to specific style settings for insertion via pandas styling and in-line styling (vs internal CSS)
-  will be based on style spec data classes
 """
 import base64
+from collections.abc import Sequence
 from enum import Enum
 import importlib
-from pathlib import Path
-from typing import Sequence
 
 import jinja2
 
 from sofalite.conf.main import DOJO_COLOURS
 from sofalite.output.styles.interfaces import ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
 from sofalite.utils.misc import todict
-
-def get_style_names() -> list[str]:
-    """
-    Just names, not paths.
-    Names can be handed to get_style_spec(style_name)
-    """
-    from sofalite.output.styles import default  ## assumes default is always there
-    style_root = Path(default.__file__).parent
-    style_names = [fpath.name for fpath in style_root.iterdir() if fpath.suffix == '.py']
-    return style_names
 
 def get_style_spec(style_name: str) -> StyleSpec:
     """
@@ -55,14 +33,6 @@ def get_style_spec(style_name: str) -> StyleSpec:
     """
     style_module = importlib.import_module(f"sofalite.output.styles.{style_name}")
     return style_module.get_style_spec()
-
-def get_all_style_specs() -> dict[str, StyleSpec]:
-    style_names = get_style_names()
-    style_specs = {}
-    for style_name in style_names:
-        style_spec = get_style_spec(style_name)
-        style_specs[style_name] = style_spec
-    return style_specs
 
 class CSS(Enum):
     """

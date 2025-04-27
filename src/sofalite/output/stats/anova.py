@@ -18,19 +18,16 @@ from sofalite.data_extraction.stats.msgs import (
 from sofalite.output.charts import mpl_pngs
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import (
-    get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css, get_styled_stats_tbl_css)
+from sofalite.output.styles.misc import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
 from sofalite.stats_calc.interfaces import AnovaResultExt, NumericSampleDetsFormatted
 from sofalite.utils.maths import format_num, is_numeric
 from sofalite.utils.stats import get_p_str
 
-def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
-        dp: int, show_workings=False) -> str:
+def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
         {{generic_unstyled_css}}
         {{styled_stats_tbl_css}}
-        {{styled_dojo_chart_css}}
     </style>
 
     <div class='default'>
@@ -118,7 +115,6 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
     """
     generic_unstyled_css = get_generic_unstyled_css()
     styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
-    styled_dojo_chart_css = get_styled_dojo_chart_css(style_spec.dojo)
     group_vals = [group_dets.lbl for group_dets in results.groups_dets]
     if len(group_vals) < 2:
         raise Exception(f"Expected multiple groups in ANOVA. Details:\n{results}")
@@ -167,7 +163,6 @@ def make_anova_html(results: AnovaResultExt, style_spec: StyleSpec, *,
     context = {
         'generic_unstyled_css': generic_unstyled_css,
         'styled_stats_tbl_css': styled_stats_tbl_css,
-        'styled_dojo_chart_css': styled_dojo_chart_css,
         'title': title,
         'degrees_freedom_between_groups': f"{results.degrees_freedom_between_groups:,}",
         'sum_squares_between_groups': num_tpl.format(round(results.sum_squares_between_groups, dp)),

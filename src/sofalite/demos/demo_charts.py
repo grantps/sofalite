@@ -381,7 +381,7 @@ def multi_series_boxplot():
 
 if __name__ == '__main__':
     pass
-    # simple_bar_chart()
+    simple_bar_chart()
     # simple_bar_chart_lots_of_x_vals()
     # multi_bar_chart()
     # clustered_bar_chart()
@@ -390,7 +390,7 @@ if __name__ == '__main__':
     # area_chart()
     # pie_chart()
     # single_series_scatterplot()
-    multi_series_scatterplot()
+    # multi_series_scatterplot()
     # multi_chart_scatterplot()
     # multi_chart_series_scatterplot()
     # histogram_chart()

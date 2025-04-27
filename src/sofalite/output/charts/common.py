@@ -29,11 +29,11 @@ from sofalite.output.styles.misc import get_generic_unstyled_css, get_styled_doj
 
 def get_html_styling_top(style_spec: StyleSpec) -> str:
     generic_unstyled_css = get_generic_unstyled_css()
-    styled_dojo_css = get_styled_dojo_chart_css(style_spec.dojo)
+    styled_dojo_chart_css = get_styled_dojo_chart_css(style_spec.dojo)
     context = {
         'generic_unstyled_css': generic_unstyled_css,
         'sofalite_web_resources_root': SOFALITE_WEB_RESOURCES_ROOT,
-        'styled_dojo_chart_css': get_styled_dojo_chart_css,
+        'styled_dojo_chart_css': styled_dojo_chart_css,
     }
     environment = jinja2.Environment()
     template = environment.from_string(tpl_html_top)

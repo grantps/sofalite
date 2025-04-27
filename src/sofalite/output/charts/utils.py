@@ -1,10 +1,18 @@
+"""
+TODO: split out all styled and unstyled CSS and JS so can be generated at the end and put together in report
+  whether in a report taking in many components OR a single chart / table / stats item.
+"""
+
 from collections.abc import Sequence
 import logging
 
-from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetSpec
+import jinja2
 
 from sofalite.conf.main import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
+from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetSpec
+from sofalite.output.styles.interfaces import DojoStyleSpec
+from sofalite.utils.misc import todict
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetSpec,
         is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> float:
@@ -47,8 +55,8 @@ def get_y_axis_title_offset(*, x_axis_title_len: int, rotated_x_lbls=False) -> i
     ## 45 is a good total offset with label width of 20
     y_axis_title_offset = DOJO_Y_AXIS_TITLE_OFFSET - 20  ## e.g. 20
     ## first x-axis label adjustment
-    horiz_x_lbls = not rotated_x_lbls
-    if horiz_x_lbls:
+    horizontal_x_lbls = not rotated_x_lbls
+    if horizontal_x_lbls:
         if x_axis_title_len * AVG_CHAR_WIDTH_PIXELS > MAX_SAFE_X_LBL_LEN_PIXELS:
             lbl_width_shifting = (x_axis_title_len * AVG_CHAR_WIDTH_PIXELS) - MAX_SAFE_X_LBL_LEN_PIXELS
             lbl_shift = lbl_width_shifting / 2  ## half of label goes to the right
@@ -64,3 +72,77 @@ def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
     for n, x_axis_spec in enumerate(x_axis_specs, 1):
         lbl_dets.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
     return lbl_dets
+
+def get_styled_dojo_chart_js(dojo_style_spec: DojoStyleSpec) -> str:
+    tpl = """\
+<script type="text/javascript">
+
+function getAllFunctions(){
+    var allFunctions = [];
+    for (var i in window) {
+      if((typeof window[i]).toString()=="function"){
+        fn_name = window[i].name;
+        if (fn_name.startsWith('make_chart')) {
+            allFunctions.push(fn_name);
+        }
+      }
+   }
+   return allFunctions;
+}
+
+makeObjects = function(){
+    functions = getAllFunctions();
+    functions.forEach(fn_name => window[fn_name]());
+};
+dojo.addOnLoad(makeObjects);
+
+var DEFAULT_SATURATION  = 100,
+DEFAULT_LUMINOSITY1 = 75,
+DEFAULT_LUMINOSITY2 = 50,
+
+c = dojox.color,
+
+cc = function(colour){
+    return function(){ return colour; };
+},
+
+hl = function(colour){
+
+    var a = new c.Color(colour),
+        x = a.toHsl();
+    if(x.s == 0){
+        x.l = x.l < 50 ? 100 : 0;
+    }else{
+        x.s = DEFAULT_SATURATION;
+        if(x.l < DEFAULT_LUMINOSITY2){
+            x.l = DEFAULT_LUMINOSITY1;
+        }else if(x.l > DEFAULT_LUMINOSITY1){
+            x.l = DEFAULT_LUMINOSITY2;
+        }else{
+            x.l = x.l - DEFAULT_LUMINOSITY2 > DEFAULT_LUMINOSITY1 - x.l
+                ? DEFAULT_LUMINOSITY2 : DEFAULT_LUMINOSITY1;
+        }
+    }
+    return c.fromHsl(x);
+}
+
+getfainthex = function(hexcolour){
+    var a = new c.Color(hexcolour)
+    x = a.toHsl();
+    x.s = x.s * 1.5;
+    x.l = x.l * 1.25;
+    return c.fromHsl(x);
+}
+
+makefaint = function(colour){
+    var fainthex = getfainthex(colour.toHex());
+    return new dojox.color.Color(fainthex);
+}
+
+</script>
+    """
+    environment = jinja2.Environment()
+    template = environment.from_string(tpl)
+    context = todict(dojo_style_spec, shallow=True)
+    css = template.render(context)
+    return css

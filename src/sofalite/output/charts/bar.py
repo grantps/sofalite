@@ -1,6 +1,7 @@
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Literal
 import uuid
 
@@ -27,9 +28,6 @@ MIN_PIXELS_PER_X_ITEM = 60
 MIN_CLUSTER_WIDTH_PIXELS = 60
 PADDING_PIXELS = 35
 DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 10  ## whatever works. Tested on cluster of Age vs Cars
-
-left_margin_offset_dets = LeftMarginOffsetSpec(
-    initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
 
 @dataclass(frozen=True)
 class SimpleBarChartSpec:
@@ -81,6 +79,10 @@ class SimpleBarChartSpec:
         ## output
         html = get_html(charting_spec, style_spec)
         return html
+
+    def to_file(self, fpath: Path):
+        with open(fpath, 'w') as f:
+            f.write(self.to_html())
 
 @dataclass(frozen=True)
 class MultiBarChartSpec:
@@ -457,8 +459,10 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSp
         is_multi_chart=charting_spec.is_multi_chart, rotated_x_lbls=charting_spec.rotate_x_lbls,
         max_x_axis_lbl_lines=charting_spec.max_x_axis_lbl_lines)
     axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
+    left_margin_offset_spec = LeftMarginOffsetSpec(
+        initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
+        offsets=left_margin_offset_spec, is_multi_chart=charting_spec.is_multi_chart,
         y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
     width = left_margin_offset + width_after_left_margin
     height = get_height(axis_lbl_drop=axis_lbl_drop,
