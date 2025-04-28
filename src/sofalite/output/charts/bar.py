@@ -1,7 +1,10 @@
+"""
+TODO: change everything to HTMLItemSpecs
+"""
+
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import partial
-from pathlib import Path
 from typing import Any, Literal
 import uuid
 
@@ -18,6 +21,7 @@ from sofalite.output.charts.interfaces import (
     ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
@@ -44,7 +48,7 @@ class SimpleBarChartSpec:
     x_axis_font_size: int = 12,
     y_axis_title: str = 'Freq'
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         ## style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -78,11 +82,11 @@ class SimpleBarChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
-
-    def to_file(self, fpath: Path):
-        with open(fpath, 'w') as f:
-            f.write(self.to_html())
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiBarChartSpec:

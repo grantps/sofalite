@@ -1,24 +1,19 @@
+from pathlib import Path
 from webbrowser import open_new_tab
 
 import pandas as pd
 
-from sofalite.conf.main import DATABASE_FPATH
-from sofalite.data_extraction.charts.boxplot import (
-    get_by_series_category_charting_spec as box_get_by_series_category_charting_spec)
-from sofalite.data_extraction.db import Sqlite
 # noinspection PyUnresolvedReferences
 from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, scatterplot  ## needed so singledispatch registration can occur
 from sofalite.output.charts.area import AreaChartSpec
 from sofalite.output.charts.bar import (
     ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
 from sofalite.output.charts.boxplot import BoxplotChartSpec, BoxplotChartingSpec, MultiSeriesBoxplotChartSpec
-from sofalite.output.charts.common import get_html
 from sofalite.output.charts.histogram import HistogramChartSpec, MultiChartHistogramChartSpec
 from sofalite.output.charts.line import MultiLineChartSpec
 from sofalite.output.charts.pie import PieChartSpec
 from sofalite.output.charts.scatterplot import (MultiChartScatterChartSpec, MultiChartSeriesScatterChartSpec,
     MultiSeriesScatterChartSpec, SingleSeriesScatterChartSpec)
-from sofalite.output.styles.misc import get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 
 pd.set_option('display.max_rows', 200)
@@ -41,11 +36,9 @@ def simple_bar_chart():
         x_axis_font_size=12,
         y_axis_title='Freq',
     )
-    html = chart.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/test_simple_bar_chart.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = chart.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/test_simple_bar_chart_from_item.html')
+    html_item_spec.to_file(fpath, 'Simple Bar Chart')
     open_new_tab(url=f"file://{fpath}")
 
 def simple_bar_chart_lots_of_x_vals():

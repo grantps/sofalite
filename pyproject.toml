@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.3.23"
+version = "0.3.24"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -220,7 +220,6 @@ exhaustive_ignores = []
 ignore_imports = [
     "sofalite.utils.stats -> sofalite.utils.maths",  ## stats can rely on maths
 ]
-
 
 [tool.codespell]
 ignore-regex = ["[A-Za-z0-9+/]{100,}"]
