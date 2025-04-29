@@ -12,6 +12,7 @@ from sofalite.data_extraction.charts.histogram import (
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.utils.maths import format_num
@@ -295,7 +296,7 @@ class HistogramChartSpec:
     x_axis_font_size: int = 12
     dp: int = 3
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -326,7 +327,11 @@ class HistogramChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiChartHistogramChartSpec:
@@ -342,7 +347,7 @@ class MultiChartHistogramChartSpec:
     x_axis_font_size: int = 12
     dp: int = 3
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -379,4 +384,8 @@ class MultiChartHistogramChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )

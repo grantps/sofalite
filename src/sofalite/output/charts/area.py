@@ -12,6 +12,7 @@ from sofalite.output.charts.common import (
     get_common_charting_spec, get_html, get_indiv_chart_html,get_line_area_misc_spec)
 from sofalite.output.charts.interfaces import (
     AreaChartingSpec, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec, LineArea, PlotStyle)
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
@@ -137,7 +138,7 @@ class AreaChartSpec:
     x_axis_font_size: int = 12
     y_axis_title: str = 'Freq'
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -177,4 +178,8 @@ class AreaChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )

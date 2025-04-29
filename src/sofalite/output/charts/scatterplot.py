@@ -14,6 +14,7 @@ from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
 from sofalite.utils.maths import format_num
@@ -292,7 +293,7 @@ class SingleSeriesScatterChartSpec:
     show_regression_line: bool = True
     x_axis_font_size: int = 10
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -324,7 +325,11 @@ class SingleSeriesScatterChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiSeriesScatterChartSpec:
@@ -340,7 +345,7 @@ class MultiSeriesScatterChartSpec:
     show_regression_line: bool = True
     x_axis_font_size: int = 10
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -376,7 +381,11 @@ class MultiSeriesScatterChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiChartScatterChartSpec:
@@ -392,7 +401,7 @@ class MultiChartScatterChartSpec:
     show_regression_line: bool = True
     x_axis_font_size: int = 10
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -428,7 +437,11 @@ class MultiChartScatterChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiChartSeriesScatterChartSpec:
@@ -445,7 +458,7 @@ class MultiChartSeriesScatterChartSpec:
     show_regression_line: bool = True
     x_axis_font_size: int = 10
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -484,4 +497,8 @@ class MultiChartSeriesScatterChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )

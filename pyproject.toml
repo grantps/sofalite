@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.3.24"
+version = "0.3.25"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -193,6 +193,7 @@ layers = [
 containers = ["sofalite.output.styles"]
 exhaustive = false
 exhaustive_ignores = []
+#unmatched_ignore_imports_alerting='none'  ## https://github.com/seddonym/import-linter/issues/114
 ignore_imports = [
     "sofalite.output.styles.misc -> sofalite.output.styles.default",  ## reads a style to get the general pattern for all of them
 ]

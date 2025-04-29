@@ -1,7 +1,3 @@
-"""
-TODO: change everything to HTMLItemSpecs
-"""
-
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import partial
@@ -104,7 +100,7 @@ class MultiBarChartSpec:
     x_axis_font_size: int = 12,
     y_axis_title: str = 'Freq'
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -142,7 +138,11 @@ class MultiBarChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class ClusteredBarChartSpec:
@@ -159,7 +159,7 @@ class ClusteredBarChartSpec:
     x_axis_font_size: int = 12,
     y_axis_title: str = 'Freq',
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -197,7 +197,11 @@ class ClusteredBarChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass(frozen=True)
 class MultiClusteredBarChartSpec:
@@ -215,7 +219,7 @@ class MultiClusteredBarChartSpec:
     x_axis_font_size: int = 12,
     y_axis_title: str = 'Freq',
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         # style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -256,7 +260,11 @@ class MultiClusteredBarChartSpec:
         )
         ## output
         html = get_html(charting_spec, style_spec)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_charts=True,
+        )
 
 @dataclass
 class BarChartingSpec(ChartingSpecAxes):
