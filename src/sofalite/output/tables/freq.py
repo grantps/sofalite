@@ -7,6 +7,7 @@ import pandas as pd
 from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
 from sofalite.data_extraction.db import Sqlite
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.tables.interfaces import BLANK, DimSpec, PctType
 from sofalite.output.styles.misc import get_style_spec
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
@@ -203,7 +204,7 @@ class FreqTblSpec:
         if self.debug: print(f"\nORDERED:\n{df}")
         return df
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         get_tbl_df_for_cur = partial(self.get_tbl_df)
         local_cur = not bool(self.cur)
         if local_cur:
@@ -230,4 +231,8 @@ class FreqTblSpec:
         {html_start}
         {tbl_html}
         """
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_main_tbl=True,
+        )

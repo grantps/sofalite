@@ -1,10 +1,11 @@
+from pathlib import Path
 from webbrowser import open_new_tab
 
 from sofalite.output.stats.anova import AnovaSpec
 from sofalite.output.stats.ttest_indep import TTestIndepSpec
 
 def run_anova():
-    chart = AnovaSpec(
+    stats = AnovaSpec(
         style_name='default', #'prestige_screen',
         tbl_name='demo_tbl',
         grouping_fld_name='country',
@@ -15,15 +16,13 @@ def run_anova():
         high_precision_required=False,
         dp=3,
     )
-    html = chart.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/anova_age_by_country_prestige_screen.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = stats.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/anova_age_by_country_prestige_screen_from_item.html')
+    html_item_spec.to_file(fpath, 'ANOVA')
     open_new_tab(url=f"file://{fpath}")
 
 def run_ttest_indep():
-    chart = TTestIndepSpec(
+    stats = TTestIndepSpec(
         style_name='default',
         tbl_name='demo_tbl',
         grouping_fld_name='gender',
@@ -33,14 +32,12 @@ def run_ttest_indep():
         tbl_filt_clause=None,
         cur=None,
     )
-    html = chart.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/ttest_indep_age_by_country_default.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = stats.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/ttest_indep_age_by_country_from_item.html')
+    html_item_spec.to_file(fpath, 'Independent t-test')
     open_new_tab(url=f"file://{fpath}")
 
 if __name__ == '__main__':
     pass
-    # run_anova()
+    run_anova()
     run_ttest_indep()

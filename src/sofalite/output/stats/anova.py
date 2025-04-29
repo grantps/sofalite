@@ -16,6 +16,7 @@ from sofalite.data_extraction.stats.msgs import (
     skew_explain, std_dev_explain,
 )
 from sofalite.output.charts import mpl_pngs
+from sofalite.output.interfaces import HTMLItemSpec
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.misc import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
@@ -202,7 +203,7 @@ class AnovaSpec:
     high_precision_required: bool = True
     dp: int = 3
 
-    def to_html(self) -> str:
+    def to_html_spec(self) -> HTMLItemSpec:
         ## style
         style_spec = get_style_spec(style_name=self.style_name)
         ## lbls
@@ -228,4 +229,8 @@ class AnovaSpec:
         else:
             results = get_results_for_cur(self.cur)
         html = make_anova_html(results, style_spec, dp=self.dp, show_workings=False)
-        return html
+        return HTMLItemSpec(
+            html_item_str=html,
+            style_name=self.style_name,
+            includes_stats_tbl=True,
+        )

@@ -1,3 +1,4 @@
+from pathlib import Path
 from webbrowser import open_new_tab
 
 from sofalite.conf.main import VAR_LABELS
@@ -29,11 +30,9 @@ def run_main_poc_cross_tab():
         debug=False,
         verbose=False,
     )
-    html = tbl.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/main_poc_cross_tab.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = tbl.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/main_cross_tab_from_item.html')
+    html_item_spec.to_file(fpath, 'Cross Tab')
     open_new_tab(url=f"file://{fpath}")
 
 def run_repeat_level_two_row_var_cross_tab():
@@ -60,11 +59,9 @@ def run_repeat_level_two_row_var_cross_tab():
         debug=False,
         verbose=False,
     )
-    html = tbl.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/cross_tab_repeat_level_two_row_var.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = tbl.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/cross_tab_repeat_level_two_row_var_from_item.html')
+    html_item_spec.to_file(fpath, 'Cross Tab Repeat Level Two Row Var')
     open_new_tab(url=f"file://{fpath}")
 
 def run_simple_freq_tbl():
@@ -84,15 +81,13 @@ def run_simple_freq_tbl():
         debug=False,
         verbose=False,
     )
-    html = tbl.to_html()
-
-    fpath = '/home/g/Documents/sofalite/reports/freq_table_no_col_pct.html'
-    with open(fpath, 'w') as f:
-        f.write(html)
+    html_item_spec = tbl.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/freq_table_no_col_pct_from_item.html')
+    html_item_spec.to_file(fpath, 'Frequency Table')
     open_new_tab(url=f"file://{fpath}")
 
 if __name__ == '__main__':
     pass
     run_main_poc_cross_tab()
-    # run_repeat_level_two_row_var_cross_tab()
-    # run_simple_freq_tbl()
+    run_repeat_level_two_row_var_cross_tab()
+    run_simple_freq_tbl()
