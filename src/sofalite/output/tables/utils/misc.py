@@ -9,7 +9,7 @@ from pandas.io.formats.style import Styler
 import numpy as np
 
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_generic_unstyled_css, get_styled_placeholder_css_for_main_tbls
+from sofalite.output.styles.utils import get_generic_unstyled_css, get_styled_placeholder_css_for_main_tbls
 from sofalite.output.tables.interfaces import DimSpec
 from sofalite.output.tables.interfaces import PCT_METRICS, TOTAL, Metric, PctType
 
@@ -414,40 +414,3 @@ def apply_index_styles(
         if last_level:
             break
     return pd_styler
-
-def get_html_start(style_name: str) -> str:
-    """
-    TODO: Rebuild so assembles all CSS needed from main tables
-      (spaceholder only - the rest is internal to the table HTML), charts (DOJO - only need once per style),
-      and generic (once per report).
-    """
-    kwargs = {
-        'generic_unstyled_css': get_generic_unstyled_css(),
-        'spaceholder_css': get_styled_placeholder_css_for_main_tbls(style_name),
-        'title': 'Demo Table',
-    }
-    html_start = """\
-    <!DOCTYPE html>
-    <head>
-    <title>%(title)s</title>
-    <style type="text/css">
-    <!--
-    %(spaceholder_css)s
-    %(generic_unstyled_css)s
-    -->
-    </style>
-    </head>
-    <body class="tundra">
-    """ % kwargs
-    return html_start
-
-def display_tbl(tbl_html: str, tbl_name: str, style_name: str):
-    html_start = get_html_start(style_name)
-    html = f"""\
-    {html_start}
-    {tbl_html}
-    """
-    fpath = f"/home/g/Documents/sofalite/reports/{tbl_name}.html"
-    with open(fpath, 'w') as f:
-        f.write(html)
-    open_new_tab(f"file://{fpath}")

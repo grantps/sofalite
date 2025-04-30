@@ -8,7 +8,7 @@ from sofalite.output.charts import area, bar, boxplot, histogram, line, pie, sca
 from sofalite.output.charts.area import AreaChartSpec
 from sofalite.output.charts.bar import (
     ClusteredBarChartSpec, MultiBarChartSpec, MultiClusteredBarChartSpec, SimpleBarChartSpec)
-from sofalite.output.charts.boxplot import BoxplotChartSpec, BoxplotChartingSpec, MultiSeriesBoxplotChartSpec
+from sofalite.output.charts.boxplot import BoxplotChartSpec, MultiSeriesBoxplotChartSpec
 from sofalite.output.charts.histogram import HistogramChartSpec, MultiChartHistogramChartSpec
 from sofalite.output.charts.line import MultiLineChartSpec
 from sofalite.output.charts.pie import PieChartSpec

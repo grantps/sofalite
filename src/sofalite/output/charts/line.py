@@ -16,9 +16,9 @@ from sofalite.output.charts.common import (
     get_common_charting_spec, get_html, get_indiv_chart_html, get_line_area_misc_spec)
 from sofalite.output.charts.interfaces import (
     DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec, LineArea, LineChartingSpec, PlotStyle)
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -311,5 +311,5 @@ class MultiLineChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )

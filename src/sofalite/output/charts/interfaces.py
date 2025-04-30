@@ -1,3 +1,4 @@
+## depends on conf (always OK), and utils and data_extraction which are lower level - so no problematic project dependencies :-)
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum

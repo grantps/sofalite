@@ -12,9 +12,9 @@ from sofalite.data_extraction.charts.histogram import (
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
-from sofalite.output.styles.misc import get_style_spec
+from sofalite.output.styles.utils import get_style_spec
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
@@ -330,7 +330,7 @@ class HistogramChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass(frozen=True)
@@ -387,5 +387,5 @@ class MultiChartHistogramChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )

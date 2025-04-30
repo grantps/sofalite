@@ -1,18 +1,9 @@
-"""
-TODO: split out all styled and unstyled CSS and JS so can be generated at the end and put together in report
-  whether in a report taking in many components OR a single chart / table / stats item.
-"""
-
 from collections.abc import Sequence
 import logging
-
-import jinja2
 
 from sofalite.conf.main import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
 from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetSpec
-from sofalite.output.styles.interfaces import DojoStyleSpec
-from sofalite.utils.misc import todict
 
 def get_left_margin_offset(*, width_after_left_margin: float, offsets: LeftMarginOffsetSpec,
         is_multi_chart: bool, y_axis_title_offset: float, rotated_x_lbls: bool) -> float:
@@ -73,8 +64,8 @@ def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
         lbl_dets.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
     return lbl_dets
 
-def get_styled_dojo_chart_js(dojo_style_spec: DojoStyleSpec) -> str:
-    tpl = """\
+def get_dojo_chart_js() -> str:
+    js = """\
 <script type="text/javascript">
 
 function getAllFunctions(){
@@ -141,8 +132,4 @@ makefaint = function(colour){
 
 </script>
     """
-    environment = jinja2.Environment()
-    template = environment.from_string(tpl)
-    context = todict(dojo_style_spec, shallow=True)
-    css = template.render(context)
-    return css
+    return js

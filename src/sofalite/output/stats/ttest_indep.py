@@ -15,10 +15,10 @@ from sofalite.data_extraction.stats.msgs import (
 )
 from sofalite.data_extraction.stats.ttest_indep import get_results
 from sofalite.output.charts import mpl_pngs
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
+from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
 from sofalite.stats_calc.interfaces import NumericSampleDetsFormatted, TTestIndepResultExt
 from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
@@ -193,5 +193,5 @@ class TTestIndepSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_stats_tbl=True,
+            output_item_type=OutputItemType.STATS,
         )

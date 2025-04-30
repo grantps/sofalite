@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Literal
+from typing import Any
 import uuid
 
 import jinja2
@@ -15,9 +15,9 @@ from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbl_dets,
     get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -414,7 +414,7 @@ class BoxplotChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass(frozen=True)
@@ -476,5 +476,5 @@ class MultiSeriesBoxplotChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )

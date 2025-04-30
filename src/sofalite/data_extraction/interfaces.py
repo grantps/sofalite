@@ -1,3 +1,4 @@
+## No project dependencies :-)
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum

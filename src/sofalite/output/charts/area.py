@@ -12,9 +12,9 @@ from sofalite.output.charts.common import (
     get_common_charting_spec, get_html, get_indiv_chart_html,get_line_area_misc_spec)
 from sofalite.output.charts.interfaces import (
     AreaChartingSpec, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec, LineArea, PlotStyle)
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.misc import get_style_spec
+from sofalite.output.styles.utils import get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -181,5 +181,5 @@ class AreaChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )

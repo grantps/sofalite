@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.3.25"
+version = "0.3.26"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -32,6 +32,8 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/sofalite"]
 
+## ---------------------------------------------------------------------------------------------------------------------
+
 ## >>> lint-imports
 ## https://import-linter.readthedocs.io/en/stable/contract_types.html#layers
 ## cd ~/projects/sofalite && c && lint-imports
@@ -53,6 +55,21 @@ containers = ["sofalite"]
 exhaustive = false
 exhaustive_ignores = []
 
+## work way up from bottom to top
+## conf
+
+[[tool.importlinter.contracts]]
+name = "conf.main not called by other conf"
+type = "layers"
+layers = [
+    "main",
+    "var_labels",
+]
+containers = ["sofalite.conf"]
+exhaustive = false
+exhaustive_ignores = []
+
+## utils
 [[tool.importlinter.contracts]]
 name = "utils.misc relies on nothing"
 type = "forbidden"
@@ -70,48 +87,19 @@ forbidden_modules = [  ## everything other than itself
 ]
 
 [[tool.importlinter.contracts]]
-name = "conf.main not called by other conf"
+name = "utils all independent"
 type = "layers"
 layers = [
-    "main",
-    "var_labels",
+    "dates | maths | misc | stats",
 ]
-containers = ["sofalite.conf"]
+containers = ["sofalite.utils"]
 exhaustive = false
 exhaustive_ignores = []
+ignore_imports = [
+    "sofalite.utils.stats -> sofalite.utils.maths",  ## stats can rely on maths
+]
 
-[[tool.importlinter.contracts]]
-name = "data_extraction levels"
-type = "layers"
-layers = [
-    "charts | stats",
-    "utils",
-    "interfaces | db",
-]
-containers = ["sofalite.data_extraction"]
-exhaustive = false
-exhaustive_ignores = []
-
-[[tool.importlinter.contracts]]
-name = "data_extraction charts"
-type = "layers"
-layers = [
-    "freq_specs | xys",
-    "boxplot | histogram | scatterplot",
-]
-containers = ["sofalite.data_extraction.charts"]
-exhaustive = false
-exhaustive_ignores = []
-
-[[tool.importlinter.contracts]]
-name = "data_extraction stats"
-type = "layers"
-layers = [
-    "anova | msgs | ttest_indep",
-]
-containers = ["sofalite.data_extraction.stats"]
-exhaustive = false
-exhaustive_ignores = []
+## stats_calc
 
 [[tool.importlinter.contracts]]
 name = "stats_calc interfaces"
@@ -148,13 +136,64 @@ forbidden_modules = [  ## everything other than sofalite.stats_calc.interfaces
     "sofalite.stats_calc.utils",
 ]
 
+## data_extraction
+[[tool.importlinter.contracts]]
+name = "data_extraction levels"
+type = "layers"
+layers = [
+    "charts | stats",
+    "utils",
+    "interfaces | db",
+]
+containers = ["sofalite.data_extraction"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "data_extraction charts"
+type = "layers"
+layers = [
+    "freq_specs | xys",
+    "boxplot | histogram | scatterplot",
+]
+containers = ["sofalite.data_extraction.charts"]
+exhaustive = false
+exhaustive_ignores = []
+
+[[tool.importlinter.contracts]]
+name = "data_extraction stats"
+type = "layers"
+layers = [
+    "anova | msgs | ttest_indep",
+]
+containers = ["sofalite.data_extraction.stats"]
+exhaustive = false
+exhaustive_ignores = []
+
+## output
+#[[tool.importlinter.contracts]]
+#name = "output levels"
+#type = "layers"
+#layers = [
+#    "utils",
+#    "stats",
+#    "tables",
+#    "interfaces",
+#    "charts",
+#    "styles",
+#]
+#containers = ["sofalite.output"]
+#exhaustive = false
+#exhaustive_ignores = []
+
 [[tool.importlinter.contracts]]
 name = "output.charts levels"
 type = "layers"
 layers = [
     "area | bar | boxplot | histogram | line | pie | scatterplot",
     "common",
-    "interfaces | html",
+    "utils",
+    "interfaces",
 ]
 containers = ["sofalite.output.charts"]
 exhaustive = false
@@ -187,13 +226,13 @@ name = "output.styles levels"
 type = "layers"
 layers = [
     "default | grey_spirals | prestige_screen | two_degrees",
-    "misc",
+    "utils",
     "interfaces",
 ]
 containers = ["sofalite.output.styles"]
 exhaustive = false
 exhaustive_ignores = []
-#unmatched_ignore_imports_alerting='none'  ## https://github.com/seddonym/import-linter/issues/114
+unmatched_ignore_imports_alerting='none'  ## https://github.com/seddonym/import-linter/issues/114
 ignore_imports = [
     "sofalite.output.styles.misc -> sofalite.output.styles.default",  ## reads a style to get the general pattern for all of them
 ]
@@ -209,18 +248,7 @@ containers = ["sofalite.output.tables"]
 exhaustive = false
 exhaustive_ignores = []
 
-[[tool.importlinter.contracts]]
-name = "utils all independent"
-type = "layers"
-layers = [
-    "dates | maths | misc | stats",
-]
-containers = ["sofalite.utils"]
-exhaustive = false
-exhaustive_ignores = []
-ignore_imports = [
-    "sofalite.utils.stats -> sofalite.utils.maths",  ## stats can rely on maths
-]
+## ---------------------------------------------------------------------------------------------------------------------
 
 [tool.codespell]
 ignore-regex = ["[A-Za-z0-9+/]{100,}"]

@@ -7,12 +7,12 @@ import pandas as pd
 from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
 from sofalite.data_extraction.db import Sqlite
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.tables.interfaces import BLANK, DimSpec, PctType
-from sofalite.output.styles.misc import get_style_spec
+from sofalite.output.styles.utils import get_style_spec
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
 from sofalite.output.tables.utils.misc import (apply_index_styles, correct_str_dps, get_data_from_spec,
-    get_df_pre_pivot_with_pcts, get_html_start, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
+    get_df_pre_pivot_with_pcts, get_order_rules_for_multi_index_branches, get_raw_df, set_table_styles)
 from sofalite.output.tables.utils.multi_index_sort import get_metric2order, get_sorted_multi_index_list
 
 def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[str],
@@ -220,19 +220,14 @@ class FreqTblSpec:
         if self.debug:
             print(raw_tbl_html)
         ## Fix
-        tbl_html = raw_tbl_html
-        tbl_html = fix_top_left_box(tbl_html, style_spec, debug=self.debug, verbose=self.verbose)
-        tbl_html = merge_cols_of_blanks(tbl_html, debug=self.debug)
+        html = raw_tbl_html
+        html = fix_top_left_box(html, style_spec, debug=self.debug, verbose=self.verbose)
+        html = merge_cols_of_blanks(html, debug=self.debug)
         if self.debug:
             print(pd_styler.uuid)
-            print(tbl_html)
-        html_start = get_html_start(self.style_name)
-        html = f"""\
-        {html_start}
-        {tbl_html}
-        """
+            print(html)
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_main_tbl=True,
+            output_item_type=OutputItemType.MAIN_TABLE,
         )

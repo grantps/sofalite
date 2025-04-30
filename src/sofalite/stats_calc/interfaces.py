@@ -1,3 +1,4 @@
+## depends on stats_calc and utils which are lower level - so no problematic project dependencies :-)
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal

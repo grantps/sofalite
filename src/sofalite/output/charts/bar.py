@@ -17,9 +17,9 @@ from sofalite.output.charts.interfaces import (
     ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.interfaces import HTMLItemSpec
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
-from sofalite.output.styles.misc import get_long_colour_list, get_style_spec
+from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
@@ -81,7 +81,7 @@ class SimpleBarChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass(frozen=True)
@@ -141,7 +141,7 @@ class MultiBarChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass(frozen=True)
@@ -200,7 +200,7 @@ class ClusteredBarChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass(frozen=True)
@@ -263,7 +263,7 @@ class MultiClusteredBarChartSpec:
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,
-            includes_charts=True,
+            output_item_type=OutputItemType.CHART,
         )
 
 @dataclass
