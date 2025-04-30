@@ -1,6 +1,6 @@
 [project]
 name = "sofalite"
-version = "0.3.26"
+version = "0.4.0"
 description = "SofaLite - SOFA Statistics the Python Library"
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
@@ -171,20 +171,25 @@ exhaustive = false
 exhaustive_ignores = []
 
 ## output
-#[[tool.importlinter.contracts]]
-#name = "output levels"
-#type = "layers"
-#layers = [
-#    "utils",
-#    "stats",
-#    "tables",
-#    "interfaces",
-#    "charts",
-#    "styles",
-#]
-#containers = ["sofalite.output"]
-#exhaustive = false
-#exhaustive_ignores = []
+[[tool.importlinter.contracts]]
+name = "output levels"
+type = "layers"
+layers = [
+    "charts | stats | tables",
+    "utils",
+    "interfaces",  ## main interface is HTMLItemSpec which is needed by all output items: bar charts, ANOVAs, cross tabs etc.
+    "styles",  ## has CSS & JS needed by interfaces for implementing the to_standalone_html method of HTMLItemSpec
+]
+containers = ["sofalite.output"]
+exhaustive = false
+exhaustive_ignores = []
+unmatched_ignore_imports_alerting = 'none'  ## https://github.com/seddonym/import-linter/issues/114
+ignore_imports = [
+    "sofalite.output.interfaces -> sofalite.output.charts.conf",  ## no circularity - just getting a static string needed by charts
+    "sofalite.output.utils -> sofalite.output.charts.conf",  ## as above
+    "sofalite.output.stats.* -> sofalite.output.charts.mpl_pngs",  ## stats output uses Matplotlib and histograms in output - but we don't want to allow anything else
+    "sofalite.output.stats.* -> sofalite.output.charts.histogram",  ## as above
+]
 
 [[tool.importlinter.contracts]]
 name = "output.charts levels"
@@ -232,7 +237,7 @@ layers = [
 containers = ["sofalite.output.styles"]
 exhaustive = false
 exhaustive_ignores = []
-unmatched_ignore_imports_alerting='none'  ## https://github.com/seddonym/import-linter/issues/114
+unmatched_ignore_imports_alerting = 'none'  ## https://github.com/seddonym/import-linter/issues/114
 ignore_imports = [
     "sofalite.output.styles.misc -> sofalite.output.styles.default",  ## reads a style to get the general pattern for all of them
 ]

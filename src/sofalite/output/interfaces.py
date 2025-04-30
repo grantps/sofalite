@@ -10,7 +10,7 @@ from typing import Protocol
 import jinja2
 
 from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
-from sofalite.output.charts.utils import get_dojo_chart_js
+from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
 
@@ -125,7 +125,7 @@ class HTMLItemSpec:
         }
         if self.output_item_type == OutputItemType.CHART:
             context['styled_dojo_chart_css'] = get_styled_dojo_chart_css(style_spec.dojo)
-            context['dojo_chart_js'] = get_dojo_chart_js()
+            context['dojo_chart_js'] = DOJO_CHART_JS
         if self.output_item_type == OutputItemType.MAIN_TABLE:
             context['styled_placeholder_css_for_main_tbls'] = get_styled_placeholder_css_for_main_tbls(self.style_name)
         if self.output_item_type == OutputItemType.STATS:

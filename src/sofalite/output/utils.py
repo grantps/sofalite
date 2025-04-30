@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import jinja2
 
 from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
-from sofalite.output.charts.utils import get_dojo_chart_js
+from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.interfaces import (
     BODY_AND_HTML_END_TPL, BODY_START_TPL, CHARTING_CSS_TPL, CHARTING_JS_TPL, CHARTING_LINKS_TPL, HEAD_END_TPL,
     HTML_AND_SOME_HEAD_TPL, SPACEHOLDER_CSS_TPL, STATS_TBL_TPL,
@@ -35,7 +35,7 @@ def get_report(html_items: Sequence[HasToHTMLItemSpec], title: str) -> Report:
     if includes_charts:
         ## unstyled
         tpl_bits.append(CHARTING_LINKS_TPL)
-        tpl_bits.append(get_dojo_chart_js())
+        tpl_bits.append(DOJO_CHART_JS)
         ## styled
         chart_styles_done = set()
         for html_item_spec in html_item_specs:
