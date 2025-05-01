@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from sofalite.conf.main import DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
@@ -208,7 +208,7 @@ class FreqTblSpec:
         get_tbl_df_for_cur = partial(self.get_tbl_df)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FPATH) as (_con, cur):
+            with Sqlite(DATABASE_FOLDER) as (_con, cur):
                 df = get_tbl_df_for_cur(cur)
         else:
             df = get_tbl_df_for_cur(self.cur)

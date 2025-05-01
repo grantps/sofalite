@@ -205,7 +205,7 @@ def single_series_scatterplot():
     )
     html_item_spec = chart.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/test_single_series_scatterplot_from_item.html')
-    html_item_spec.to_file(fpath, 'Pie Chart')
+    html_item_spec.to_file(fpath, 'Single Series Scatterplot')
     open_new_tab(url=f"file://{fpath}")
 
 def multi_series_scatterplot():
@@ -224,7 +224,7 @@ def multi_series_scatterplot():
     )
     html_item_spec = chart.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/test_multi_series_scatterplot_from_item.html')
-    html_item_spec.to_file(fpath, 'Pie Chart')
+    html_item_spec.to_file(fpath, 'Multi-Series Scatterplot')
     open_new_tab(url=f"file://{fpath}")
 
 def multi_chart_scatterplot():
@@ -243,7 +243,7 @@ def multi_chart_scatterplot():
     )
     html_item_spec = chart.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/test_multi_chart_scatterplot_from_item.html')
-    html_item_spec.to_file(fpath, 'Pie Chart')
+    html_item_spec.to_file(fpath, 'Multi-Chart Scatterplot')
     open_new_tab(url=f"file://{fpath}")
 
 def multi_chart_series_scatterplot():
@@ -263,7 +263,7 @@ def multi_chart_series_scatterplot():
     )
     html_item_spec = chart.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/test_multi_chart_series_scatterplot_from_item.html')
-    html_item_spec.to_file(fpath, 'Pie Chart')
+    html_item_spec.to_file(fpath, 'Multi-Chart Multi-Series Scatterplot')
     open_new_tab(url=f"file://{fpath}")
 
 def histogram_chart():

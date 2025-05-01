@@ -6,7 +6,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.main import DATABASE_FPATH, HISTO_AVG_CHAR_WIDTH_PIXELS, VAR_LABELS
+from sofalite.conf.main import DATABASE_FOLDER, HISTO_AVG_CHAR_WIDTH_PIXELS, VAR_LABELS
 from sofalite.data_extraction.charts.histogram import (
     HistoIndivChartSpec, get_by_chart_charting_spec, get_by_vals_charting_spec)
 from sofalite.data_extraction.db import Sqlite
@@ -306,7 +306,7 @@ class HistogramChartSpec:
             tbl_name=self.tbl_name, fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FPATH) as (_con, cur):
+            with Sqlite(DATABASE_FOLDER) as (_con, cur):
                 intermediate_charting_spec = get_by_vals_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
@@ -363,7 +363,7 @@ class MultiChartHistogramChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FPATH) as (_con, cur):
+            with Sqlite(DATABASE_FOLDER) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_charting_spec_for_cur(self.cur)

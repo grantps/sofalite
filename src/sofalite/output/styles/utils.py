@@ -20,19 +20,103 @@ from enum import Enum
 import importlib
 
 import jinja2
+from ruamel.yaml import YAML
 
-from sofalite.conf.main import DOJO_COLOURS
-from sofalite.output.styles.interfaces import ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec
+from sofalite.conf.main import DOJO_COLOURS, CUSTOM_STYLES_FOLDER
+from sofalite.output.styles.interfaces import (
+    ChartStyleSpec, ColourWithHighlight, DojoStyleSpec, StyleSpec, TableStyleSpec)
 from sofalite.utils.misc import todict
 
-def get_style_spec(style_name: str) -> StyleSpec:
+yaml = YAML(typ='safe')  ## default, if not specified, is 'rt' (round-trip)
+
+def yaml_to_style_spec(*, style_name: str, yaml_dict: dict) -> StyleSpec:
+    y = yaml_dict
+    try:
+        table_spec = TableStyleSpec(
+            ## font colours
+            var_font_colour_first_level=y['var_font_colour_first_level'],
+            var_font_colour_not_first_level=y['var_font_colour_not_first_level'],
+            heading_footnote_font_colour=y['heading_footnote_font_colour'],
+            footnote_font_colour=y['footnote_font_colour'],
+            ## background colours
+            var_bg_colour_first_level=y['var_bg_colour_first_level'],
+            var_bg_colour_not_first_level=y['var_bg_colour_not_first_level'],
+            ## borders
+            var_border_colour_first_level=y['var_border_colour_first_level'],
+            var_border_colour_not_first_level=y['var_border_colour_not_first_level'],
+            ## space-holders
+            spaceholder_bg_colour=y['spaceholder_bg_colour'],
+            spaceholder_bg_img=y.get('spaceholder_bg_img'),
+        )
+        chart_spec = ChartStyleSpec(
+            chart_bg_colour=y['chart_bg_colour'],
+            chart_font_colour=y['chart_font_colour'],
+            plot_bg_colour=y['plot_bg_colour'],
+            plot_font_colour=y['plot_font_colour'],
+            plot_bg_colour_filled=y['plot_bg_colour_filled'],
+            plot_font_colour_filled=y['plot_font_colour_filled'],
+            axis_font_colour=y['axis_font_colour'],
+            major_grid_line_colour=y['major_grid_line_colour'],
+            grid_line_width=int(y['grid_line_width']),
+            stroke_width=int(y['stroke_width']),
+            tooltip_border_colour=y['tooltip_border_colour'],
+            normal_curve_colour=y['normal_curve_colour'],
+            colour_mappings=[
+                ColourWithHighlight(y['colour_mappings_0_a'], y['colour_mappings_0_b']),
+                ColourWithHighlight(y['colour_mappings_1_a'], y['colour_mappings_1_b']),
+                ColourWithHighlight(y['colour_mappings_2_a'], y['colour_mappings_2_b']),
+                ColourWithHighlight(y['colour_mappings_3_a'], y['colour_mappings_3_b']),
+                ColourWithHighlight(y['colour_mappings_4_a'], y['colour_mappings_4_b']),
+            ],
+        )
+        dojo_spec = DojoStyleSpec(
+            connector_style=y['connector_style'],
+            tooltip_connector_up=y['tooltip_connector_up'],
+            tooltip_connector_down=y['tooltip_connector_down'],
+            tooltip_connector_left=y['tooltip_connector_left'],
+            tooltip_connector_right=y['tooltip_connector_right'],
+        )
+    except KeyError as e:
+        e.add_note("Unable to extract all required information from YAML - please check all required keys have values")
+        raise
+    style_spec = StyleSpec(
+        name=style_name,
+        table=table_spec,
+        chart=chart_spec,
+        dojo=dojo_spec,
+    )
+    return style_spec
+
+def get_style_spec(style_name: str, *, debug=False) -> StyleSpec:
     """
     Get dataclass with key colour details and so on e.g.
     style_spec.table_spec.heading_cell_border (DARKER_MID_GREY)
     style_spec.table_spec.first_row_border (None)
     """
-    style_module = importlib.import_module(f"sofalite.output.styles.{style_name}")
-    return style_module.get_style_spec()
+    try:
+        ## try using a built-in style
+        style_module = importlib.import_module(f"sofalite.output.styles.{style_name}")
+    except ModuleNotFoundError:
+        ## look for custom YAML file
+        yaml_fpath = CUSTOM_STYLES_FOLDER / f"{style_name}.yaml"
+        try:
+            yaml_dict = yaml.load(yaml_fpath)
+        except FileNotFoundError as e:
+            e.add_note(f"Unable to open {yaml_fpath} to extract style specification for '{style_name}'")
+            raise
+        except Exception as e:
+            e.add_note(f"Experienced a problem extracting style information from '{yaml_fpath}'")
+            raise
+        else:
+            if debug: print(yaml_dict)
+            try:
+                style_spec = yaml_to_style_spec(style_name=style_name, yaml_dict=yaml_dict)
+            except KeyError as e:
+                e.add_note(f"Unable to create style spec from '{yaml_fpath}'")
+                raise
+    else:
+        style_spec = style_module.get_style_spec()
+    return style_spec
 
 class CSS(Enum):
     """
@@ -274,3 +358,5 @@ def get_styled_placeholder_css_for_main_tbls(style_name: str) -> str:
     }
     return placeholder_css
 
+if __name__ == '__main__':
+    get_style_spec('horrific')

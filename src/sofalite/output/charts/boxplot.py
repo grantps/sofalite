@@ -6,7 +6,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, DATABASE_FPATH, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS
+from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, DATABASE_FOLDER, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS
 from sofalite.data_extraction.charts.boxplot import (
     BoxplotChartingSpec, BoxplotIndivChartSpec, get_by_category_charting_spec, get_by_series_category_charting_spec)
 from sofalite.data_extraction.db import Sqlite
@@ -393,7 +393,7 @@ class BoxplotChartSpec:
         )
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FPATH) as (_con, cur):
+            with Sqlite(DATABASE_FOLDER) as (_con, cur):
                 intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
@@ -455,7 +455,7 @@ class MultiSeriesBoxplotChartSpec:
         )
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FPATH) as (_con, cur):
+            with Sqlite(DATABASE_FOLDER) as (_con, cur):
                 intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)

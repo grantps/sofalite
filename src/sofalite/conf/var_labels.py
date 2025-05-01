@@ -29,7 +29,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
-yaml = YAML(typ='safe')   # default, if not specified, is 'rt' (round-trip)
+yaml = YAML(typ='safe')  ## default, if not specified, is 'rt' (round-trip)
 
 @dataclass(kw_only=True)
 class VarLabelSpec:

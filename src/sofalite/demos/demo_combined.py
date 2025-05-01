@@ -1,6 +1,6 @@
 from webbrowser import open_new_tab
 
-from sofalite.conf.main import INTERNAL_REPORT_FPATH, VAR_LABELS
+from sofalite.conf.main import INTERNAL_REPORT_FOLDER, VAR_LABELS
 from sofalite.output.charts.bar import SimpleBarChartSpec
 from sofalite.output.charts.boxplot import MultiSeriesBoxplotChartSpec
 from sofalite.output.stats.anova import AnovaSpec
@@ -117,7 +117,7 @@ def run_report():
         anova,
     ]
     report = get_report(html_items, 'First ever combined report')
-    fpath = INTERNAL_REPORT_FPATH / 'first_ever_combined_report.html'
+    fpath = INTERNAL_REPORT_FOLDER / 'first_ever_combined_report.html'
     report.to_file(fpath)
     open_new_tab(url=f"file://{fpath}")
 
