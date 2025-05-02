@@ -17,14 +17,14 @@ import numpy as np
 from sofalite.conf.main import MAX_RANK_DATA_VALS
 
 """
-TODO: Dets -> ResultSpec; add docs for what a stats needs engine
+TODO: add docs for what a stats needs engine
 """
 from sofalite.stats_calc.interfaces import (
     AnovaResult,
-    MannWhitneySpec, MannWhitneySpecExt,
+    MannWhitneyResult, MannWhitneyResultExt,
     NormalTestResult,
     NumericSampleSpec, NumericSampleSpecExt,
-    OrdinalResult, RegressionSpec, Result, Sample, SpearmansSpec, SpearmansInitTbl, TTestResult, WilcoxonSpec)
+    OrdinalResult, RegressionResult, Result, Sample, SpearmansResult, SpearmansInitTbl, TTestResult, WilcoxonResult)
 from sofalite.utils.maths import n2d
 from sofalite.utils.stats import get_obriens_msg
 
@@ -170,7 +170,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     for i in range(a):
         sample = lst_samples[i]
         label = lst_labels[i]
-        sample_spec = NumericSampleSpec(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
+        sample_spec = NumericSampleResult(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
             sample_min=min(sample), sample_max=max(sample))
         dets.append(sample_spec)
     for i in range(len(lst_samples)):
@@ -235,7 +235,7 @@ def get_ci95(sample_vals=None, mymean=None, mysd=None, n=None, *, high=False):
     upper95 = mymean + diff
     return lower95, upper95
 
-def get_numeric_sample_dets_extended(sample: Sample, *, high=False) -> NumericSampleSpecExt:
+def get_numeric_sample_spec_ext(sample: Sample, *, high=False) -> NumericSampleSpecExt:
     sample_vals = sample.vals
     mymean = mean(sample_vals, high=high)
     std_dev = stdev(sample_vals, high=high)
@@ -245,10 +245,9 @@ def get_numeric_sample_dets_extended(sample: Sample, *, high=False) -> NumericSa
         else "Unable to calculate kurtosis")
     skew_val = (normal_test_result.c_skew if normal_test_result.c_skew is not None
         else "Unable to calculate skew")
-    p = (normal_test_result.p if normal_test_result.p is not None
-        else "Unable to calculate overall p for normality test")
+    p = normal_test_result.p if normal_test_result.p is not None else "Unable to calculate overall p for normality test"
     numeric_sample_spec_extended = NumericSampleSpecExt(
-        lbl=sample.lbl, n=len(sample_vals), mean=mymean, stdev=std_dev,
+        lbl=sample.lbl, n=len(sample_vals), mean=mymean, std_dev=std_dev,
         sample_min=min(sample_vals), sample_max=max(sample_vals), ci95=ci95,
         kurtosis=kurtosis_val, skew=skew_val, p=p, vals=sample_vals)
     return numeric_sample_spec_extended
@@ -267,10 +266,10 @@ def anova(group_lbl: str, measure_fld_lbl: str, samples: Sequence[Sample], *, hi
     orig_samples_vals = [sample.vals for sample in samples]
     n_samples = len(orig_samples_vals)
     sample_ns = list(map(len, orig_samples_vals))
-    dets = []
+    group_specs = []
     for sample in samples:
-        sample_dets_extended = get_numeric_sample_dets_extended(sample, high=high)
-        dets.append(sample_dets_extended)
+        sample_spec_extended = get_numeric_sample_spec_ext(sample, high=high)
+        group_specs.append(sample_spec_extended)
     if high:  ## inflate for ss (sum squares) calculations only
         ## if to 1 decimal point will push from float to integer (reduce errors)
         ## deflates final results appropriately in get_sswn() and get_ssbn()
@@ -294,7 +293,7 @@ def anova(group_lbl: str, measure_fld_lbl: str, samples: Sequence[Sample], *, hi
     F = mean_squ_bn / mean_squ_wn
     p = fprob(dfbn, dfwn, F, high=high)
     obriens_msg = get_obriens_msg(orig_samples_vals, sim_variance, high=high)
-    return AnovaResult(p=p, F=F, groups_dets=dets,
+    return AnovaResult(p=p, F=F, group_specs=group_specs,
         sum_squares_within_groups=sswn, degrees_freedom_within_groups=dfwn, mean_squares_within_groups=mean_squ_wn,
         sum_squares_between_groups=ssbn, degrees_freedom_between_groups=dfbn, mean_squares_between_groups=mean_squ_bn,
         obriens_msg=obriens_msg)
@@ -487,13 +486,13 @@ def ttest_ind(sample_a: Sample, sample_b: Sample, *, use_orig_var=False) -> TTes
     denom = math.sqrt(svar * (1.0 / n_a + 1.0 / n_b))
     if denom == 0:
         raise ValueError("Inadequate variability - denom is 0")
-    sample_a_dets_extended = get_numeric_sample_dets_extended(sample_a, high=False)
-    sample_b_dets_extended = get_numeric_sample_dets_extended(sample_b, high=False)
+    sample_a_spec = get_numeric_sample_spec_ext(sample_a, high=False)
+    sample_b_spec = get_numeric_sample_spec_ext(sample_b, high=False)
     t = (mean_a - mean_b) / denom
     p = betai(0.5 * df, 0.5, df / (df + t * t))
     obriens_msg = get_obriens_msg([sample_a.vals, sample_b.vals], sim_variance, high=False)
     return TTestResult(t=t, p=p,
-        group_a_dets=sample_a_dets_extended, group_b_dets=sample_b_dets_extended,
+        group_a_spec=sample_a_spec, group_b_spec=sample_b_spec,
         degrees_of_freedom=df, obriens_msg=obriens_msg)
 
 def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
@@ -540,9 +539,9 @@ def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
     sd_b = math.sqrt(var_b)
     ci95_a = get_ci95(sample_a, mean_a, sd_a)
     ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = NumericSampleSpec(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
+    dets_a = NumericSampleResult(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
         sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = NumericSampleSpec(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
+    dets_b = NumericSampleResult(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
         sample_min=min_b, sample_max=max_b, ci95=ci95_b)
     return t, p, dets_a, dets_b, df, diffs
 
@@ -584,16 +583,16 @@ def mannwhitneyu(sample_a, sample_b, label_a='Sample1', label_b='Sample2', *, hi
     min_b = min(sample_b)
     max_a = max(sample_a)
     max_b = max(sample_b)
-    dets_a = MannWhitneySpec(lbl=label_a, n=n_a, avg_rank=avg_rank_a,
+    group_result_a = MannWhitneyResult(lbl=label_a, n=n_a, avg_rank=avg_rank_a,
         median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
-    dets_b = MannWhitneySpec(lbl=label_b, n=n_b, avg_rank=avg_rank_b,
+    group_result_b = MannWhitneyResult(lbl=label_b, n=n_b, avg_rank=avg_rank_b,
         median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
-    return smallu, p, dets_a, dets_b, z
+    return smallu, p, group_result_a, group_result_b, z
 
 def mannwhitneyu_details(
         sample_a, sample_b,
         label_a='Sample1', label_b='Sample2', *,
-        high_volume_ok=False) -> MannWhitneySpecExt:
+        high_volume_ok=False) -> MannWhitneyResultExt:
     """
     The example in "Simple Statistics - A course book for the social sciences"
     Frances Clegg pp.164-166 refers to A as the shorted list (if uneven lengths)
@@ -637,7 +636,7 @@ def mannwhitneyu_details(
     u_1 = len_1 * len_2 + (len_1 * (len_1 + 1)) / 2.0 - sum_rank_1
     u_2 = len_1 * len_2 - u_1
     u = min(u_1, u_2)
-    details = MannWhitneySpecExt(
+    details = MannWhitneyResultExt(
         lbl_1=label_1, lbl_2=label_2,
         n_1=len_1, n_2=len_2,
         ranks_1=ranks_1, val_dets=val_dets, sum_rank_1=sum_rank_1, u_1=u_1, u_2=u_2, u=u
@@ -695,7 +694,7 @@ def wilcoxont(
     dets_b = OrdinalResult(lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
     return wt, prob, dets_a, dets_b
 
-def wilcoxont_details(sample_a, sample_b) -> WilcoxonSpec:
+def wilcoxont_details(sample_a, sample_b) -> WilcoxonResult:
     """
     Only return worked example if a small amount of data. Otherwise, return an
     empty dict.
@@ -734,7 +733,7 @@ def wilcoxont_details(sample_a, sample_b) -> WilcoxonSpec:
     ## calculate t and N (N excludes 0-diff pairs)
     t = min(sum_plus_ranks, sum_minus_ranks)
     n = len(plus_ranks) + len(minus_ranks)
-    details = WilcoxonSpec(diff_dets=diff_dets, ranking_dets=ranking_dets,
+    details = WilcoxonResult(diff_dets=diff_dets, ranking_dets=ranking_dets,
         plus_ranks=plus_ranks, minus_ranks=minus_ranks,
         sum_plus_ranks=round(sum_plus_ranks, 2), sum_minus_ranks=round(sum_minus_ranks, 2),
         t=t, n=n
@@ -850,7 +849,7 @@ def spearmanr(x, y, *, high_volume_ok=False):
     return rs, probrs, df
 
 
-def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False) -> SpearmansSpec:
+def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False) -> SpearmansResult:
     initial_tbl = []
     n_x = len(sample_x)
     if n_x != len(sample_y):
@@ -877,7 +876,7 @@ def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False) -> SpearmansS
     rho = 1 - pre_rho
     if not (-1 <= pre_rho <= 1):
         raise Exception(f"Bad value for pre_rho of {pre_rho} (shouldn't have absolute value > 1)")
-    details = SpearmansSpec(initial_tbl=initial_tbl, x_and_rank=x_and_rank, y_and_rank=y_and_rank,
+    details = SpearmansResult(initial_tbl=initial_tbl, x_and_rank=x_and_rank, y_and_rank=y_and_rank,
         n_x=n_x, n_cubed_minus_n=n_cubed_minus_n,
         tot_d_squared=round(tot_d_squared, 2), tot_d_squared_x_6=round(6 * tot_d_squared, 2),
         pre_rho=round(pre_rho, 4), rho=round(rho, 4)
@@ -1085,7 +1084,7 @@ def scoreatpercentile(vals, percent):
     score = binsize * (numer / denom) + (lrl + binsize * i)
     return score
 
-def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionSpec:
+def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionResult:
     try:
         slope, intercept, r, unused, unused = linregress(xs, ys)
     except Exception as e:
@@ -1094,7 +1093,7 @@ def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionS
     x1 = max(ys)
     y0 = (x0*slope) + intercept
     y1 = (x1*slope) + intercept
-    return RegressionSpec(slope=slope, intercept=intercept, r=r, x0=x0, y0=y0, x1=x1, y1=y1)
+    return RegressionResult(slope=slope, intercept=intercept, r=r, x0=x0, y0=y0, x1=x1, y1=y1)
 
 def mean(vals, *, high=False):
     """

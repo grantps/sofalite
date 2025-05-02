@@ -23,7 +23,7 @@ from sofalite.stats_calc.interfaces import NumericSampleSpecFormatted, TTestInde
 from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
 
-def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *,
+def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
@@ -90,42 +90,42 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
     """
     generic_unstyled_css = get_generic_unstyled_css()
     styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
-    title = (f"Results of independent samples t-test of average {results.measure_fld_lbl} "
-        f'''for "{results.group_lbl}" groups "{results.group_a_dets.lbl}" and "{results.group_b_dets.lbl}"''')
+    title = (f"Results of independent samples t-test of average {result.measure_fld_lbl} "
+        f'''for "{result.group_lbl}" groups "{result.group_a_spec.lbl}" and "{result.group_b_spec.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
     ## format group details needed by second table
     formatted_groups_dets = []
     mpl_pngs.set_gen_mpl_settings(axes_lbl_size=10, xtick_lbl_size=8, ytick_lbl_size=8)
     histograms2show = []
-    for orig_group_dets in [results.group_a_dets, results.group_b_dets]:
-        n = format_num(orig_group_dets.n)
-        ci95_left = num_tpl.format(round(orig_group_dets.ci95[0], dp))
-        ci95_right = num_tpl.format(round(orig_group_dets.ci95[1], dp))
+    for orig_group_spec in [result.group_a_spec, result.group_b_spec]:
+        n = format_num(orig_group_spec.n)
+        ci95_left = num_tpl.format(round(orig_group_spec.ci95[0], dp))
+        ci95_right = num_tpl.format(round(orig_group_spec.ci95[1], dp))
         ci95 = f"{ci95_left} - {ci95_right}"
-        stdev = num_tpl.format(round(orig_group_dets.stdev, dp))
-        sample_mean = num_tpl.format(round(orig_group_dets.mean, dp))
-        kurt = num_tpl.format(round(orig_group_dets.kurtosis, dp))
-        skew_val = num_tpl.format(round(orig_group_dets.skew, dp))
-        formatted_group_dets = NumericSampleSpecFormatted(
-            lbl=orig_group_dets.lbl,
+        std_dev = num_tpl.format(round(orig_group_spec.std_dev, dp))
+        sample_mean = num_tpl.format(round(orig_group_spec.mean, dp))
+        kurt = num_tpl.format(round(orig_group_spec.kurtosis, dp))
+        skew_val = num_tpl.format(round(orig_group_spec.skew, dp))
+        formatted_group_spec = NumericSampleSpecFormatted(
+            lbl=orig_group_spec.lbl,
             n=n,
             mean=sample_mean,
             ci95=ci95,
-            stdev=stdev,
-            sample_min=str(orig_group_dets.sample_min),
-            sample_max=str(orig_group_dets.sample_max),
+            std_dev=std_dev,
+            sample_min=str(orig_group_spec.sample_min),
+            sample_max=str(orig_group_spec.sample_max),
             kurtosis=kurt,
             skew=skew_val,
-            p=orig_group_dets.p,
+            p=orig_group_spec.p,
         )
-        formatted_groups_dets.append(formatted_group_dets)
+        formatted_groups_dets.append(formatted_group_spec)
         ## make images
         try:
             histogram_html = get_group_histogram_html(
-                results.measure_fld_lbl, style_spec.chart, orig_group_dets.lbl, orig_group_dets.vals)
+                result.measure_fld_lbl, style_spec.chart, orig_group_spec.lbl, orig_group_spec.vals)
         except Exception as e:
             html_or_msg = (
-                f"<b>{orig_group_dets.lbl}</b> - unable to display histogram. Reason: {e}")
+                f"<b>{orig_group_spec.lbl}</b> - unable to display histogram. Reason: {e}")
         else:
             html_or_msg = histogram_html
         histograms2show.append(html_or_msg)
@@ -134,10 +134,10 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
         'generic_unstyled_css': generic_unstyled_css,
         'styled_stats_tbl_css': styled_stats_tbl_css,
         'title': title,
-        't': round(results.t, dp),
-        'p': get_p_str(results.p),
-        'df': results.degrees_of_freedom,
-        'obriens_msg': results.obriens_msg,
+        't': round(result.t, dp),
+        'p': get_p_str(result.p),
+        'df': result.degrees_of_freedom,
+        'obriens_msg': result.obriens_msg,
         'p_explain_multiple_groups': p_explain_multiple_groups,
         'one_tail_explain': one_tail_explain,
         'obrien_explain': obrien_explain,

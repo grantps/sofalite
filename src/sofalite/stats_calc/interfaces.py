@@ -36,7 +36,7 @@ class NumericSampleSpec:
     lbl: str
     n: int
     mean: float
-    stdev: float
+    std_dev: float
     sample_min: float
     sample_max: float
     ci95: tuple[float, float] | None = None
@@ -58,7 +58,7 @@ class NumericSampleSpecFormatted:
     n: str
     mean: str
     ci95: str
-    stdev: str
+    std_dev: str
     sample_min: str
     sample_max: str
     kurtosis: str
@@ -78,14 +78,14 @@ class OrdinalResult:
 @dataclass(frozen=True)
 class Result(OrdinalResult):
     mean: float | None = None
-    stdev: float | None = None
+    std_dev: float | None = None
 
 ## https://medium.com/@aniscampos/python-dataclass-inheritance-finally-686eaf60fbb5
 @dataclass(frozen=True, kw_only=True)
 class AnovaResult:
     p: float | Decimal
     F: float | Decimal
-    groups_dets: Sequence[NumericSampleSpecExt]
+    group_specs: Sequence[NumericSampleSpecExt]
     sum_squares_within_groups: float | Decimal
     degrees_freedom_within_groups: float
     mean_squares_within_groups: float | Decimal
@@ -100,7 +100,7 @@ class AnovaResultExt(AnovaResult):
     measure_fld_lbl: str
 
 @dataclass(frozen=True)
-class MannWhitneySpec:
+class MannWhitneyResult:
     lbl: str
     n: int
     avg_rank: float
@@ -109,7 +109,7 @@ class MannWhitneySpec:
     sample_max: float
 
 @dataclass(frozen=True)
-class MannWhitneySpecExt:
+class MannWhitneyResultExt:
     lbl_1: str
     lbl_2: str
     n_1: int
@@ -131,7 +131,7 @@ class NormalTestResult:
     z_kurtosis: float | None
 
 @dataclass(frozen=True)
-class RegressionSpec:
+class RegressionResult:
     slope: float
     intercept: float
     r: float
@@ -150,7 +150,7 @@ class SpearmansInitTbl:
     diff_squared: int
 
 @dataclass(frozen=True)
-class SpearmansSpec:
+class SpearmansResult:
     initial_tbl: list
     x_and_rank: list[tuple]
     y_and_rank: list[tuple]
@@ -168,8 +168,8 @@ class TTestResult:
     """
     t: float | Decimal
     p: float | Decimal
-    group_a_dets: NumericSampleSpecExt
-    group_b_dets: NumericSampleSpecExt
+    group_a_spec: NumericSampleSpecExt
+    group_b_spec: NumericSampleSpecExt
     degrees_of_freedom: float
     obriens_msg: str
 
@@ -179,7 +179,7 @@ class TTestIndepResultExt(TTestResult):
     measure_fld_lbl: str
 
 @dataclass(frozen=True)
-class WilcoxonSpec:
+class WilcoxonResult:
     diff_dets: list[dict]
     ranking_dets: list[dict]
     plus_ranks: list[int]
@@ -201,7 +201,7 @@ class BoxplotType(StrEnum):
     IQR_1_PT_5_OR_INSIDE = '1.5 IQR or inside'
 
 @dataclass(frozen=False)
-class BoxSpec:
+class BoxResult:
     vals: Sequence[float]
     boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
 
