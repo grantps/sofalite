@@ -19,7 +19,7 @@ from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
-from sofalite.stats_calc.interfaces import NumericSampleDetsFormatted, TTestIndepResultExt
+from sofalite.stats_calc.interfaces import NumericSampleSpecFormatted, TTestIndepResultExt
 from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
 
@@ -106,7 +106,7 @@ def make_ttest_indep_html(results: TTestIndepResultExt, style_spec: StyleSpec, *
         sample_mean = num_tpl.format(round(orig_group_dets.mean, dp))
         kurt = num_tpl.format(round(orig_group_dets.kurtosis, dp))
         skew_val = num_tpl.format(round(orig_group_dets.skew, dp))
-        formatted_group_dets = NumericSampleDetsFormatted(
+        formatted_group_dets = NumericSampleSpecFormatted(
             lbl=orig_group_dets.lbl,
             n=n,
             mean=sample_mean,

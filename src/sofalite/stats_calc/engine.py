@@ -16,9 +16,15 @@ import numpy as np
 
 from sofalite.conf.main import MAX_RANK_DATA_VALS
 
+"""
+TODO: Dets -> ResultSpec; add docs for what a stats needs engine
+"""
 from sofalite.stats_calc.interfaces import (
-    AnovaResult, MannWhitneyDets, MannWhitneyDetsExt, NormalTestResult,  NumericSampleDets, NumericSampleDetsExt,
-    OrdinalResult, RegressionDets, Result, Sample, SpearmansDets, SpearmansInitTbl, TTestResult, WilcoxonDetsExt)
+    AnovaResult,
+    MannWhitneySpec, MannWhitneySpecExt,
+    NormalTestResult,
+    NumericSampleSpec, NumericSampleSpecExt,
+    OrdinalResult, RegressionSpec, Result, Sample, SpearmansSpec, SpearmansInitTbl, TTestResult, WilcoxonSpec)
 from sofalite.utils.maths import n2d
 from sofalite.utils.stats import get_obriens_msg
 
@@ -55,8 +61,7 @@ FISHER_KURTOSIS_ADJUSTMENT = 3.0
 # Heavily adapted for use by SciPy 2002 by Travis Oliphant
 
 # noinspection PyBroadException
-def histogram(inlist, numbins=10, defaultreallimits=None, printextras=0, *,
-              inc_uppermost_val_in_top_bin=True):
+def histogram(inlist, numbins=10, defaultreallimits=None, printextras=0, *, inc_uppermost_val_in_top_bin=True):
     """
     From stats.py. Modified to include the uppermost value in top bin. This is
     essential if wanting to have "nice", human-readable bins e.g. 10 to < 20
@@ -109,8 +114,7 @@ def histogram(inlist, numbins=10, defaultreallimits=None, printextras=0, *,
             extra_points = extra_points + 1
     if extra_points > 0 and printextras == 1:
         logging.warning('\nPoints outside given histogram range =', extra_points)
-    logging.debug(f"bins={bins}, lowerreallimit={lowerreallimit}, "
-                  f"binsize={binsize}, extrapoints={extra_points}")
+    logging.debug(f"bins={bins}, lowerreallimit={lowerreallimit}, binsize={binsize}, extrapoints={extra_points}")
     return bins, lowerreallimit, binsize, extra_points
 
 def chisquare(f_obs, f_exp=None, df=None):
@@ -145,7 +149,6 @@ def chisquare(f_obs, f_exp=None, df=None):
     if not df: df = k - 1
     return chisq, chisqprob(chisq, df)
 
-
 # noinspection PyUnusedLocal
 def anova_orig(lst_samples, lst_labels, *, high=False):
     """
@@ -167,10 +170,9 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     for i in range(a):
         sample = lst_samples[i]
         label = lst_labels[i]
-        sample_dets = NumericSampleDets(
-            lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
+        sample_spec = NumericSampleSpec(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
             sample_min=min(sample), sample_max=max(sample))
-        dets.append(sample_dets)
+        dets.append(sample_spec)
     for i in range(len(lst_samples)):
         alldata = alldata + lst_samples[i]
     bign = len(alldata)
@@ -189,7 +191,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     logging.info(f'Using orig with F: {F}')
     return p, F, dets, sswn, dfwn, msw, ssbn, dfbn, msb
 
-def has_decimal_type_mix(numbers):
+def has_decimal_type_mix(numbers) -> bool:
     """
     Some operators support mix of Decimal and other numeric types (e.g. <, >)
     but others don't e.g. /. So we sometimes need to know if there is a mix.
@@ -204,15 +206,13 @@ def get_se(n, mysd, *, high=True):
         denom = D(denom)
     logging.debug(f"mysd={mysd}, denom={denom}")
     if has_decimal_type_mix(numbers=(mysd, denom)):
-        raise Exception("Can't mix decimals and other numbers for division when"
-                        ' calculating SE')
+        raise Exception("Can't mix decimals and other numbers for division when calculating SE")
     se = mysd / denom
     return se
 
 def get_ci95(sample_vals=None, mymean=None, mysd=None, n=None, *, high=False):
     if sample_vals is None and (n is None or mymean is None or mysd is None):
-        raise Exception('Unable to calculate confidence interval without either'
-                        ' a sample or all of n, mean, and sd.')
+        raise Exception("Unable to calculate confidence interval without either a sample or all of n, mean, and sd.")
     if n is None:
         n = len(sample_vals)
         if high:
@@ -220,45 +220,40 @@ def get_ci95(sample_vals=None, mymean=None, mysd=None, n=None, *, high=False):
     mymean = mymean if mymean is not None else mean(sample_vals, high=high)
     mysd = mysd if mysd is not None else stdev(sample_vals, high=high)
     if has_decimal_type_mix(numbers=(mymean, mysd, n)):
-        raise Exception('Cannot mix decimals and other numbers for some '
-                        'calculations e.g. division')
+        raise Exception("Cannot mix decimals and other numbers for some calculations e.g. division")
     if n < 30:  ## ok for mix decimals and non-dec
-        logging.warning(
-            'Using sample sd instead of population sd even though n < 30. '
-            'May not be reliable.')
+        logging.warning("Using sample sd instead of population sd even though n < 30. May not be reliable.")
     se = get_se(n, mysd, high=high)
     sds = 1.96
     if high:
         sds = D(sds)
     diff = sds * se
     if has_decimal_type_mix(numbers=(mymean, diff)):
-        raise Exception('Cannot mix decimals and other numbers for some '
-                        'calculations e.g. addition and subtraction when calculating CI '
-                        'lower and upper bounds')
+        raise Exception("Cannot mix decimals and other numbers for some calculations "
+            "e.g. addition and subtraction when calculating CI lower and upper bounds")
     lower95 = mymean - diff
     upper95 = mymean + diff
     return lower95, upper95
 
-def get_numeric_sample_dets_extended(sample: Sample, *, high=False) -> NumericSampleDetsExt:
+def get_numeric_sample_dets_extended(sample: Sample, *, high=False) -> NumericSampleSpecExt:
     sample_vals = sample.vals
     mymean = mean(sample_vals, high=high)
     std_dev = stdev(sample_vals, high=high)
     ci95 = get_ci95(sample_vals, mymean, std_dev, n=None, high=high)
     normal_test_result = normal_test(sample_vals)
     kurtosis_val = (normal_test_result.c_kurtosis if normal_test_result.c_kurtosis is not None
-        else 'Unable to calculate kurtosis')
+        else "Unable to calculate kurtosis")
     skew_val = (normal_test_result.c_skew if normal_test_result.c_skew is not None
-        else 'Unable to calculate skew')
+        else "Unable to calculate skew")
     p = (normal_test_result.p if normal_test_result.p is not None
-        else 'Unable to calculate overall p for normality test')
-    numeric_sample_dets_extended = NumericSampleDetsExt(
+        else "Unable to calculate overall p for normality test")
+    numeric_sample_spec_extended = NumericSampleSpecExt(
         lbl=sample.lbl, n=len(sample_vals), mean=mymean, stdev=std_dev,
         sample_min=min(sample_vals), sample_max=max(sample_vals), ci95=ci95,
         kurtosis=kurtosis_val, skew=skew_val, p=p, vals=sample_vals)
-    return numeric_sample_dets_extended
+    return numeric_sample_spec_extended
 
-def anova(group_lbl: str, measure_fld_lbl: str,
-        samples: Sequence[Sample], *, high=True) -> AnovaResult:
+def anova(group_lbl: str, measure_fld_lbl: str, samples: Sequence[Sample], *, high=True) -> AnovaResult:
     """
     From NIST algorithm used for their ANOVA tests.
 
@@ -545,14 +540,13 @@ def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
     sd_b = math.sqrt(var_b)
     ci95_a = get_ci95(sample_a, mean_a, sd_a)
     ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = NumericSampleDets(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
+    dets_a = NumericSampleSpec(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
         sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = NumericSampleDets(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
+    dets_b = NumericSampleSpec(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
         sample_min=min_b, sample_max=max_b, ci95=ci95_b)
     return t, p, dets_a, dets_b, df, diffs
 
-def mannwhitneyu(sample_a, sample_b, label_a='Sample1', label_b='Sample2', *,
-        high_volume_ok=False):
+def mannwhitneyu(sample_a, sample_b, label_a='Sample1', label_b='Sample2', *, high_volume_ok=False):
     """
     From stats.py - there are changes to variable labels and comments; and the
     output is extracted early to give greater control over presentation. Also
@@ -590,16 +584,16 @@ def mannwhitneyu(sample_a, sample_b, label_a='Sample1', label_b='Sample2', *,
     min_b = min(sample_b)
     max_a = max(sample_a)
     max_b = max(sample_b)
-    dets_a = MannWhitneyDets(lbl=label_a, n=n_a, avg_rank=avg_rank_a,
+    dets_a = MannWhitneySpec(lbl=label_a, n=n_a, avg_rank=avg_rank_a,
         median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
-    dets_b = MannWhitneyDets(lbl=label_b, n=n_b, avg_rank=avg_rank_b,
+    dets_b = MannWhitneySpec(lbl=label_b, n=n_b, avg_rank=avg_rank_b,
         median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
     return smallu, p, dets_a, dets_b, z
 
 def mannwhitneyu_details(
         sample_a, sample_b,
         label_a='Sample1', label_b='Sample2', *,
-        high_volume_ok=False):
+        high_volume_ok=False) -> MannWhitneySpecExt:
     """
     The example in "Simple Statistics - A course book for the social sciences"
     Frances Clegg pp.164-166 refers to A as the shorted list (if uneven lengths)
@@ -643,7 +637,7 @@ def mannwhitneyu_details(
     u_1 = len_1 * len_2 + (len_1 * (len_1 + 1)) / 2.0 - sum_rank_1
     u_2 = len_1 * len_2 - u_1
     u = min(u_1, u_2)
-    details = MannWhitneyDetsExt(
+    details = MannWhitneySpecExt(
         lbl_1=label_1, lbl_2=label_2,
         n_1=len_1, n_2=len_2,
         ranks_1=ranks_1, val_dets=val_dets, sum_rank_1=sum_rank_1, u_1=u_1, u_2=u_2, u=u
@@ -697,15 +691,13 @@ def wilcoxont(
     min_b = min(sample_b)
     max_a = max(sample_a)
     max_b = max(sample_b)
-    dets_a = OrdinalResult(
-        lbl=label_a, n=n, median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
-    dets_b = OrdinalResult(
-        lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
+    dets_a = OrdinalResult(lbl=label_a, n=n, median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
+    dets_b = OrdinalResult(lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
     return wt, prob, dets_a, dets_b
 
-def wilcoxont_details(sample_a, sample_b):
+def wilcoxont_details(sample_a, sample_b) -> WilcoxonSpec:
     """
-    Only return worked example if a small amount of data. Otherwise return an
+    Only return worked example if a small amount of data. Otherwise, return an
     empty dict.
 
     See "Simple Statistics - A course book for the social sciences"
@@ -742,7 +734,7 @@ def wilcoxont_details(sample_a, sample_b):
     ## calculate t and N (N excludes 0-diff pairs)
     t = min(sum_plus_ranks, sum_minus_ranks)
     n = len(plus_ranks) + len(minus_ranks)
-    details = WilcoxonDetsExt(diff_dets=diff_dets, ranking_dets=ranking_dets,
+    details = WilcoxonSpec(diff_dets=diff_dets, ranking_dets=ranking_dets,
         plus_ranks=plus_ranks, minus_ranks=minus_ranks,
         sum_plus_ranks=round(sum_plus_ranks, 2), sum_minus_ranks=round(sum_minus_ranks, 2),
         t=t, n=n
@@ -761,7 +753,7 @@ def linregress(x, y):
     """
     TINY = 1.0e-20
     if len(x) != len(y):
-        raise ValueError('Input values not paired in linregress. Aborting.')
+        raise ValueError("Input values not paired in linregress. Aborting.")
     n = len(x)
     x = list(map(float, x))
     y = list(map(float, y))
@@ -773,8 +765,7 @@ def linregress(x, y):
     try:
         r = r_num / r_den
     except ZeroDivisionError:
-        raise Exception('Unable to calculate linear regression because of '
-                        'limited variability in one dimension')
+        raise Exception("Unable to calculate linear regression because of limited variability in one dimension")
     # z = 0.5*math.log((1.0+r+TINY)/(1.0-r+TINY))
     df = n - 2
     t = r * math.sqrt(df / ((1.0 - r + TINY) * (1.0 + r + TINY)))
@@ -800,7 +791,7 @@ def pearsonr(x, y):
     """
     TINY = 1.0e-30
     if len(x) != len(y):
-        raise ValueError('Input values not paired in pearsonr. Aborting.')
+        raise ValueError("Input values not paired in pearsonr. Aborting.")
     n = len(x)
     try:
         x = list(map(float, x))
@@ -810,8 +801,10 @@ def pearsonr(x, y):
     # xmean = mean(x)
     # ymean = mean(y)
     r_num = n * (summult(x, y)) - sum(x) * sum(y)
-    r_den = math.sqrt((n * sum_squares(x) - square_of_sums(x))
-                      * (n * sum_squares(y) - square_of_sums(y)))
+    r_den = math.sqrt(
+        (n * sum_squares(x) - square_of_sums(x))
+        * (n * sum_squares(y) - square_of_sums(y))
+    )
     if r_den == 0:
         raise ValueError("Inadequate variability - r_den is 0")
     r = (r_num / r_den)  ## denominator already a float
@@ -820,10 +813,9 @@ def pearsonr(x, y):
     try:
         prob = betai(0.5 * df, 0.5, df / float(df + t * t))
     except ZeroDivisionError:
-        raise Exception("Unable to calculate Pearson's R. The df value and t "
-                        'are all 0 so trying to divide by df + t*t meant trying to divide '
-                        'by zero which is an error. But still worth looking at a '
-                        'scatterplot chart to assess the relationship.')
+        raise Exception("Unable to calculate Pearson's R. The df value and t are all 0 so trying to "
+            "divide by df + t*t meant trying to divide by zero which is an error. "
+            "But still worth looking at a scatterplot chart to assess the relationship.")
     return r, prob, df
 
 
@@ -839,7 +831,7 @@ def spearmanr(x, y, *, high_volume_ok=False):
     Returns: Spearman's r, two-tailed p-value
     """
     if len(x) != len(y):
-        raise ValueError('Input values not paired in spearmanr. Aborting.')
+        raise ValueError("Input values not paired in spearmanr. Aborting.")
     n = len(x)
     rankx = rankdata(x, high_volume_ok=high_volume_ok)
     ranky = rankdata(y, high_volume_ok=True)  ## don't ask twice
@@ -848,10 +840,9 @@ def spearmanr(x, y, *, high_volume_ok=False):
     try:
         t = rs * math.sqrt((n - 2) / ((rs + 1.0) * (1.0 - rs)))
     except ZeroDivisionError:
-        raise Exception("Unable to calculate Spearman's R. The raw scores value"
-                        f' (rs) was {rs} so trying to divide by 1.0-rs meant trying to '
-                        'divide by zero which is an error. But still worth looking at a '
-                        'scatterplot chart to assess the relationship.')
+        raise Exception("Unable to calculate Spearman's R. The raw scores value (rs) was {rs} so trying to "
+            "divide by 1.0-rs meant trying to divide by zero which is an error. But still worth looking at a "
+            "scatterplot chart to assess the relationship.")
     df = n - 2
     probrs = betai(0.5 * df, 0.5, df / (df + t * t))  ## t already a float
     ## probability values for rs are from part 2 of the spearman function in
@@ -859,11 +850,11 @@ def spearmanr(x, y, *, high_volume_ok=False):
     return rs, probrs, df
 
 
-def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False):
+def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False) -> SpearmansSpec:
     initial_tbl = []
     n_x = len(sample_x)
     if n_x != len(sample_y):
-        raise Exception(f'Different sample sizes ({n_x} vs {len(sample_y)})')
+        raise Exception(f"Different sample sizes ({n_x} vs {len(sample_y)})")
     rankx = rankdata(sample_x, high_volume_ok=high_volume_ok)
     x_and_rank = list(zip(sample_x, rankx))
     x_and_rank.sort()
@@ -885,9 +876,8 @@ def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False):
     pre_rho = (tot_d_squared * 6) / float(n_cubed_minus_n)
     rho = 1 - pre_rho
     if not (-1 <= pre_rho <= 1):
-        raise Exception(f'Bad value for pre_rho of {pre_rho} '
-                        "(shouldn't have absolute value > 1)")
-    details = SpearmansDets(initial_tbl=initial_tbl, x_and_rank=x_and_rank, y_and_rank=y_and_rank,
+        raise Exception(f"Bad value for pre_rho of {pre_rho} (shouldn't have absolute value > 1)")
+    details = SpearmansSpec(initial_tbl=initial_tbl, x_and_rank=x_and_rank, y_and_rank=y_and_rank,
         n_x=n_x, n_cubed_minus_n=n_cubed_minus_n,
         tot_d_squared=round(tot_d_squared, 2), tot_d_squared_x_6=round(6 * tot_d_squared, 2),
         pre_rho=round(pre_rho, 4), rho=round(rho, 4)
@@ -909,10 +899,9 @@ def rankdata(inlist, *, high_volume_ok=False):
     # -----------------------
     if n > MAX_RANK_DATA_VALS:
         if high_volume_ok:
-            logging.info(f"High number of records in randata function (n:,) "
-                "- will possibly run slowly")
+            logging.info(f"High number of records in randata function (n:,) - will possibly run slowly")
         else:
-            raise Exception('Too many records to run rankdata analysis')
+            raise Exception("Too many records to run rankdata analysis")
     # -----------------------
     svec, ivec = shellsort(mylist)
     sumranks = 0
@@ -957,7 +946,6 @@ def shellsort(inlist):
     ## svec is now sorted inlist, and ivec has the order svec[i] = vec[ivec[i]]
     return svec, ivec
 
-
 def tiecorrect(rankvals):
     """
     From stats.py. No changes.
@@ -983,7 +971,6 @@ def tiecorrect(rankvals):
         i = i + 1
     T = T / float(n ** 3 - n)
     return 1.0 - T
-
 
 def zprob(z):
     """
@@ -1028,7 +1015,6 @@ def zprob(z):
         prob = ((1.0 - x) * 0.5)
     return prob
 
-
 def azprob(z):
     """
     From stats.py. No changes except N->np.
@@ -1070,7 +1056,6 @@ def azprob(z):
     prob = np.where(np.greater(z, 0), (x + 1) * 0.5, (1 - x) * 0.5)
     return prob
 
-
 def scoreatpercentile(vals, percent):
     """
     From stats.py. No changes except renaming function, vars and params,
@@ -1100,7 +1085,7 @@ def scoreatpercentile(vals, percent):
     score = binsize * (numer / denom) + (lrl + binsize * i)
     return score
 
-def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionDets:
+def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionSpec:
     try:
         slope, intercept, r, unused, unused = linregress(xs, ys)
     except Exception as e:
@@ -1109,7 +1094,7 @@ def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionD
     x1 = max(ys)
     y0 = (x0*slope) + intercept
     y1 = (x1*slope) + intercept
-    return RegressionDets(slope=slope, intercept=intercept, r=r, x0=x0, y0=y0, x1=x1, y1=y1)
+    return RegressionSpec(slope=slope, intercept=intercept, r=r, x0=x0, y0=y0, x1=x1, y1=y1)
 
 def mean(vals, *, high=False):
     """
@@ -1484,7 +1469,6 @@ def abut(source, *args):
     Returns: a list of lists as long as the LONGEST list past, source on the
              'left', lists in <args> attached consecutively on the 'right'
     """
-
     if not isinstance(source, (list, tuple)):
         source = [source]
     for addon in args:
@@ -1514,7 +1498,6 @@ def abut(source, *args):
                 for _i in range(int(repeats - 1)):
                     source = source + origsour
                 source = source[0:len(addon)]
-
         source = simpleabut(source, addon)
     return source
 
@@ -1529,8 +1512,7 @@ def simpleabut(source, addon):
     the FIRST list passed.
 
     Usage: simpleabut(source,addon)  where source, addon=list (or list-of-lists)
-    Returns: a list of lists as long as source, with source on the 'left' and
-                     addon on the 'right'
+    Returns: a list of lists as long as source, with source on the 'left' and addon on the 'right'
     """
     if not isinstance(source, (list, tuple)):
         source = [source]
@@ -1944,8 +1926,7 @@ def kurtosistest(a, dimension=None):
         dimension = 0
     n = float(a.shape[dimension])
     if n < 20:
-        logging.warning(
-            f'kurtosistest only valid for n>=20 ... continuing anyway, n={n}')
+        logging.warning(f'kurtosistest only valid for n>=20 ... continuing anyway, n={n}')
     kurt = kurtosis(a, dimension)  ## I changed the kurtosis code to subtract the Fischer Adjustment (3)
     b2 = kurt + FISHER_KURTOSIS_ADJUSTMENT  ## added so b2 is exactly as it would have been in the original stats.py
     E = 3.0 * (n - 1) / (n + 1)
@@ -1955,8 +1936,7 @@ def kurtosistest(a, dimension=None):
         sqrtbeta1 = 6.0 * (n * n - 5 * n + 2) / ((n + 7) * (n + 9)) * np.sqrt((6.0 * (n + 3) * (n + 5)) /
                                                                               (n * (n - 2) * (n - 3)))
     except ZeroDivisionError:
-        raise Exception(
-            'Unable to calculate kurtosis test. Zero division error')
+        raise Exception('Unable to calculate kurtosis test. Zero division error')
     A = 6.0 + 8.0 / sqrtbeta1 * (2.0 / sqrtbeta1 + np.sqrt(1 + 4.0 / (sqrtbeta1 ** 2)))
     term1 = 1 - 2 / (9.0 * A)
     denom = 1 + x * np.sqrt(2 / (A - 4.0))

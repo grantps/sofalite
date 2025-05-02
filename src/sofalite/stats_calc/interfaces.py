@@ -1,4 +1,10 @@
-## depends on stats_calc and utils which are lower level - so no problematic project dependencies :-)
+"""
+Depends on stats_calc and utils which are lower level - so no problematic project dependencies :-)
+
+Some interfaces are extended beyond those required for the original stats.py function results.
+
+TODO: add a dc interface for Chi Square results?
+"""
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
@@ -26,7 +32,7 @@ class Sample:
     vals: Sequence[float]
 
 @dataclass(frozen=True, kw_only=True)
-class NumericSampleDets:
+class NumericSampleSpec:
     lbl: str
     n: int
     mean: float
@@ -36,14 +42,14 @@ class NumericSampleDets:
     ci95: tuple[float, float] | None = None
 
 @dataclass(frozen=True, kw_only=True)
-class NumericSampleDetsExt(NumericSampleDets):
+class NumericSampleSpecExt(NumericSampleSpec):
     kurtosis: float | str
     skew: float | str
     p: float | str
     vals: Sequence[float]
 
 @dataclass(frozen=True)
-class NumericSampleDetsFormatted:
+class NumericSampleSpecFormatted:
     """
     Just the fields needed for tabular display as output.
     Usually formatted with decimal places and p in a helpful string already
@@ -74,66 +80,12 @@ class Result(OrdinalResult):
     mean: float | None = None
     stdev: float | None = None
 
-@dataclass(frozen=True)
-class MannWhitneyDets:
-    lbl: str
-    n: int
-    avg_rank: float
-    median: float
-    sample_min: float
-    sample_max: float
-
-@dataclass(frozen=True)
-class MannWhitneyDetsExt:
-    lbl_1: str
-    lbl_2: str
-    n_1: int
-    n_2: int
-    ranks_1: list[int]
-    val_dets: list[dict]
-    sum_rank_1: int
-    u_1: float
-    u_2: float
-    u: float
-
-@dataclass(frozen=True)
-class WilcoxonDetsExt:
-    diff_dets: list[dict]
-    ranking_dets: list[dict]
-    plus_ranks: list[int]
-    minus_ranks: list[int]
-    sum_plus_ranks: float
-    sum_minus_ranks: float
-    t: float
-    n: int
-
-@dataclass(frozen=True)
-class SpearmansDets:
-    initial_tbl: list
-    x_and_rank: list[tuple]
-    y_and_rank: list[tuple]
-    n_x: int
-    n_cubed_minus_n: int
-    tot_d_squared: float
-    tot_d_squared_x_6: float
-    pre_rho: float
-    rho: float
-
-@dataclass(frozen=True)
-class SpearmansInitTbl:
-    x: float
-    y: float
-    rank_x: int
-    rank_y: int
-    diff: int
-    diff_squared: int
-
 ## https://medium.com/@aniscampos/python-dataclass-inheritance-finally-686eaf60fbb5
 @dataclass(frozen=True, kw_only=True)
 class AnovaResult:
     p: float | Decimal
     F: float | Decimal
-    groups_dets: Sequence[NumericSampleDetsExt]
+    groups_dets: Sequence[NumericSampleSpecExt]
     sum_squares_within_groups: float | Decimal
     degrees_freedom_within_groups: float
     mean_squares_within_groups: float | Decimal
@@ -147,22 +99,27 @@ class AnovaResultExt(AnovaResult):
     group_lbl: str
     measure_fld_lbl: str
 
-@dataclass(frozen=True, kw_only=True)
-class TTestResult:
-    """
-    p is the two-tailed probability
-    """
-    t: float | Decimal
-    p: float | Decimal
-    group_a_dets: NumericSampleDetsExt
-    group_b_dets: NumericSampleDetsExt
-    degrees_of_freedom: float
-    obriens_msg: str
+@dataclass(frozen=True)
+class MannWhitneySpec:
+    lbl: str
+    n: int
+    avg_rank: float
+    median: float
+    sample_min: float
+    sample_max: float
 
-@dataclass(frozen=True, kw_only=True)
-class TTestIndepResultExt(TTestResult):
-    group_lbl: str
-    measure_fld_lbl: str
+@dataclass(frozen=True)
+class MannWhitneySpecExt:
+    lbl_1: str
+    lbl_2: str
+    n_1: int
+    n_2: int
+    ranks_1: list[int]
+    val_dets: list[dict]
+    sum_rank_1: int
+    u_1: float
+    u_2: float
+    u: float
 
 @dataclass(frozen=True)
 class NormalTestResult:
@@ -174,7 +131,7 @@ class NormalTestResult:
     z_kurtosis: float | None
 
 @dataclass(frozen=True)
-class RegressionDets:
+class RegressionSpec:
     slope: float
     intercept: float
     r: float
@@ -182,6 +139,55 @@ class RegressionDets:
     y0: float
     x1: float
     y1: float
+
+@dataclass(frozen=True)
+class SpearmansInitTbl:
+    x: float
+    y: float
+    rank_x: int
+    rank_y: int
+    diff: int
+    diff_squared: int
+
+@dataclass(frozen=True)
+class SpearmansSpec:
+    initial_tbl: list
+    x_and_rank: list[tuple]
+    y_and_rank: list[tuple]
+    n_x: int
+    n_cubed_minus_n: int
+    tot_d_squared: float
+    tot_d_squared_x_6: float
+    pre_rho: float
+    rho: float
+
+@dataclass(frozen=True, kw_only=True)
+class TTestResult:
+    """
+    p is the two-tailed probability
+    """
+    t: float | Decimal
+    p: float | Decimal
+    group_a_dets: NumericSampleSpecExt
+    group_b_dets: NumericSampleSpecExt
+    degrees_of_freedom: float
+    obriens_msg: str
+
+@dataclass(frozen=True, kw_only=True)
+class TTestIndepResultExt(TTestResult):
+    group_lbl: str
+    measure_fld_lbl: str
+
+@dataclass(frozen=True)
+class WilcoxonSpec:
+    diff_dets: list[dict]
+    ranking_dets: list[dict]
+    plus_ranks: list[int]
+    minus_ranks: list[int]
+    sum_plus_ranks: float
+    sum_minus_ranks: float
+    t: float
+    n: int
 
 class SortOrder(StrEnum):
     VALUE = 'by value'
@@ -195,7 +201,7 @@ class BoxplotType(StrEnum):
     IQR_1_PT_5_OR_INSIDE = '1.5 IQR or inside'
 
 @dataclass(frozen=False)
-class BoxDets:
+class BoxSpec:
     vals: Sequence[float]
     boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
 
