@@ -6,7 +6,7 @@ import jinja2
 
 from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
 from sofalite.data_extraction.db import Sqlite
-from sofalite.data_extraction.interfaces import ValDets
+from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.stats.msgs import (
     ci_explain, kurtosis_explain,
     normality_measure_explain, obrien_explain, one_tail_explain,
@@ -56,18 +56,18 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         </tr>
       </thead>
       <tbody>
-        {% for group_dets in groups_dets %}
+        {% for group_spec in group_specs %}
           <tr>
-            <td class='lbl'>{{group_dets.lbl}}</td>
-            <td class='right'>{{group_dets.n}}</td>
-            <td class='right'>{{group_dets.mean}}</td>
-            <td class='right'>{{group_dets.ci95}}</td>
-            <td class='right'>{{group_dets.stdev}}</td>
-            <td class='right'>{{group_dets.sample_min}}</td>
-            <td class='right'>{{group_dets.sample_max}}</td>
-            <td class='right'>{{group_dets.kurtosis}}</td>
-            <td class='right'>{{group_dets.skew}}</td>
-            <td class='right'>{{group_dets.p}}</td>
+            <td class='lbl'>{{group_spec.lbl}}</td>
+            <td class='right'>{{group_spec.n}}</td>
+            <td class='right'>{{group_spec.mean}}</td>
+            <td class='right'>{{group_spec.ci95}}</td>
+            <td class='right'>{{group_spec.stdev}}</td>
+            <td class='right'>{{group_spec.sample_min}}</td>
+            <td class='right'>{{group_spec.sample_max}}</td>
+            <td class='right'>{{group_spec.kurtosis}}</td>
+            <td class='right'>{{group_spec.skew}}</td>
+            <td class='right'>{{group_spec.p}}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -94,7 +94,7 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         f'''for "{result.group_lbl}" groups "{result.group_a_spec.lbl}" and "{result.group_b_spec.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
     ## format group details needed by second table
-    formatted_groups_dets = []
+    formatted_group_specs = []
     mpl_pngs.set_gen_mpl_settings(axes_lbl_size=10, xtick_lbl_size=8, ytick_lbl_size=8)
     histograms2show = []
     for orig_group_spec in [result.group_a_spec, result.group_b_spec]:
@@ -118,7 +118,7 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
             skew=skew_val,
             p=orig_group_spec.p,
         )
-        formatted_groups_dets.append(formatted_group_spec)
+        formatted_group_specs.append(formatted_group_spec)
         ## make images
         try:
             histogram_html = get_group_histogram_html(
@@ -146,7 +146,7 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         'kurtosis_explain': kurtosis_explain,
         'skew_explain': skew_explain,
         'normality_measure_explain': normality_measure_explain,
-        'groups_dets': formatted_groups_dets,
+        'group_specs': formatted_group_specs,
         'histograms2show': histograms2show,
         'workings_msg': workings_msg,
     }
@@ -173,13 +173,13 @@ class TTestIndepSpec:
         grouping_fld_lbl = VAR_LABELS.var2var_lbl.get(self.grouping_fld_name, self.grouping_fld_name)
         measure_fld_lbl = VAR_LABELS.var2var_lbl.get(self.measure_fld_name, {})
         val2lbl = VAR_LABELS.var2val2lbl.get(self.grouping_fld_name)
-        group_a_val_dets = ValDets(val=self.group_a_val, lbl=val2lbl.get(self.group_a_val, str(self.group_a_val)))
-        group_b_val_dets = ValDets(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
+        group_a_val_spec = ValSpec(val=self.group_a_val, lbl=val2lbl.get(self.group_a_val, str(self.group_a_val)))
+        group_b_val_spec = ValSpec(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
         ## data
         get_results_for_cur = partial(get_results,
             tbl_name=self.tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
-            group_a_val_dets=group_a_val_dets, group_b_val_dets=group_b_val_dets,
+            group_a_val_spec=group_a_val_spec, group_b_val_spec=group_b_val_spec,
             grouping_val_is_numeric=True,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl
         )

@@ -62,7 +62,7 @@ class IndivChartSpec:
 ## =====================================================================================================================
 
 @dataclass(frozen=True, kw_only=True)
-class ValDets:
+class ValSpec:
     """
     Data as taken from data source in data extraction context. Not about output of any sort at this stage.
     """

@@ -7,7 +7,7 @@ import jinja2
 
 from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
 from sofalite.data_extraction.db import Sqlite
-from sofalite.data_extraction.interfaces import ValDets
+from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.stats.anova import get_results
 from sofalite.data_extraction.stats.msgs import (
     ci_explain, kurtosis_explain,
@@ -209,14 +209,14 @@ class AnovaSpec:
         grouping_fld_lbl = VAR_LABELS.var2var_lbl.get(self.grouping_fld_name, self.grouping_fld_name)
         measure_fld_lbl = VAR_LABELS.var2var_lbl.get(self.measure_fld_name, self.measure_fld_name)
         val2lbl = VAR_LABELS.var2val2lbl.get(self.grouping_fld_name)
-        grouping_fld_vals_dets = {
-            ValDets(val=group_val, lbl=val2lbl.get(group_val, str(group_val))) for group_val in self.group_vals}
+        grouping_fld_vals_spec = {
+            ValSpec(val=group_val, lbl=val2lbl.get(group_val, str(group_val))) for group_val in self.group_vals}
         ## data
         grouping_val_is_numeric = all(is_numeric(x) for x in self.group_vals)
         get_results_for_cur = partial(get_results,
             tbl_name=self.tbl_name,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
-            grouping_fld_vals_dets=grouping_fld_vals_dets,
+            grouping_fld_vals_spec=grouping_fld_vals_spec,
             grouping_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl,
             high_precision_required=self.high_precision_required,

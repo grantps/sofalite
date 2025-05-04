@@ -3,7 +3,7 @@ import base64
 from io import BytesIO
 
 from sofalite.output.charts import mpl_pngs
-from sofalite.output.charts.histogram import HistogramConf, HistogramData
+from sofalite.output.charts.histogram import HistogramConf
 from sofalite.output.styles.interfaces import ChartStyleSpec
 
 def get_group_histogram_html(measure_fld_lbl: str, style_spec: ChartStyleSpec,
@@ -18,8 +18,7 @@ def get_group_histogram_html(measure_fld_lbl: str, style_spec: ChartStyleSpec,
         inner_bg_colour=style_spec.plot_bg_colour,
         bar_colour=first_colour_mapping.main,
         line_colour=style_spec.major_grid_line_colour)
-    data_dets = HistogramData(vals)
-    fig = mpl_pngs.get_histogram_fig(chart_conf, data_dets)
+    fig = mpl_pngs.get_histogram_fig(chart_conf, vals)
     fig.set_size_inches((5.0, 3.5))  ## see dpi to get image size in pixels
     bio = BytesIO()
     fig.savefig(bio)

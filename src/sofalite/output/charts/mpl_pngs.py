@@ -8,7 +8,7 @@ from matplotlib import rcParams as mpl_settings
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
-from sofalite.stats_calc.engine import get_normal_ys, get_regression_dets
+from sofalite.stats_calc.engine import get_normal_ys, get_regression_result
 from sofalite.output.charts.histogram import HistogramConf, HistogramData
 from sofalite.output.charts.scatterplot import ScatterplotConf, ScatterplotSeries
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
@@ -18,7 +18,7 @@ def set_gen_mpl_settings(axes_lbl_size=14, xtick_lbl_size=10, ytick_lbl_size=10)
     mpl_settings['xtick.labelsize'] = xtick_lbl_size
     mpl_settings['ytick.labelsize'] = ytick_lbl_size
 
-def get_histogram_fig(chart_conf: HistogramConf, data_dets: HistogramData) -> Figure:
+def get_histogram_fig(chart_conf: HistogramConf, vals: Sequence[float]) -> Figure:
     """
     Start by getting nice initial bins bounds
     (without looking at the actual individual values and frequencies per bin yet).
@@ -32,8 +32,7 @@ def get_histogram_fig(chart_conf: HistogramConf, data_dets: HistogramData) -> Fi
     fig, ax = plt.subplots()
     rect = ax.patch
     rect.set_facecolor(chart_conf.inner_bg_colour)
-    vals = data_dets.vals
-    bin_dets, bin_freqs = get_bin_details_from_vals(vals)
+    bin_spec, bin_freqs = get_bin_details_from_vals(vals)
     ax.set_xlabel(chart_conf.var_lbl)
     ax.set_ylabel('P')
     if chart_conf.chart_lbl:
@@ -46,8 +45,8 @@ def get_histogram_fig(chart_conf: HistogramConf, data_dets: HistogramData) -> Fi
     ## the wider the bins the smaller the P values
     ## See https://plotly.com/chart-studio-help/histogram/
     ## See also https://matplotlib.org/stable/gallery/statistics/histogram_features.html
-    n, bins, patches = ax.hist(vals, bin_dets.n_bins, density=True,
-        range=(bin_dets.lower_limit, bin_dets.upper_limit),
+    n, bins, patches = ax.hist(vals, bin_spec.n_bins, density=True,
+        range=(bin_spec.lower_limit, bin_spec.upper_limit),
         facecolor=chart_conf.bar_colour, edgecolor=chart_conf.line_colour)
     # ensure enough y-axis to show all of normpdf
     ymin, ymax = ax.get_ylim()
@@ -81,11 +80,11 @@ def get_scatterplot_fig(
             else var_series.dot_colour)
         ax.plot(xs, ys, 'o', color=var_series.dot_colour, label=var_series.label,
             markeredgecolor=dot_line_colour)
-        if var_series.show_regression_dets:
+        if var_series.show_regression_details:
             ## Label can't be identical as the points series so add a space.
             ## Will look like correct and matching label without clashing.
             line_lbl = f"{var_series.label} " if var_series.label else ''
-            regression_dets = get_regression_dets(xs, ys)
-            ax.plot([min(xs), max(ys)], [regression_dets.y0, regression_dets.y1], '-',
+            regression_result = get_regression_result(xs, ys)
+            ax.plot([min(xs), max(ys)], [regression_result.y0, regression_result.y1], '-',
                 color=var_series.dot_colour, linewidth=5, label=line_lbl)
     return fig

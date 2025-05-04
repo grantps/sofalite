@@ -52,8 +52,7 @@ class CommonMiscSpec:
 @dataclass(frozen=True)
 class CommonChartingSpec:
     """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
+    Ready to combine with individual chart spec and feed into the Dojo JS engine.
     """
     colour_spec: CommonColourSpec
     misc_spec: CommonMiscSpec

@@ -13,7 +13,7 @@ from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
-    get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbl_dets,
+    get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbls_val_and_text,
     get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
@@ -22,7 +22,7 @@ from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
-left_margin_offset_dets = LeftMarginOffsetSpec(
+left_margin_offset_spec = LeftMarginOffsetSpec(
     initial_offset=25, wide_offset=35, rotate_offset=10, multi_chart_offset=0)
 
 @dataclass(frozen=True)
@@ -205,8 +205,7 @@ class CommonMiscSpec:
 @dataclass(frozen=True)
 class CommonChartingSpec:
     """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
+    Ready to combine with individual chart spec and feed into the Dojo JS engine.
     """
     colour_spec: CommonColourSpec
     misc_spec: CommonMiscSpec
@@ -239,8 +238,8 @@ def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_spec: Sty
     axis_lbl_rotate = -90 if charting_spec.rotate_x_lbls else 0
     has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.has_minor_ticks else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
-    x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
-    x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
+    x_axis_lbls_val_and_text = get_x_axis_lbls_val_and_text(charting_spec.category_specs)
+    x_axis_lbls = '[' + ',\n            '.join(x_axis_lbls_val_and_text) + ']'
     y_axis_max_val = charting_spec.y_axis_max_val * 1.1
     ## sizing
     height = get_height(axis_lbl_drop=axis_lbl_drop,
@@ -253,7 +252,7 @@ def get_common_charting_spec(charting_spec: BoxplotChartingSpec, style_spec: Sty
     y_axis_title_offset = get_y_axis_title_offset(
         x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, is_multi_chart=False,
+        offsets=left_margin_offset_spec, is_multi_chart=False,
         y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
     x_axis_font_size = get_x_axis_font_size(n_x_items=charting_spec.n_x_items, is_multi_chart=False)
     width = left_margin_offset + width_after_left_margin

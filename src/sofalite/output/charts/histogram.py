@@ -31,10 +31,6 @@ class HistogramConf:
     line_colour: str
 
 @dataclass(frozen=True)
-class HistogramData:
-    vals: Sequence[float]
-
-@dataclass(frozen=True)
 class CommonColourSpec:
     axis_font: str
     chart_bg: str
@@ -77,8 +73,7 @@ class CommonMiscSpec:
 @dataclass(frozen=True)
 class CommonChartingSpec:
     """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
+    Ready to combine with individual chart spec and feed into the Dojo JS engine.
     """
     colour_spec: CommonColourSpec
     misc_spec: CommonMiscSpec

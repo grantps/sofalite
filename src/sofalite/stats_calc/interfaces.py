@@ -12,7 +12,7 @@ from enum import StrEnum
 from statistics import median
 
 from sofalite.stats_calc.boxplot import get_bottom_whisker, get_top_whisker
-from sofalite.stats_calc.histogram import BinDets  ## noqa - so available for import from here as the one-stop shop for stats interfaces
+from sofalite.stats_calc.histogram import BinSpec  ## noqa - so available for import from here as the one-stop shop for stats interfaces
 from sofalite.utils.stats import get_quartiles
 
 ## samples
@@ -25,7 +25,7 @@ class Sample:
     "sample" must always mean an object with both lbl and vals.
     If there are multiple sample_vals call it "samples_vals" not "samples".
     "samples" should only ever refer to a sequence of Sample objects.
-    Sample dets refers primarily to metadata about sample values e.g. min, max, mean.
+    Sample spec refers primarily to metadata about sample values e.g. min, max, mean.
     A "vals" attribute is included.
     """
     lbl: str
@@ -115,7 +115,7 @@ class MannWhitneyResultExt:
     n_1: int
     n_2: int
     ranks_1: list[int]
-    val_dets: list[dict]
+    val_dicts: list[dict]
     sum_rank_1: int
     u_1: float
     u_2: float
@@ -180,8 +180,8 @@ class TTestIndepResultExt(TTestResult):
 
 @dataclass(frozen=True)
 class WilcoxonResult:
-    diff_dets: list[dict]
-    ranking_dets: list[dict]
+    diff_dicts: list[dict]
+    ranking_dicts: list[dict]
     plus_ranks: list[int]
     minus_ranks: list[int]
     sum_plus_ranks: float
@@ -207,8 +207,8 @@ class BoxResult:
 
     def __post_init__(self):
         """
-        lower_box_val=box_dets.lower_box_val,
-        upper_box_val=box_dets.upper_box_val,
+        lower_box_val=box_spec.lower_box_val,
+        upper_box_val=box_spec.upper_box_val,
         """
         min_measure = min(self.vals)
         max_measure = max(self.vals)

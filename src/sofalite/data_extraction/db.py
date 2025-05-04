@@ -1,3 +1,10 @@
+"""
+TODO: do I only use my SQLite db and extended cursor or do I allow any cursor to be passed in?
+  probably allow any cursor but use SQLite and its extended cursor as default if nothing supplied
+  Maybe decorate all cursors? So whether we create a standard SQLite cursor or receive any dbapi cursor
+  we pass it through a function and effectively decorate it.
+"""
+
 from pathlib import Path
 import sqlite3 as sqlite
 from textwrap import dedent

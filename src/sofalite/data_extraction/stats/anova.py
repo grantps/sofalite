@@ -7,14 +7,14 @@ Precision level
 from collections.abc import Sequence
 
 from sofalite.data_extraction.db import ExtendedCursor
-from sofalite.data_extraction.interfaces import ValDets
+from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.utils import get_sample
 from sofalite.stats_calc import interfaces as stats_interfaces, engine
 from sofalite.utils.misc import todict
 
 def get_results(cur: ExtendedCursor, tbl_name: str,
         grouping_fld_lbl: str, grouping_fld_name: str,
-        grouping_fld_vals_dets: Sequence[ValDets], grouping_val_is_numeric,
+        grouping_fld_vals_spec: Sequence[ValSpec], grouping_val_is_numeric,
         measure_fld_lbl: str, measure_fld_name: str,
         tbl_filt_clause: str | None = None,
         high_precision_required=False) -> stats_interfaces.AnovaResultExt:
@@ -31,7 +31,7 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
     :param str grouping_fld_name: the grouping variable
      e.g. if we are interested in getting a sample of values for females
      then our grouping variable might be gender or sex
-    :param grouping_fld_vals_dets: details of the values for the grouping variable
+    :param grouping_fld_vals_spec: details of the values for the grouping variable
      e.g. if we are interested in getting a sample of values by gender
      then the first value might be 0 or 'male' and the label might be 'Male'
     :param bool grouping_val_is_numeric: so we know whether to quote it or not
@@ -40,12 +40,12 @@ def get_results(cur: ExtendedCursor, tbl_name: str,
     :param high_precision_required: determines whether
      floating point approach used (much faster, some risk) or Decimal
     """
-    ## build sample dets ready for anova function
+    ## build sample results ready for anova function
     samples = []
-    for grouping_fld_val_dets in grouping_fld_vals_dets:
+    for grouping_fld_val_spec in grouping_fld_vals_spec:
         sample = get_sample(cur, tbl_name=tbl_name,
             grouping_filt_fld_name=grouping_fld_name,
-            grouping_filt_val_dets=grouping_fld_val_dets,
+            grouping_filt_val_spec=grouping_fld_val_spec,
             grouping_filt_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
         samples.append(sample)

@@ -263,11 +263,11 @@ def get_order_rules_for_multi_index_branches(row_specs: list[DimSpec], col_specs
     for dim_type_specs in dims_type_specs:
         for top_level_idx, dim_type_spec in enumerate(dim_type_specs):
             dim_vars = tuple(dim_type_spec.self_and_descendant_vars)
-            sort_dets = []
+            sort_details = []
             for chain_idx, dim_spec in enumerate(dim_type_spec.self_and_descendants):
                 idx2use = top_level_idx if chain_idx == 0 else 0
-                sort_dets.extend([idx2use, dim_spec.sort_order])
-            orders[dim_vars] = tuple(sort_dets)
+                sort_details.extend([idx2use, dim_spec.sort_order])
+            orders[dim_vars] = tuple(sort_details)
     return orders
 
 def get_tbl_df(

@@ -46,7 +46,7 @@ def get_common_charting_spec(charting_spec: AreaChartingSpec, style_specs: Style
         else 'false')
     is_time_series_js_bool: JSBool = 'true' if charting_spec.is_time_series else 'false'
     legend_lbl = ''
-    left_margin_offset_dets = LeftMarginOffsetSpec(
+    left_margin_offset_spec = LeftMarginOffsetSpec(
         initial_offset=18, wide_offset=25, rotate_offset=5, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
         axis_font=style_specs.chart.axis_font_colour,
@@ -59,7 +59,7 @@ def get_common_charting_spec(charting_spec: AreaChartingSpec, style_specs: Style
         plot_font_filled=style_specs.chart.plot_font_colour_filled,
         tooltip_border=style_specs.chart.tooltip_border_colour,
     )
-    misc_spec = get_line_area_misc_spec(charting_spec, style_specs, legend_lbl, left_margin_offset_dets)
+    misc_spec = get_line_area_misc_spec(charting_spec, style_specs, legend_lbl, left_margin_offset_spec)
     options = LineArea.CommonOptions(
         has_micro_ticks_js_bool=has_micro_ticks_js_bool,
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,
@@ -89,7 +89,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     indiv_title_html = (f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
     n_records = 'N = ' + format_num(indiv_chart_spec.n_records) if common_charting_spec.options.show_n_records else ''
     ## the standard series
-    dojo_series_dets = []
+    dojo_series_specs = []
     marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
     only_series = indiv_chart_spec.data_series_specs[0]
     series_id = '00'
@@ -107,10 +107,10 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
         f"""fill: "{fill_colour}", """
         f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
-    dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
+    dojo_series_specs.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     indiv_context = {
         'chart_uuid': chart_uuid,
-        'dojo_series_dets': dojo_series_dets,
+        'dojo_series_specs': dojo_series_specs,
         'indiv_title_html': indiv_title_html,
         'n_records': n_records,
         'page_break': page_break,

@@ -166,13 +166,13 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     n = len(lst_samples[0])
     # ns = [0]*a
     alldata = []
-    dets = []
+    sample_specs = []
     for i in range(a):
         sample = lst_samples[i]
         label = lst_labels[i]
         sample_spec = NumericSampleResult(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
             sample_min=min(sample), sample_max=max(sample))
-        dets.append(sample_spec)
+        sample_specs.append(sample_spec)
     for i in range(len(lst_samples)):
         alldata = alldata + lst_samples[i]
     bign = len(alldata)
@@ -189,7 +189,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     F = msb / msw
     p = fprob(dfbn, dfwn, F)
     logging.info(f'Using orig with F: {F}')
-    return p, F, dets, sswn, dfwn, msw, ssbn, dfbn, msb
+    return p, F, sample_specs, sswn, dfwn, msw, ssbn, dfbn, msb
 
 def has_decimal_type_mix(numbers) -> bool:
     """
@@ -401,7 +401,7 @@ def get_summary_dics(samples, labels, quant=False) -> list[Result]:
      sample.
     :param bool quant: if True, sample details also include mean and standard deviation.
     """
-    dets = []
+    sample_specs = []
     for i, sample in enumerate(samples):
         kwargs = {
             'lbl': labels[i],
@@ -413,9 +413,9 @@ def get_summary_dics(samples, labels, quant=False) -> list[Result]:
         if quant:
             kwargs['mean'] = mean(sample)
             kwargs['stdev'] = stdev(sample)
-        sample_dets = Result(**kwargs)
-        dets.append(sample_dets)
-    return dets
+        sample_spec = Result(**kwargs)
+        sample_specs.append(sample_spec)
+    return sample_specs
 
 def kruskalwallish(samples, labels):
     """
@@ -539,11 +539,11 @@ def ttest_rel(sample_a, sample_b, label_a='Sample1', label_b='Sample2'):
     sd_b = math.sqrt(var_b)
     ci95_a = get_ci95(sample_a, mean_a, sd_a)
     ci95_b = get_ci95(sample_b, mean_b, sd_b)
-    dets_a = NumericSampleResult(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
-        sample_min=min_a, sample_max=max_a, ci95=ci95_a)
-    dets_b = NumericSampleResult(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
+    spec_a = NumericSampleSpec(lbl=label_a, n=n, mean=mean_a, stdev=sd_a,
+        sample_min=min_a, sametsple_max=max_a, ci95=ci95_a)
+    spec_b = NumericSampleSpec(lbl=label_b, n=n, mean=mean_b, stdev=sd_b,
         sample_min=min_b, sample_max=max_b, ci95=ci95_b)
-    return t, p, dets_a, dets_b, df, diffs
+    return t, p, spec_a, spec_b, df, diffs
 
 def mannwhitneyu(sample_a, sample_b, label_a='Sample1', label_b='Sample2', *, high_volume_ok=False):
     """
@@ -619,19 +619,19 @@ def mannwhitneyu_details(
     len_1 = len(sample_1)
     len_2 = len(sample_2)
     ## vals, counter, ranking
-    val_dets_1 = [{'sample': 1, 'val': val} for val in sample_1]
-    val_dets_2 = [{'sample': 2, 'val': val} for val in sample_2]
-    val_dets = val_dets_1 + val_dets_2
-    val_dets.sort(key=lambda s: s['val'])
+    val_dicts_1 = [{'sample': 1, 'val': val} for val in sample_1]
+    val_dicts_2 = [{'sample': 2, 'val': val} for val in sample_2]
+    val_dicts = val_dicts_1 + val_dicts_2
+    val_dicts.sort(key=lambda s: s['val'])
     vals = sample_1 + sample_2
     vals_ranked = rankdata(vals, high_volume_ok=high_volume_ok)
     val_ranks = dict(zip(vals, vals_ranked))  ## works because all abs diffs which are the same share a single rank
-    for counter, val_det in enumerate(val_dets, 1):
+    for counter, val_det in enumerate(val_dicts, 1):
         val_det['rank'] = val_ranks[val_det['val']]
         val_det['counter'] = counter
-    ranks_1 = [val_det['rank'] for val_det in val_dets
+    ranks_1 = [val_det['rank'] for val_det in val_dicts
         if val_det['sample'] == 1]
-    sum_rank_1 = sum(val_det['rank'] for val_det in val_dets
+    sum_rank_1 = sum(val_det['rank'] for val_det in val_dicts
         if val_det['sample'] == 1)
     u_1 = len_1 * len_2 + (len_1 * (len_1 + 1)) / 2.0 - sum_rank_1
     u_2 = len_1 * len_2 - u_1
@@ -639,7 +639,7 @@ def mannwhitneyu_details(
     details = MannWhitneyResultExt(
         lbl_1=label_1, lbl_2=label_2,
         n_1=len_1, n_2=len_2,
-        ranks_1=ranks_1, val_dets=val_dets, sum_rank_1=sum_rank_1, u_1=u_1, u_2=u_2, u=u
+        ranks_1=ranks_1, val_dicts=val_dicts, sum_rank_1=sum_rank_1, u_1=u_1, u_2=u_2, u=u
     )
     return details
 
@@ -690,9 +690,9 @@ def wilcoxont(
     min_b = min(sample_b)
     max_a = max(sample_a)
     max_b = max(sample_b)
-    dets_a = OrdinalResult(lbl=label_a, n=n, median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
-    dets_b = OrdinalResult(lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
-    return wt, prob, dets_a, dets_b
+    result_a = OrdinalResult(lbl=label_a, n=n, median=np.median(sample_a), sample_min=min_a, sample_max=max_a)
+    result_b = OrdinalResult(lbl=label_b, n=n, median=np.median(sample_b), sample_min=min_b, sample_max=max_b)
+    return wt, prob, result_a, result_b
 
 def wilcoxont_details(sample_a, sample_b) -> WilcoxonResult:
     """
@@ -706,39 +706,39 @@ def wilcoxont_details(sample_a, sample_b) -> WilcoxonResult:
     """
     pairs = zip(sample_a, sample_b)
     ## diffs between pairs (always in same order but which order doesn't matter
-    diff_dets = [{'a': a, 'b': b, 'diff': a - b} for a, b in pairs]
+    diff_dicts = [{'a': a, 'b': b, 'diff': a - b} for a, b in pairs]
     ## get ranks on absolutes and then attach back
-    abs_diffs = [abs(x['diff']) for x in diff_dets]
+    abs_diffs = [abs(x['diff']) for x in diff_dicts]
     abs_diffs.sort()
     ranks = rankdata(abs_diffs)
     ## link ranks to diffs and abs diffs
     abs_diff_ranks = dict(zip(abs_diffs, ranks))  ## works because all abs diffs which are the same share a single rank
-    ranking_dets = []
-    for diff in diff_dets:
-        if diff['diff'] != 0:
-            ranking_dets.append(
-                {'diff': diff['diff'],
-                 'abs_diff': abs(diff['diff']),
+    ranking_dicts = []
+    for diff_dict in diff_dicts:
+        if diff_dict['diff'] != 0:
+            ranking_dicts.append(
+                {'diff': diff_dict['diff'],
+                 'abs_diff': abs(diff_dict['diff']),
                  'rank': abs_diff_ranks[abs(
-                     diff['diff'])], })  ## remember - the ranks relates to the absolute value not the original value
-    ranking_dets.sort(key=lambda s: (abs(s['diff']), s['diff']))
+                     diff_dict['diff'])], })  ## remember - the ranks relates to the absolute value not the original value
+    ranking_dicts.sort(key=lambda s: (abs(s['diff']), s['diff']))
     ## add counter
-    for counter, ranking_det in enumerate(ranking_dets, 1):
-        ranking_det['counter'] = counter
-    plus_ranks = [x['rank'] for x in ranking_dets if x['diff'] > 0]
-    minus_ranks = [x['rank'] for x in ranking_dets if x['diff'] < 0]
+    for counter, ranking_dict in enumerate(ranking_dicts, 1):
+        ranking_dict['counter'] = counter
+    plus_ranks = [x['rank'] for x in ranking_dicts if x['diff'] > 0]
+    minus_ranks = [x['rank'] for x in ranking_dicts if x['diff'] < 0]
     ## sum the ranks separately
     sum_plus_ranks = sum(plus_ranks)
     sum_minus_ranks = sum(minus_ranks)
     ## calculate t and N (N excludes 0-diff pairs)
     t = min(sum_plus_ranks, sum_minus_ranks)
     n = len(plus_ranks) + len(minus_ranks)
-    details = WilcoxonResult(diff_dets=diff_dets, ranking_dets=ranking_dets,
+    result = WilcoxonResult(diff_dicts=diff_dicts, ranking_dicts=ranking_dicts,
         plus_ranks=plus_ranks, minus_ranks=minus_ranks,
         sum_plus_ranks=round(sum_plus_ranks, 2), sum_minus_ranks=round(sum_minus_ranks, 2),
         t=t, n=n
     )
-    return details
+    return result
 
 def linregress(x, y):
     """
@@ -1084,7 +1084,7 @@ def scoreatpercentile(vals, percent):
     score = binsize * (numer / denom) + (lrl + binsize * i)
     return score
 
-def get_regression_dets(xs: Sequence[float], ys: Sequence[float]) -> RegressionResult:
+def get_regression_result(xs: Sequence[float], ys: Sequence[float]) -> RegressionResult:
     try:
         slope, intercept, r, unused, unused = linregress(xs, ys)
     except Exception as e:

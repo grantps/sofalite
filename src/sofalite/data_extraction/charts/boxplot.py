@@ -5,7 +5,7 @@ from itertools import groupby  ## actually quite performant
 
 from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.data_extraction.interfaces import CategorySpec
-from sofalite.stats_calc.interfaces import BoxDets, BoxplotType, SortOrder
+from sofalite.stats_calc.interfaces import BoxResult, BoxplotType, SortOrder
 from sofalite.stats_calc.utils import get_optimal_axis_bounds
 
 @dataclass(frozen=False)
@@ -106,20 +106,20 @@ class BoxplotCategoryValsSpecs:
         box_items = []
         for category_vals_spec in self.category_vals_specs:
             n_records += len(category_vals_spec.vals)
-            box_dets = BoxDets(category_vals_spec.vals, self.boxplot_type)
+            box_result = BoxResult(category_vals_spec.vals, self.boxplot_type)
             box_item = BoxplotDataItem(
-                box_bottom=box_dets.box_bottom,
-                box_bottom_rounded=round(box_dets.box_bottom, dp),
-                bottom_whisker=box_dets.bottom_whisker,
-                bottom_whisker_rounded=round(box_dets.bottom_whisker, dp),
-                median=box_dets.median,
-                median_rounded=round(box_dets.median, dp),
-                outliers=box_dets.outliers,
-                outliers_rounded=[round(outlier, dp) for outlier in box_dets.outliers],
-                box_top=box_dets.box_top,
-                box_top_rounded=round(box_dets.box_top, dp),
-                top_whisker=box_dets.top_whisker,
-                top_whisker_rounded=round(box_dets.top_whisker, dp)
+                box_bottom=box_result.box_bottom,
+                box_bottom_rounded=round(box_result.box_bottom, dp),
+                bottom_whisker=box_result.bottom_whisker,
+                bottom_whisker_rounded=round(box_result.bottom_whisker, dp),
+                median=box_result.median,
+                median_rounded=round(box_result.median, dp),
+                outliers=box_result.outliers,
+                outliers_rounded=[round(outlier, dp) for outlier in box_result.outliers],
+                box_top=box_result.box_top,
+                box_top_rounded=round(box_result.box_top, dp),
+                top_whisker=box_result.top_whisker,
+                top_whisker_rounded=round(box_result.top_whisker, dp)
             )
             box_items.append(box_item)
         data_series_spec = BoxplotDataSeriesSpec(
@@ -197,20 +197,20 @@ class BoxplotSeriesCategoryValsSpecs:
             box_items = []
             for category_vals_spec in series_item_category_vals_specs.category_vals_specs:
                 n_records += len(category_vals_spec.vals)
-                box_dets = BoxDets(category_vals_spec.vals, self.boxplot_type)
+                box_result = BoxResult(category_vals_spec.vals, self.boxplot_type)
                 box_item = BoxplotDataItem(
-                    box_bottom=box_dets.box_bottom,
-                    box_bottom_rounded=round(box_dets.box_bottom, dp),
-                    bottom_whisker=box_dets.bottom_whisker,
-                    bottom_whisker_rounded=round(box_dets.bottom_whisker, dp),
-                    median=box_dets.median,
-                    median_rounded=round(box_dets.median, dp),
-                    outliers=box_dets.outliers,
-                    outliers_rounded=[round(outlier, dp) for outlier in box_dets.outliers],
-                    box_top=box_dets.box_top,
-                    box_top_rounded=round(box_dets.box_top, dp),
-                    top_whisker=box_dets.top_whisker,
-                    top_whisker_rounded=round(box_dets.top_whisker, dp)
+                    box_bottom=box_result.box_bottom,
+                    box_bottom_rounded=round(box_result.box_bottom, dp),
+                    bottom_whisker=box_result.bottom_whisker,
+                    bottom_whisker_rounded=round(box_result.bottom_whisker, dp),
+                    median=box_result.median,
+                    median_rounded=round(box_result.median, dp),
+                    outliers=box_result.outliers,
+                    outliers_rounded=[round(outlier, dp) for outlier in box_result.outliers],
+                    box_top=box_result.box_top,
+                    box_top_rounded=round(box_result.box_top, dp),
+                    top_whisker=box_result.top_whisker,
+                    top_whisker_rounded=round(box_result.top_whisker, dp)
                 )
                 box_items.append(box_item)
             data_series_spec = BoxplotDataSeriesSpec(

@@ -1,10 +1,10 @@
 from sofalite.data_extraction.db import ExtendedCursor
-from sofalite.data_extraction.interfaces import ValDets
+from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.stats_calc.interfaces import Sample
 
 def get_sample(cur: ExtendedCursor,
         tbl_name: str,
-        grouping_filt_fld_name: str, grouping_filt_val_dets: ValDets, grouping_filt_val_is_numeric: bool,
+        grouping_filt_fld_name: str, grouping_filt_val_spec: ValSpec, grouping_filt_val_is_numeric: bool,
         measure_fld_name: str,
         tbl_filt_clause: str | None = None) -> Sample:
     """
@@ -24,7 +24,7 @@ def get_sample(cur: ExtendedCursor,
     :param grouping_filt_fld_name: the grouping variable
      e.g. if we are interested in getting a sample of values for females
      then our grouping variable might be gender or sex
-    :param grouping_filt_val_dets: the val dets for the grouping variable (lbl and val)
+    :param grouping_filt_val_spec: the val spec for the grouping variable (lbl and val)
      e.g. if we are interested in getting a sample of values for females
      then our value might be 2 or 'female'
     :param grouping_filt_val_is_numeric: so we know whether to quote it or not
@@ -33,9 +33,9 @@ def get_sample(cur: ExtendedCursor,
     ## prepare clauses
     and_tbl_filt_clause = f"AND {tbl_filt_clause}" if tbl_filt_clause else ''
     if grouping_filt_val_is_numeric:
-        grouping_filt_clause = f"{grouping_filt_fld_name} = {grouping_filt_val_dets.val}"
+        grouping_filt_clause = f"{grouping_filt_fld_name} = {grouping_filt_val_spec.val}"
     else:
-        grouping_filt_clause = f"{grouping_filt_fld_name} = '{grouping_filt_val_dets.val}'"
+        grouping_filt_clause = f"{grouping_filt_fld_name} = '{grouping_filt_val_spec.val}'"
     and_grouping_filt_clause = f"AND {grouping_filt_clause}"
     ## assemble SQL
     sql = f"""
@@ -53,5 +53,5 @@ def get_sample(cur: ExtendedCursor,
     if len(sample_vals) < 2:
         raise Exception(f"Too few {measure_fld_name} values in sample for analysis "
             f"when getting sample for {grouping_filt_clause}")
-    sample = Sample(lbl=grouping_filt_val_dets.lbl, vals=sample_vals)
+    sample = Sample(lbl=grouping_filt_val_spec.lbl, vals=sample_vals)
     return sample

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import math
 
 @dataclass(frozen=False)
-class BinDets:
+class BinSpec:
     lower_limit: float
     upper_limit: float
     n_bins: int
@@ -146,7 +146,7 @@ def get_nice_initial_bin_details(vals: Sequence[float], *, debug=False) -> tuple
             f'{lower_limit} to {upper_limit} giving you {n_bins} bins')
     return lower_limit, upper_limit, n_bins
 
-def get_bin_dets_from_vals(vals: Sequence[float], *, n_bins=10) -> BinDets:
+def get_bin_spec_from_vals(vals: Sequence[float], *, n_bins=10) -> BinSpec:
     """
     Default is N bins but width is larger than the range divided evenly.
     It is enlarged enough, so it has the lowest and uppermost values appearing in the middle of their bins.
@@ -157,24 +157,24 @@ def get_bin_dets_from_vals(vals: Sequence[float], *, n_bins=10) -> BinDets:
     bin_width = (tot_width + initial_bin_width) / n_bins
     lower_limit = min(vals) - bin_width / 2  ## lower limit, 1st bin
     upper_limit = lower_limit + (n_bins * bin_width)
-    return BinDets(lower_limit, upper_limit, n_bins, bin_width)
+    return BinSpec(lower_limit, upper_limit, n_bins, bin_width)
 
-def get_bin_dets_from_limits(limits: tuple[float, float], *, n_bins=10) -> BinDets:
+def get_bin_spec_from_limits(limits: tuple[float, float], *, n_bins=10) -> BinSpec:
     lower_limit, upper_limit = limits
     bin_width = (upper_limit - lower_limit) / n_bins
-    return BinDets(lower_limit, upper_limit, n_bins, bin_width)
+    return BinSpec(lower_limit, upper_limit, n_bins, bin_width)
 
-def get_bin_freqs(vals: Sequence[float], bin_dets: BinDets) -> list[int]:
-    bin_freqs = [0, ] * bin_dets.n_bins
+def get_bin_freqs(vals: Sequence[float], bin_spec: BinSpec) -> list[int]:
+    bin_freqs = [0, ] * bin_spec.n_bins
     for val in vals:
-        if not bin_dets.lower_limit <= val <= bin_dets.upper_limit:
-            raise ValueError(f"Value {val} is not between lower limit {bin_dets.lower_limit} "
-                f"and upper limit {bin_dets.upper_limit}")
-        if val == bin_dets.upper_limit:  ## includes uppermost value in top bin rather than saving for start of next bin (there isn't one when you're top value ;-))
-            top_bin_n = bin_dets.n_bins - 1
+        if not bin_spec.lower_limit <= val <= bin_spec.upper_limit:
+            raise ValueError(f"Value {val} is not between lower limit {bin_spec.lower_limit} "
+                f"and upper limit {bin_spec.upper_limit}")
+        if val == bin_spec.upper_limit:  ## includes uppermost value in top bin rather than saving for start of next bin (there isn't one when you're top value ;-))
+            top_bin_n = bin_spec.n_bins - 1
             bin2increment = top_bin_n
         else:
-            bin2increment = int((val - bin_dets.lower_limit) / bin_dets.bin_width)
+            bin2increment = int((val - bin_spec.lower_limit) / bin_spec.bin_width)
         bin_freqs[bin2increment] += 1
     return bin_freqs
 
@@ -189,12 +189,12 @@ def has_saw_toothing(bin_freqs: Sequence[float], *, period: int, start_idx: int 
     return sum_non_period == 0
 
 def get_best_bin_details_given_freqs(vals: Sequence[float],
-        initial_bin_dets: BinDets, initial_bin_freqs: Sequence[int]) -> tuple[BinDets, list[int]]:
-    limits = (initial_bin_dets.lower_limit, initial_bin_dets.upper_limit)  ## stable
+        initial_bin_spec: BinSpec, initial_bin_freqs: Sequence[int]) -> tuple[BinSpec, list[int]]:
+    limits = (initial_bin_spec.lower_limit, initial_bin_spec.upper_limit)  ## stable
     ## changing the following as we loop (if we choose fewer bins, we'll have greater frequencies per bin)
-    bin_dets = initial_bin_dets
+    bin_spec = initial_bin_spec
     bin_freqs = initial_bin_freqs
-    n_bins = initial_bin_dets.n_bins
+    n_bins = initial_bin_spec.n_bins
     while n_bins > 5:
         if has_saw_toothing(bin_freqs, period=5):
             shrink_factor = 5
@@ -206,11 +206,11 @@ def get_best_bin_details_given_freqs(vals: Sequence[float],
             break
         n_bins = int(math.ceil(n_bins / shrink_factor))
         ## update variables as we possibly loop back for fresh attempt to get better results
-        bin_dets = get_bin_dets_from_limits(limits, n_bins=n_bins)
-        bin_freqs = get_bin_freqs(vals, bin_dets)
-    return bin_dets, bin_freqs
+        bin_spec = get_bin_spec_from_limits(limits, n_bins=n_bins)
+        bin_freqs = get_bin_freqs(vals, bin_spec)
+    return bin_spec, bin_freqs
 
-def get_bin_details_from_vals(vals: Sequence[float]) -> tuple[BinDets, list[int]]:
+def get_bin_details_from_vals(vals: Sequence[float]) -> tuple[BinSpec, list[int]]:
     """
     Includes the uppermost value in top bin.
     This is essential if wanting to have "nice", human-readable bins e.g. 10 to < 20, ... 90 to 100
@@ -218,7 +218,7 @@ def get_bin_details_from_vals(vals: Sequence[float]) -> tuple[BinDets, list[int]
     NB label of top bin must be explicit about including upper values. Known problem with continuous distributions.
 
     There are two functions doing the heavy lifting.
-    1) get_bin_dets_from_limits() (vs ... from_vals) which turns limits and n_bins into bin details
+    1) get_bin_spec_from_limits() (vs ... from_vals) which turns limits and n_bins into bin details
     2) get_bin_freqs() which turns values and bin details into bin freqs. Returns a simple list of ints in bin order.
 
     We try to get nice bins from the values only.
@@ -228,12 +228,12 @@ def get_bin_details_from_vals(vals: Sequence[float]) -> tuple[BinDets, list[int]
 
     We then get the freqs per bin and see if it worked i.e. have we managed to avoid saw-toothing?
     If not, we try to get better bins (fewer but hopefully all filled in - i.e. minimised number of empty bins).
-    We take the best bin_dets, and bin_freqs we can,
+    We take the best bin_spec, and bin_freqs we can,
     and bundle our final results into a HistogramDetails dataclass for use elsewhere.
     """
     initial_lower_limit, initial_upper_limit, initial_n_bins = get_nice_initial_bin_details(vals)
     limits = (initial_lower_limit, initial_upper_limit)
-    initial_bin_dets = get_bin_dets_from_limits(limits, n_bins=initial_n_bins)
-    initial_bin_freqs = get_bin_freqs(vals, initial_bin_dets)
-    final_bin_dets, final_bin_freqs = get_best_bin_details_given_freqs(vals, initial_bin_dets, initial_bin_freqs)
-    return final_bin_dets, final_bin_freqs
+    initial_bin_spec = get_bin_spec_from_limits(limits, n_bins=initial_n_bins)
+    initial_bin_freqs = get_bin_freqs(vals, initial_bin_spec)
+    final_bin_spec, final_bin_freqs = get_best_bin_details_given_freqs(vals, initial_bin_spec, initial_bin_freqs)
+    return final_bin_spec, final_bin_freqs

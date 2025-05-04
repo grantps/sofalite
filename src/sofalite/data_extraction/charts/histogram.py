@@ -1,6 +1,6 @@
 """
-Get all vals by group, combine, and get overall bin_dets (discard overall bin_freqs).
-Then, using get_bin_freqs(vals, bin_dets), and the common bin_dets, get bin_freqs for each chart.
+Get all vals by group, combine, and get overall bin_spec (discard overall bin_freqs).
+Then, using get_bin_freqs(vals, bin_spec), and the common bin_spec, get bin_freqs for each chart.
 """
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -25,8 +25,8 @@ class HistoValsSpec:
     vals: Sequence[float]
 
     def __post_init__(self):
-        bin_dets, bin_freqs = get_bin_details_from_vals(self.vals)
-        self.bin_dets = bin_dets
+        bin_spec, bin_freqs = get_bin_details_from_vals(self.vals)
+        self.bin_spec = bin_spec
         self.bin_freqs = bin_freqs
 
     def to_indiv_chart_specs(self) -> Sequence[HistoIndivChartSpec]:
@@ -35,7 +35,7 @@ class HistoValsSpec:
         using stats_calc.histogram
         """
         import numpy as np
-        bin_starts = [start for start, end in self.bin_dets.bin_ranges]
+        bin_starts = [start for start, end in self.bin_spec.bin_ranges]
         norm_y_vals = get_normal_ys(self.vals, np.array(bin_starts))
         sum_y_vals = sum(self.bin_freqs)
         sum_norm_y_vals = sum(norm_y_vals)
@@ -50,13 +50,13 @@ class HistoValsSpec:
         return [indiv_chart_spec, ]
 
     def to_bin_lbls(self, *, dp: int = 3) -> list[str]:
-        bin_lbls = self.bin_dets.to_bin_lbls(dp=dp)
+        bin_lbls = self.bin_spec.to_bin_lbls(dp=dp)
         return bin_lbls
 
     def to_x_axis_range(self) -> tuple[float, float]:
-        bin_dets, _bin_freqs = get_bin_details_from_vals(self.vals)
-        x_axis_min_val = bin_dets.lower_limit
-        x_axis_max_val = bin_dets.upper_limit
+        bin_spec, _bin_freqs = get_bin_details_from_vals(self.vals)
+        x_axis_min_val = bin_spec.lower_limit
+        x_axis_max_val = bin_spec.upper_limit
         return x_axis_min_val, x_axis_max_val
 
 @dataclass(frozen=False)
@@ -70,8 +70,8 @@ class HistoValsSpecs:
         for chart_vals_spec in self.chart_vals_specs:
             vals.extend(chart_vals_spec.vals)
         self.vals = vals
-        bin_dets, bin_freqs = get_bin_details_from_vals(vals)
-        self.bin_dets = bin_dets
+        bin_spec, bin_freqs = get_bin_details_from_vals(vals)
+        self.bin_spec = bin_spec
 
     def to_indiv_chart_specs(self) -> Sequence[HistoIndivChartSpec]:
         indiv_chart_specs = []
@@ -80,13 +80,13 @@ class HistoValsSpecs:
         return indiv_chart_specs
 
     def to_bin_lbls(self, *, dp: int = 3) -> list[str]:
-        bin_lbls = self.bin_dets.to_bin_lbls(dp=dp)
+        bin_lbls = self.bin_spec.to_bin_lbls(dp=dp)
         return bin_lbls
 
     def to_x_axis_range(self) -> tuple[float, float]:
-        bin_dets, _bin_freqs = get_bin_details_from_vals(self.vals)
-        x_axis_min_val = bin_dets.lower_limit
-        x_axis_max_val = bin_dets.upper_limit
+        bin_spec, _bin_freqs = get_bin_details_from_vals(self.vals)
+        x_axis_min_val = bin_spec.lower_limit
+        x_axis_max_val = bin_spec.upper_limit
         return x_axis_min_val, x_axis_max_val
 
 def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,

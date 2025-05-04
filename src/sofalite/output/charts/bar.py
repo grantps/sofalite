@@ -16,7 +16,7 @@ from sofalite.output.charts.common import get_common_charting_spec, get_html, ge
 from sofalite.output.charts.interfaces import (
     ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
-    get_x_axis_lbl_dets, get_x_axis_font_size, get_y_axis_title_offset)
+    get_x_axis_lbl_spec, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
@@ -311,8 +311,7 @@ class CommonMiscSpec:
 @dataclass(frozen=True)
 class CommonChartingSpec:
     """
-    Ready to combine with individual chart dets
-    and feed into the Dojo JS engine.
+    Ready to combine with individual chart spec and feed into the Dojo JS engine.
     """
     colour_spec: CommonColourSpec
     misc_spec: CommonMiscSpec
@@ -335,13 +334,13 @@ var highlight_{{chart_uuid}} = function(colour){
 make_chart_{{chart_uuid}} = function(){
 
     var series = new Array();
-    {% for series_dets in dojo_series_dets %}
-      var series_{{series_dets.series_id}} = new Array();
-          series_{{series_dets.series_id}}["lbl"] = "{{series_dets.lbl}}";
-          series_{{series_dets.series_id}}["vals"] = {{series_dets.vals}};
+    {% for series_spec in dojo_series_specs %}
+      var series_{{series_spec.series_id}} = new Array();
+          series_{{series_spec.series_id}}["lbl"] = "{{series_spec.lbl}}";
+          series_{{series_spec.series_id}}["vals"] = {{series_spec.vals}};
           // options - stroke_width_to_use, fill_colour, y_lbls_str
-          series_{{series_dets.series_id}}["options"] = {{series_dets.options}};
-      series.push(series_{{series_dets.series_id}});
+          series_{{series_spec.series_id}}["options"] = {{series_spec.options}};
+      series.push(series_{{series_spec.series_id}});
     {% endfor %}
 
     var conf = new Array();
@@ -450,8 +449,8 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSp
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]  ## actually only need first one for simple bar charts
     ## misc
-    x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
-    x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
+    x_axis_lbl_spec = get_x_axis_lbl_spec(charting_spec.category_specs)
+    x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_spec) + ']'
     y_axis_max = charting_spec.max_y_val * 1.1
     has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'
     legend_lbl = '' if charting_spec.is_single_series else charting_spec.legend_lbl
@@ -531,7 +530,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     page_break = 'page-break-after: always;' if chart_counter % 2 == 0 else ''
     indiv_title_html = f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else ''
     n_records = 'N = ' + format_num(indiv_chart_spec.n_records) if common_charting_spec.options.show_n_records else ''
-    dojo_series_dets = []
+    dojo_series_specs = []
     for i, data_series_spec in enumerate(indiv_chart_spec.data_series_specs):
         series_id = f"{i:>02}"
         series_lbl = data_series_spec.lbl
@@ -541,10 +540,10 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
         y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "white", width: "{common_charting_spec.misc_spec.stroke_width}px"}}, """
             f"""fill: "{fill_colour}", yLbls: {y_lbls_str}}}""")
-        dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
+        dojo_series_specs.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     indiv_context = {
         'chart_uuid': chart_uuid,
-        'dojo_series_dets': dojo_series_dets,
+        'dojo_series_specs': dojo_series_specs,
         'indiv_title_html': indiv_title_html,
         'n_records': n_records,
         'page_break': page_break,

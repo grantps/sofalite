@@ -55,11 +55,11 @@ def get_y_axis_title_offset(*, x_axis_title_len: int, rotated_x_lbls=False) -> i
     y_axis_title_offset = max([y_axis_title_offset, DOJO_Y_AXIS_TITLE_OFFSET])
     return y_axis_title_offset
 
-def get_x_axis_lbl_dets(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
+def get_x_axis_lbls_val_and_text(x_axis_specs: Sequence[CategorySpec]) -> list[str]:
     """
     Note - can be a risk that a split label for the middle x value will overlap with x-axis label below
     """
-    lbl_dets = []
+    lbls_val_and_text = []
     for n, x_axis_spec in enumerate(x_axis_specs, 1):
-        lbl_dets.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
-    return lbl_dets
+        lbls_val_and_text.append(f'{{value: {n}, text: "{x_axis_spec.lbl}"}}')
+    return lbls_val_and_text

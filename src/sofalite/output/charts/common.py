@@ -18,7 +18,7 @@ from functools import singledispatch
 from sofalite.conf.main import TEXT_WIDTH_WHEN_ROTATED
 from sofalite.output.charts.interfaces import AreaChartingSpec, LeftMarginOffsetSpec, LineArea, LineChartingSpec
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_font_size,
-    get_x_axis_lbl_dets, get_y_axis_title_offset)
+    get_x_axis_lbls_val_and_text, get_y_axis_title_offset)
 from sofalite.output.styles.interfaces import StyleSpec
 
 ## https://towardsdatascience.com/simplify-your-functions-with-functools-partial-and-singledispatch-b7071f7543bb
@@ -28,7 +28,7 @@ def get_common_charting_spec(charting_spec, style_spec):
         f"for {type(charting_spec)}")
 
 @singledispatch
-def get_indiv_chart_html(common_charting_spec, chart_dets, chart_counter):
+def get_indiv_chart_html(common_charting_spec, chart_spec, chart_counter):
     raise NotImplementedError("Unable to find registered get_indiv_chart_html function "
         f"for {type(common_charting_spec)}")
 
@@ -42,7 +42,7 @@ def get_html(charting_spec, style_spec: StyleSpec) -> str:
     return html
 
 def get_line_area_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, style_spec: StyleSpec,
-        legend_lbl: str, left_margin_offset_dets: LeftMarginOffsetSpec) -> LineArea.CommonMiscSpec:
+        legend_lbl: str, left_margin_offset_spec: LeftMarginOffsetSpec) -> LineArea.CommonMiscSpec:
     ## calculation
     if isinstance(charting_spec, LineChartingSpec):
         chart_js_fn_name = 'makeLineChart'
@@ -50,7 +50,7 @@ def get_line_area_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, 
         chart_js_fn_name = 'makeAreaChart'
     else:
         raise TypeError(f"Expected either Line or Area charting spec but got {type(charting_spec)}")
-    x_axis_lbl_dets = get_x_axis_lbl_dets(charting_spec.category_specs)
+    x_axis_lbls_val_and_text = get_x_axis_lbls_val_and_text(charting_spec.category_specs)
     x_axis_font_size = get_x_axis_font_size(
         n_x_items=charting_spec.n_x_items, is_multi_chart=charting_spec.is_multi_chart)
     if charting_spec.is_time_series:
@@ -58,7 +58,7 @@ def get_line_area_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, 
         x_axis_lbls = '[]'
     else:
         x_axis_specs = None
-        x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_dets) + ']'
+        x_axis_lbls = '[' + ',\n            '.join(x_axis_lbls_val_and_text) + ']'
     y_axis_max = charting_spec.max_y_val * 1.1
     axis_lbl_drop = get_axis_lbl_drop(is_multi_chart=charting_spec.is_multi_chart,
         rotated_x_lbls=charting_spec.rotate_x_lbls,
@@ -77,7 +77,7 @@ def get_line_area_misc_spec(charting_spec: LineChartingSpec | AreaChartingSpec, 
     y_axis_title_offset = get_y_axis_title_offset(
         x_axis_title_len=x_axis_title_len, rotated_x_lbls=charting_spec.rotate_x_lbls)
     left_margin_offset = get_left_margin_offset(width_after_left_margin=width_after_left_margin,
-        offsets=left_margin_offset_dets, is_multi_chart=charting_spec.is_multi_chart,
+        offsets=left_margin_offset_spec, is_multi_chart=charting_spec.is_multi_chart,
         y_axis_title_offset=y_axis_title_offset, rotated_x_lbls=charting_spec.rotate_x_lbls)
     width = left_margin_offset + width_after_left_margin
     height = get_height(axis_lbl_drop=axis_lbl_drop,

@@ -153,13 +153,13 @@ class LineArea:
     make_chart_{{chart_uuid}} = function(){
 
         var series = new Array();
-        {% for series_dets in dojo_series_dets %}
-          var series_{{series_dets.series_id}} = new Array();
-              series_{{series_dets.series_id}}["lbl"] = "{{series_dets.lbl}}";
-              series_{{series_dets.series_id}}["vals"] = {{series_dets.vals}};
+        {% for series_spec in dojo_series_specs %}
+          var series_{{series_spec.series_id}} = new Array();
+              series_{{series_spec.series_id}}["lbl"] = "{{series_spec.lbl}}";
+              series_{{series_spec.series_id}}["vals"] = {{series_spec.vals}};
               // options - line_colour, fill_colour, y_lbls_str
-              series_{{series_dets.series_id}}["options"] = {{series_dets.options}};
-          series.push(series_{{series_dets.series_id}});
+              series_{{series_spec.series_id}}["options"] = {{series_spec.options}};
+          series.push(series_{{series_spec.series_id}});
         {% endfor %}
 
         var conf = new Array();

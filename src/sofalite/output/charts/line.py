@@ -85,7 +85,7 @@ def get_smooth_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
             smooth_y_vals.append((2 * y_val + y_vals[i - 1]) / 3)
     return smooth_y_vals
 
-def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
+def get_dojo_trend_series_spec(common_charting_spec: CommonChartingSpec,
         single_data_series_spec: DataSeriesSpec) -> DojoSeriesSpec:
     """
     For time-series lines we're using coordinates so can just have the end points
@@ -115,10 +115,10 @@ def get_dojo_trend_series_dets(common_charting_spec: CommonChartingSpec,
         marker_plot_style = PlotStyle.UNMARKED
     trend_options = (f"""{{stroke: {{color: "{trend_line_colour}", width: "6px"}}, """
         f"""yLbls: {LineArea.DUMMY_TOOL_TIPS}, plot: "{marker_plot_style}"}}""")
-    trend_series_dets = DojoSeriesSpec(trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
-    return trend_series_dets
+    trend_series_spec = DojoSeriesSpec(trend_series_id, trend_series_lbl, trend_series_vals, trend_options)
+    return trend_series_spec
 
-def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
+def get_dojo_smooth_series_spec(common_charting_spec: CommonChartingSpec,
         single_data_series_spec: DataSeriesSpec) -> DojoSeriesSpec:
     """
     id is 02 because only a single other series and that will be 00
@@ -139,8 +139,8 @@ def get_dojo_smooth_series_dets(common_charting_spec: CommonChartingSpec,
             smooth_y_vals, common_charting_spec.misc_spec.x_axis_title)
     else:
         smooth_series_vals = smooth_y_vals
-    smooth_series_dets = DojoSeriesSpec(smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
-    return smooth_series_dets
+    smooth_series_spec = DojoSeriesSpec(smooth_series_id, smooth_series_lbl, smooth_series_vals, smooth_options)
+    return smooth_series_spec
 
 @get_common_charting_spec.register
 def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleSpec) -> CommonChartingSpec:
@@ -159,7 +159,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleS
         legend_lbl = ''
     else:
         legend_lbl = charting_spec.legend_lbl
-    left_margin_offset_dets = LeftMarginOffsetSpec(
+    left_margin_offset_spec = LeftMarginOffsetSpec(
         initial_offset=18, wide_offset=25, rotate_offset=4, multi_chart_offset=10)
     colour_spec = CommonColourSpec(
         axis_font=style_spec.chart.axis_font_colour,
@@ -171,7 +171,7 @@ def get_common_charting_spec(charting_spec: LineChartingSpec, style_spec: StyleS
         plot_font_filled=style_spec.chart.plot_font_colour_filled,
         tooltip_border=style_spec.chart.tooltip_border_colour,
     )
-    misc_spec = get_line_area_misc_spec(charting_spec, style_spec, legend_lbl, left_margin_offset_dets)
+    misc_spec = get_line_area_misc_spec(charting_spec, style_spec, legend_lbl, left_margin_offset_spec)
     options = CommonOptions(
         has_micro_ticks_js_bool=has_micro_ticks_js_bool,
         has_minor_ticks_js_bool=has_minor_ticks_js_bool,
@@ -201,7 +201,7 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     indiv_title_html = (f"<p><b>{indiv_chart_spec.lbl}</b></p>" if common_charting_spec.options.is_multi_chart else '')
     n_records = 'N = ' + format_num(indiv_chart_spec.n_records) if common_charting_spec.options.show_n_records else ''
     ## each standard series
-    dojo_series_dets = []
+    dojo_series_specs = []
     marker_plot_style = PlotStyle.DEFAULT if common_charting_spec.options.show_markers else PlotStyle.UNMARKED
     for i, data_series_spec in enumerate(indiv_chart_spec.data_series_specs):
         series_id = f"{i:>02}"
@@ -218,25 +218,25 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
         y_lbls_str = str(data_series_spec.tooltips)
         options = (f"""{{stroke: {{color: "{line_colour}", width: "6px"}}, """
             f"""yLbls: {y_lbls_str}, plot: "{marker_plot_style}"}}""")
-        dojo_series_dets.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
+        dojo_series_specs.append(DojoSeriesSpec(series_id, series_lbl, series_vals, options))
     ## trend and smooth series (if appropriate)
     single_data_series_spec = indiv_chart_spec.data_series_specs[0]
     if common_charting_spec.options.show_trend_line:
         if not common_charting_spec.options.is_single_series:
             raise Exception("Can only show trend lines if one series of results.")
-        trend_series_dets = get_dojo_trend_series_dets(
+        trend_series_spec = get_dojo_trend_series_spec(
             common_charting_spec, single_data_series_spec=single_data_series_spec)
-        dojo_series_dets.append(trend_series_dets)  ## seems that the later you add something the lower it is
+        dojo_series_specs.append(trend_series_spec)  ## seems that the later you add something the lower it is
     if common_charting_spec.options.show_smooth_line:
         if not common_charting_spec.options.is_single_series:
             raise Exception("Can only show trend lines if one series of results.")
-        smooth_series_dets = get_dojo_smooth_series_dets(
+        smooth_series_spec = get_dojo_smooth_series_spec(
             common_charting_spec, single_data_series_spec=single_data_series_spec
         )
-        dojo_series_dets.append(smooth_series_dets)
+        dojo_series_specs.append(smooth_series_spec)
     indiv_context = {
         'chart_uuid': chart_uuid,
-        'dojo_series_dets': dojo_series_dets,
+        'dojo_series_specs': dojo_series_specs,
         'indiv_title_html': indiv_title_html,
         'n_records': n_records,
         'page_break': page_break,
