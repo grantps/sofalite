@@ -100,6 +100,10 @@ class AnovaResultExt(AnovaResult):
     measure_fld_lbl: str
 
 @dataclass(frozen=True)
+class ChiSquareResult:
+    pass
+
+@dataclass(frozen=True)
 class MannWhitneyResult:
     lbl: str
     n: int

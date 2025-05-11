@@ -1,7 +1,7 @@
 """
 Top-level package for sofalite.
 
-Big picture architecture of code pip eline:
+Big picture architecture of code pipeline:
 In short, how we get from config (perhaps from a GUI), and data in a database, to HTML output
 
 We don't want a big pile of spaghetti code, we need structure as we move through the pipeline.
@@ -132,3 +132,14 @@ Pipeline Interface Configuration (sofalite.conf):
 
 Under each generally data and output although sometimes misc where it doesn't fit anywhere else.
 """
+import logging
+from sys import stdout
+
+logger = logging.Logger('pysofa')
+formatter = logging.Formatter('%(asctime)a %(message)s')
+
+stream_handler = logging.StreamHandler(stream=stdout)
+stream_handler.setFormatter(formatter)
+
+logger.setLevel(logging.DEBUG)  ## sets level it will pass on to handlers - limits what handlers even know about
+stream_handler.setLevel(level=logging.INFO)  ## usually INFO

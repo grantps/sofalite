@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-import logging
 
 from sofalite.conf.main import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
@@ -36,7 +35,7 @@ def get_axis_lbl_drop(*, is_multi_chart: bool, rotated_x_lbls: bool, max_x_axis_
     if not rotated_x_lbls:
         extra_lines = max_x_axis_lbl_lines - 1
         axis_lbl_drop += AVG_LINE_HEIGHT_PIXELS * extra_lines
-    logging.debug(axis_lbl_drop)
+    logger.debug(axis_lbl_drop)
     return axis_lbl_drop
 
 def get_y_axis_title_offset(*, x_axis_title_len: int, rotated_x_lbls=False) -> int:

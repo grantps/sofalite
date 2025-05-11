@@ -16,7 +16,7 @@ from sofalite.output.charts.common import get_common_charting_spec, get_html, ge
 from sofalite.output.charts.interfaces import (
     ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
-    get_x_axis_lbl_spec, get_x_axis_font_size, get_y_axis_title_offset)
+    get_x_axis_lbls_val_and_text, get_x_axis_font_size, get_y_axis_title_offset)
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
@@ -449,7 +449,7 @@ def get_common_charting_spec(charting_spec: BarChartingSpec, style_spec: StyleSp
     colour_cases = [f'case "{colour_mapping.main}": hlColour = "{colour_mapping.highlight}"'
         for colour_mapping in colour_mappings]  ## actually only need first one for simple bar charts
     ## misc
-    x_axis_lbl_spec = get_x_axis_lbl_spec(charting_spec.category_specs)
+    x_axis_lbl_spec = get_x_axis_lbls_val_and_text(charting_spec.category_specs)
     x_axis_lbls = '[' + ',\n            '.join(x_axis_lbl_spec) + ']'
     y_axis_max = charting_spec.max_y_val * 1.1
     has_minor_ticks_js_bool: JSBool = 'true' if charting_spec.n_x_items >= DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM else 'false'

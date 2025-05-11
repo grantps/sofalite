@@ -1,7 +1,6 @@
 """
 https://matplotlib.org/matplotblog/posts/pyplot-vs-object-oriented-interface/
 """
-import logging
 from typing import Sequence
 
 from matplotlib import rcParams as mpl_settings
@@ -51,14 +50,14 @@ def get_histogram_fig(chart_conf: HistogramConf, vals: Sequence[float]) -> Figur
     # ensure enough y-axis to show all of normpdf
     ymin, ymax = ax.get_ylim()
     norm_ys = get_normal_ys(vals, bins)
-    logging.debug(norm_ys)
-    logging.debug(f"ymin={ymin}, ymax={ymax}")
-    logging.debug(f'norm max: {max(norm_ys)}; axis max: {ymax}')
+    logger.debug(norm_ys)
+    logger.debug(f"ymin={ymin}, ymax={ymax}")
+    logger.debug(f'norm max: {max(norm_ys)}; axis max: {ymax}')
     if max(norm_ys) > ymax:
         ax.set_ylim(ymax=1.05 * max(norm_ys))
     ## actually plot norm ys
     ax.plot(bins, norm_ys, color=chart_conf.line_colour, linewidth=4)
-    logging.debug(f"n={n}, bins={bins}, patches={patches}")
+    logger.debug(f"n={n}, bins={bins}, patches={patches}")
     return fig
 
 def get_scatterplot_fig(

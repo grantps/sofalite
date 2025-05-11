@@ -1,5 +1,7 @@
 """
 TODO: do I only use my SQLite db and extended cursor or do I allow any cursor to be passed in?
+  You allow non_SQLite and any variable names and value filtering you like
+  and now you have to handle quoting in a per-db engine level!
   probably allow any cursor but use SQLite and its extended cursor as default if nothing supplied
   Maybe decorate all cursors? So whether we create a standard SQLite cursor or receive any dbapi cursor
   we pass it through a function and effectively decorate it.

@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-import logging
 from statistics import median
 from typing import Any
 import uuid
@@ -47,21 +46,21 @@ def get_trend_y_vals(y_vals: Sequence[float]) -> Sequence[float]:
     Returns values to plot a straight line which fits the y_vals provided
     """
     sum_y = sum(y_vals)
-    logging.debug(f"sumy={sum_y}")
+    logger.debug(f"sumy={sum_y}")
     n = len(y_vals)
     sum_x = sum(range(1, n + 1))
-    logging.debug(f"{sum_x=}")
+    logger.debug(f"{sum_x=}")
     sum_xy = 0
     sum_x2 = 0
     for x, y_val in enumerate(y_vals, 1):
         sum_xy += x * y_val
         sum_x2 += x ** 2
-    logging.debug(f"{sum_xy}")
-    logging.debug(f"{sum_x2=}")
+    logger.debug(f"{sum_xy}")
+    logger.debug(f"{sum_x2=}")
     b_num = (n * sum_xy) - (sum_x * sum_y)
-    logging.debug(f"b_num={b_num}")
+    logger.debug(f"b_num={b_num}")
     b_denom = (n * sum_x2) - (sum_x ** 2)
-    logging.debug(f"b_denom={b_denom}")
+    logger.debug(f"b_denom={b_denom}")
     b = b_num / (1.0 * b_denom)
     a = (sum_y - (sum_x * b)) / (1.0 * n)
     trend_y_vals = []

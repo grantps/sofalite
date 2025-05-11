@@ -633,7 +633,7 @@ wheels = [
 
 [[package]]
 name = "sofalite"
-version = "0.3.26"
+version = "0.4.5"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },

@@ -9,16 +9,11 @@ Code below here is modified versions of code in stats.py and pstats.py
 from collections.abc import Sequence
 import copy
 import decimal
-import logging
 import math
 
 import numpy as np
 
 from sofalite.conf.main import MAX_RANK_DATA_VALS
-
-"""
-TODO: add docs for what a stats needs engine
-"""
 from sofalite.stats_calc.interfaces import (
     AnovaResult,
     MannWhitneyResult, MannWhitneyResultExt,
@@ -113,8 +108,8 @@ def histogram(inlist, numbins=10, defaultreallimits=None, printextras=0, *, inc_
         except Exception:
             extra_points = extra_points + 1
     if extra_points > 0 and printextras == 1:
-        logging.warning('\nPoints outside given histogram range =', extra_points)
-    logging.debug(f"bins={bins}, lowerreallimit={lowerreallimit}, binsize={binsize}, extrapoints={extra_points}")
+        logger.warning('\nPoints outside given histogram range =', extra_points)
+    logger.debug(f"bins={bins}, lowerreallimit={lowerreallimit}, binsize={binsize}, extrapoints={extra_points}")
     return bins, lowerreallimit, binsize, extra_points
 
 def chisquare(f_obs, f_exp=None, df=None):
@@ -188,7 +183,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     msw = sswn / float(dfwn)
     F = msb / msw
     p = fprob(dfbn, dfwn, F)
-    logging.info(f'Using orig with F: {F}')
+    logger.info(f'Using orig with F: {F}')
     return p, F, sample_specs, sswn, dfwn, msw, ssbn, dfbn, msb
 
 def has_decimal_type_mix(numbers) -> bool:
@@ -204,7 +199,7 @@ def get_se(n, mysd, *, high=True):
     denom = math.sqrt(n)
     if high:
         denom = D(denom)
-    logging.debug(f"mysd={mysd}, denom={denom}")
+    logger.debug(f"mysd={mysd}, denom={denom}")
     if has_decimal_type_mix(numbers=(mysd, denom)):
         raise Exception("Can't mix decimals and other numbers for division when calculating SE")
     se = mysd / denom
@@ -222,7 +217,7 @@ def get_ci95(sample_vals=None, mymean=None, mysd=None, n=None, *, high=False):
     if has_decimal_type_mix(numbers=(mymean, mysd, n)):
         raise Exception("Cannot mix decimals and other numbers for some calculations e.g. division")
     if n < 30:  ## ok for mix decimals and non-dec
-        logging.warning("Using sample sd instead of population sd even though n < 30. May not be reliable.")
+        logger.warning("Using sample sd instead of population sd even though n < 30. May not be reliable.")
     se = get_se(n, mysd, high=high)
     sds = 1.96
     if high:
@@ -898,7 +893,7 @@ def rankdata(inlist, *, high_volume_ok=False):
     # -----------------------
     if n > MAX_RANK_DATA_VALS:
         if high_volume_ok:
-            logging.info(f"High number of records in randata function (n:,) - will possibly run slowly")
+            logger.info(f"High number of records in randata function (n:,) - will possibly run slowly")
         else:
             raise Exception("Too many records to run rankdata analysis")
     # -----------------------
@@ -1068,7 +1063,7 @@ def scoreatpercentile(vals, percent):
     Usage:   scoreatpercentile(vals,percent)
     """
     if percent > 1:
-        logging.debug('\nDividing percent>1 by 100 in scoreatpercentile().\n')
+        logger.debug('\nDividing percent>1 by 100 in scoreatpercentile().\n')
         percent = percent / 100.0
     targetcf = percent * len(vals)
     (bins, lrl,
@@ -1078,7 +1073,7 @@ def scoreatpercentile(vals, percent):
     for i in range(len(cumhist)):
         if cumhist[i] >= targetcf:
             break
-    logging.debug(bins)
+    logger.debug(bins)
     numer = (targetcf - cumhist[i - 1])
     denom = float(bins[i])
     score = binsize * (numer / denom) + (lrl + binsize * i)
@@ -1435,7 +1430,7 @@ def betacf(a, b, x, *, high=False):
         bz = one
         if abs(az - aold) < (EPS * abs(az)):
             return az
-    logging.warning('a or b too big, or ITMAX too small in Betacf.')
+    logger.warning('a or b too big, or ITMAX too small in Betacf.')
 
 def summult(list1, list2):
     """
@@ -1647,9 +1642,9 @@ def fprob(dfnum, dfden, F, *, high=False):
         a = D('0.5') * dfden
         b = D('0.5') * dfnum
         x = dfden / (dfden + dfnum * F)
-        logging.debug('a: %s' % a)
-        logging.debug('b: %s' % b)
-        logging.debug('x: %s' % x)
+        logger.debug('a: %s' % a)
+        logger.debug('b: %s' % b)
+        logger.debug('x: %s' % x)
         p = betai(a, b, x, high=high)
     else:
         p = betai(0.5 * dfden, 0.5 * dfnum, dfden / float(dfden + dfnum * F), high=high)
@@ -1695,7 +1690,7 @@ def skew(a, dimension=None):
     denom = np.power(moment(a, 2, dimension), 1.5)
     zero = np.equal(denom, 0)
     if type(denom) == np.ndarray and asum(zero) != 0:
-        logging.info(f'Number of zeros in askew: {asum(zero)}')
+        logger.info(f'Number of zeros in askew: {asum(zero)}')
     denom = denom + zero  ## prevent divide-by-zero
     return np.where(zero, 0, moment(a, 3, dimension) / denom)
 
@@ -1772,7 +1767,7 @@ def kurtosis(a, dimension=None):
     denom = np.power(moment(a, 2, dimension), 2)
     zero = np.equal(denom, 0)
     if type(denom) == np.ndarray and asum(zero) != 0:
-        logging.info(f'Number of zeros in akurtosis: {asum(zero)}')
+        logger.info(f'Number of zeros in akurtosis: {asum(zero)}')
     denom = denom + zero  ## prevent divide-by-zero
     return (np.where(zero, 0, moment(a, 4, dimension) / denom)
             - FISHER_KURTOSIS_ADJUSTMENT)
@@ -1925,7 +1920,7 @@ def kurtosistest(a, dimension=None):
         dimension = 0
     n = float(a.shape[dimension])
     if n < 20:
-        logging.warning(f'kurtosistest only valid for n>=20 ... continuing anyway, n={n}')
+        logger.warning(f'kurtosistest only valid for n>=20 ... continuing anyway, n={n}')
     kurt = kurtosis(a, dimension)  ## I changed the kurtosis code to subtract the Fischer Adjustment (3)
     b2 = kurt + FISHER_KURTOSIS_ADJUSTMENT  ## added so b2 is exactly as it would have been in the original stats.py
     E = 3.0 * (n - 1) / (n + 1)
@@ -2042,10 +2037,10 @@ def obrientransform(*args):
     ## Check for convergence before allowing results to be returned
     for j in range(k):
         if v[j] - mean(nargs[j]) > TINY:
-            logging.debug(f'Diff: {v[j] - mean(nargs[j])}')
-            logging.debug(f'\nv[j]: {repr(v[j])}')
-            logging.debug(f'\nnargs[j]: {nargs[j]}')
-            logging.debug(f'\nmean(nargs[j]): {repr(mean(nargs[j]))}')
+            logger.debug(f'Diff: {v[j] - mean(nargs[j])}')
+            logger.debug(f'\nv[j]: {repr(v[j])}')
+            logger.debug(f'\nnargs[j]: {nargs[j]}')
+            logger.debug(f'\nmean(nargs[j]): {repr(mean(nargs[j]))}')
             raise ValueError('Lack of convergence in obrientransform.')
     return nargs
 
@@ -2082,7 +2077,7 @@ def get_normal_ys(vals, bins):
         raise Exception('Need multiple values to calculate normal curve.')
     mu = mean(vals)
     sigma = stdev(vals)
-    logging.debug(f"bins={bins}, mu={mu}, sigma={sigma}")
+    logger.debug(f"bins={bins}, mu={mu}, sigma={sigma}")
     if sigma == 0:
         raise Exception(
             'Unable to get y-axis values for normal curve with a sigma of 0.')
