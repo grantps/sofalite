@@ -7,7 +7,7 @@ import uuid
 import jinja2
 
 from sofalite.conf.main import (
-    AVG_CHAR_WIDTH_PIXELS, DATABASE_FOLDER, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS)
+    AVG_CHAR_WIDTH_PIXELS, INTERNAL_DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS)
 from sofalite.data_extraction.charts.freq_specs import (get_by_category_charting_spec,
     get_by_chart_category_charting_spec, get_by_chart_series_category_charting_spec,
     get_by_series_category_charting_spec)
@@ -58,7 +58,7 @@ class SimpleBarChartSpec:
             tbl_filt_clause=self.tbl_filt_clause, category_sort_order=SortOrder.VALUE)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
@@ -118,7 +118,7 @@ class MultiBarChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)
@@ -177,7 +177,7 @@ class ClusteredBarChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
@@ -240,7 +240,7 @@ class MultiClusteredBarChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_series_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_series_category_charting_spec_for_cur(self.cur)

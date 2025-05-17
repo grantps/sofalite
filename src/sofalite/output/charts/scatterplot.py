@@ -6,7 +6,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
+from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
 from sofalite.data_extraction.charts.scatterplot import ScatterChartingSpec, ScatterIndivChartSpec
 from sofalite.data_extraction.charts.xys import (get_by_chart_series_xy_charting_spec, get_by_chart_xy_charting_spec,
     get_by_series_xy_charting_spec, get_by_xy_charting_spec)
@@ -306,7 +306,7 @@ class SingleSeriesScatterChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_xy_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_xy_charting_spec_for_cur(self.cur)
@@ -362,7 +362,7 @@ class MultiSeriesScatterChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(self.cur)
@@ -418,7 +418,7 @@ class MultiChartScatterChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(self.cur)
@@ -478,7 +478,7 @@ class MultiChartSeriesScatterChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(self.cur)

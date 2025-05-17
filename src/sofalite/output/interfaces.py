@@ -5,14 +5,52 @@ Not worth formally aligning them given how easy to do manually and how static.
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
+import sqlite3 as sqlite
+from typing import Any, Protocol
 
 import jinja2
 
-from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
+from sofalite import SQLITE_DB
+from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbName
+from sofalite.data_extraction.db import get_db_spec
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
+
+@dataclass(frozen=False)
+class Source:
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    cur: Any | None = None
+    db_name: str | None = None
+
+    def get_cur_and_db_name(self) -> tuple[Any, str]:
+        if self.csv_fpath and (self.cur or self.db_name):
+            raise Exception("Either supply a CSV path or database requirements - not both")
+        if self.cur and not self.db_name:
+            cur = self.cur
+            db_name = DbName.SQLITE
+        elif self.db_name and not self.cur:
+            raise Exception("If a db_name is supplied a cursor (cur=) must also be supplied")
+        elif self.csv_fpath:
+            if not self.csv_separator:
+                self.csv_separator = ','
+            if not SQLITE_DB.get('sqlite_default_cur'):
+                SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
+                SQLITE_DB['sqlite_default_cur'] = SQLITE_DB['sqlite_default_con'].cursor()
+            cur = SQLITE_DB['sqlite_default_cur']
+
+            ## TODO: somewhere, actually import CSV into standard db (what if already there?)
+
+
+            db_name = DbName.SQLITE
+        else:
+            raise Exception("Unable to get cur and db")
+        return cur, db_name
+
+    def __post_init__(self):
+        self.cur, self.db_name = self.get_cur_and_db_name()
+        self.db_spec = get_db_spec(self.db_name)
 
 HTML_AND_SOME_HEAD_TPL = """\
 <!DOCTYPE html>

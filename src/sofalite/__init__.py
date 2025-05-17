@@ -143,3 +143,9 @@ stream_handler.setFormatter(formatter)
 
 logger.setLevel(logging.DEBUG)  ## sets level it will pass on to handlers - limits what handlers even know about
 stream_handler.setLevel(level=logging.INFO)  ## usually INFO
+
+## overridden on first call to internal cur
+SQLITE_DB = {
+    'sqlite_default_con': None,
+    'sqlite_default_cur': None,
+}

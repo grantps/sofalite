@@ -5,7 +5,7 @@ import uuid
 
 import jinja2
 
-from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
+from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
 from sofalite.data_extraction.charts.freq_specs import get_by_chart_category_charting_spec
 from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import (
@@ -156,7 +156,7 @@ class AreaChartSpec:
             tbl_filt_clause=self.tbl_filt_clause)
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(cur)
         else:
             intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)

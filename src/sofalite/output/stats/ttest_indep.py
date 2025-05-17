@@ -4,7 +4,7 @@ from typing import Any
 
 import jinja2
 
-from sofalite.conf.main import DATABASE_FOLDER, VAR_LABELS
+from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
 from sofalite.data_extraction.db import Sqlite
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.stats.msgs import (
@@ -185,7 +185,7 @@ class TTestIndepSpec:
         )
         local_cur = not bool(self.cur)
         if local_cur:
-            with Sqlite(DATABASE_FOLDER) as (_con, cur):
+            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
                 results = get_results_for_cur(cur)
         else:
             results = get_results_for_cur(self.cur)

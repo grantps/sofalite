@@ -331,6 +331,8 @@ def multi_series_boxplot():
         tbl_name='demo_tbl',
         tbl_filt_clause=None,
         cur=None,
+        db_name=None,  ## will match yaml filename in standard or custom databases folder
+        csv_fpath=None,  ## TODO: add validation so one or other
         category_sort_order=SortOrder.LABEL,
         boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
         show_n_records=True,

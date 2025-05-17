@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 import os
 from pathlib import Path
@@ -73,9 +74,25 @@ def get_local_folder(my_platform: Platform) -> Path:
 
 LOCAL_FOLDER = get_local_folder(PLATFORM)
 INTERNAL_FOLDER = LOCAL_FOLDER / '_internal'
-DATABASE_FOLDER = INTERNAL_FOLDER / 'sofalite.db'
+INTERNAL_DATABASE_FPATH = INTERNAL_FOLDER / 'sofalite.db'
 INTERNAL_REPORT_FOLDER = INTERNAL_FOLDER / 'reports'
 CUSTOM_STYLES_FOLDER = LOCAL_FOLDER / 'custom_styles'
+CUSTOM_DBS_FOLDER = LOCAL_FOLDER / 'custom_databases'
 
 YAML_FPATH = Path('/home/g/projects/sofalite/store/var_labels.yaml')
 VAR_LABELS = yaml2varlabels(YAML_FPATH)
+
+class DbName(StrEnum):
+    SQLITE = 'sqlite'
+
+@dataclass(frozen=True)
+class DbSpec:
+    if_clause: str
+    placeholder: str
+    left_obj_quote: str
+    right_obj_quote: str
+    gte_not_equals: str
+    cartesian_joiner: str
+    sql_str_literal_quote: str
+    sql_esc_str_literal_quote: str
+    summable: str

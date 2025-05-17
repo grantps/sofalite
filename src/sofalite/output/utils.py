@@ -5,7 +5,7 @@ import jinja2
 from sofalite.conf.main import SOFALITE_WEB_RESOURCES_ROOT
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.interfaces import (
-    BODY_AND_HTML_END_TPL, BODY_START_TPL, CHARTING_CSS_TPL, CHARTING_JS_TPL, CHARTING_LINKS_TPL, HEAD_END_TPL,
+    BODY_AND_HTML_END_TPL, BODY_START_TPL, CHARTING_CSS_TPL, CHARTING_LINKS_TPL, HEAD_END_TPL,
     HTML_AND_SOME_HEAD_TPL, SPACEHOLDER_CSS_TPL, STATS_TBL_TPL,
     HasToHTMLItemSpec, OutputItemType, Report)
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
