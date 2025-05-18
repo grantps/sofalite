@@ -15,7 +15,7 @@ from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
     get_axis_lbl_drop, get_height, get_left_margin_offset, get_x_axis_lbls_val_and_text,
     get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import BoxplotType, SortOrder
@@ -416,21 +416,27 @@ class BoxplotChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiSeriesBoxplotChartSpec:
-    style_name: str
-    series_fld_name: str
-    category_fld_name: str
-    fld_name: str
-    tbl_name: str
+@dataclass(frozen=False)
+class MultiSeriesBoxplotChartSpec(Source):
+    style_name: str = ''
+    series_fld_name: str = ''
+    category_fld_name: str = ''
+    fld_name: str = ''
+    tbl_name: str = ''  ## must all have defaults because Source does - so must enforce completion in post init
     tbl_filt_clause: str | None = None
-    cur: Any | None = None
     category_sort_order: SortOrder = SortOrder.VALUE
     boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
     rotate_x_lbls: bool = False
     show_n_records: bool = True
     x_axis_font_size: int = 12
     dp: int = 3
+
+    def __post_init__(self):
+        Source.__post_init__(self)
+        if not all([self.style_name, ]):
+            raise ValueError("Must supply all of the following with values - currently: "
+                f"{self.style_name=}; {self.series_fld_name=}; {self.category_fld_name=}; "
+                f"{self.fld_name=}; {self.tbl_name=}.")
 
     def to_html_spec(self) -> HTMLItemSpec:
         # style

@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+from sofalite import logger
 from sofalite.conf.main import (AVG_CHAR_WIDTH_PIXELS, AVG_LINE_HEIGHT_PIXELS, DOJO_Y_AXIS_TITLE_OFFSET,
     MAX_SAFE_X_LBL_LEN_PIXELS)
 from sofalite.output.charts.interfaces import CategorySpec, LeftMarginOffsetSpec

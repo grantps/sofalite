@@ -9,6 +9,7 @@ import sqlite3 as sqlite
 from typing import Any, Protocol
 
 import jinja2
+import pandas as pd
 
 from sofalite import SQLITE_DB
 from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbName
@@ -16,11 +17,13 @@ from sofalite.data_extraction.db import get_db_spec
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
+from sofalite.utils.misc import get_safer_name
 
 @dataclass(frozen=False)
 class Source:
     csv_fpath: Path | None = None
     csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
     db_name: str | None = None
 
@@ -38,19 +41,19 @@ class Source:
             if not SQLITE_DB.get('sqlite_default_cur'):
                 SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
                 SQLITE_DB['sqlite_default_cur'] = SQLITE_DB['sqlite_default_con'].cursor()
-            cur = SQLITE_DB['sqlite_default_cur']
-
-            ## TODO: somewhere, actually import CSV into standard db (what if already there?)
-
-
-            db_name = DbName.SQLITE
-        else:
-            raise Exception("Unable to get cur and db")
+        cur = SQLITE_DB['sqlite_default_cur']
+        db_name = DbName.SQLITE
         return cur, db_name
 
     def __post_init__(self):
         self.cur, self.db_name = self.get_cur_and_db_name()
         self.db_spec = get_db_spec(self.db_name)
+        if self.csv_fpath:
+            ## ingest CSV into database
+            tbl_name = get_safer_name(self.csv_fpath.stem)
+            df = pd.read_csv(self.csv_fpath, sep=self.csv_separator)
+            if_exists = 'replace' if self.overwrite_csv_derived_tbl_if_there else 'fail'
+            df.to_sql(tbl_name, SQLITE_DB['sqlite_default_con'], if_exists=if_exists, index=False)
 
 HTML_AND_SOME_HEAD_TPL = """\
 <!DOCTYPE html>

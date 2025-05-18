@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass, fields
+import re
 
 from sofalite import SQLITE_DB
 
@@ -26,3 +27,5 @@ def close_internal_db():
         SQLITE_DB.get['sqlite_default_cur'].close()
         SQLITE_DB.get['sqlite_default_con'].close()
 
+def get_safer_name(raw_name):
+    return re.sub('[^A-Za-z0-9]+', '_', raw_name)
