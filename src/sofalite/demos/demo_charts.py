@@ -341,6 +341,26 @@ def multi_series_boxplot():
     html_item_spec.to_file(fpath, 'Multi-Series Boxplot')
     open_new_tab(url=f"file://{fpath}")
 
+def multi_series_boxplot_from_csv():
+    chart = MultiSeriesBoxplotChartSpec(
+        style_name='default',
+        series_fld_name='gender',
+        category_fld_name='country',
+        fld_name='age',
+        csv_fpath=Path("/home/g/Documents/sofalite/_internal/demo_tbl.csv"),
+        tbl_name='demo_tbl_from_csv',
+        tbl_filt_clause=None,
+        category_sort_order=SortOrder.LABEL,
+        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
+        show_n_records=True,
+        x_axis_font_size=12,
+        dp=3,
+    )
+    html_item_spec = chart.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_item.html')
+    html_item_spec.to_file(fpath, 'Multi-Series Boxplot')
+    open_new_tab(url=f"file://{fpath}")
+
 if __name__ == '__main__':
     pass
     # simple_bar_chart()
@@ -358,4 +378,5 @@ if __name__ == '__main__':
     # histogram_chart()
     # multi_chart_histogram()
     # boxplot_chart()
-    multi_series_boxplot()
+    # multi_series_boxplot()
+    multi_series_boxplot_from_csv()

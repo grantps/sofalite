@@ -82,11 +82,11 @@ CUSTOM_DBS_FOLDER = LOCAL_FOLDER / 'custom_databases'
 YAML_FPATH = Path('/home/g/projects/sofalite/store/var_labels.yaml')
 VAR_LABELS = yaml2varlabels(YAML_FPATH)
 
-class DbName(StrEnum):
+class DbeName(StrEnum):  ## database engine
     SQLITE = 'sqlite'
 
 @dataclass(frozen=True)
-class DbSpec:
+class DbeSpec:
     if_clause: str
     placeholder: str
     left_obj_quote: str

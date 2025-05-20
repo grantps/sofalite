@@ -11,9 +11,9 @@ from typing import Any, Protocol
 import jinja2
 import pandas as pd
 
-from sofalite import SQLITE_DB
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbName
-from sofalite.data_extraction.db import get_db_spec
+from sofalite import SQLITE_DB, logger
+from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbeName
+from sofalite.data_extraction.db import ExtendedCursor, get_db_spec
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
@@ -25,35 +25,62 @@ class Source:
     csv_separator: str = ','
     overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
-    db_name: str | None = None
+    dbe_name: str | None = None  ## database engine name
+    tbl_name: str | None = None
 
-    def get_cur_and_db_name(self) -> tuple[Any, str]:
-        if self.csv_fpath and (self.cur or self.db_name):
-            raise Exception("Either supply a CSV path or database requirements - not both")
-        if self.cur and not self.db_name:
-            cur = self.cur
-            db_name = DbName.SQLITE
-        elif self.db_name and not self.cur:
-            raise Exception("If a db_name is supplied a cursor (cur=) must also be supplied")
-        elif self.csv_fpath:
+    def __post_init__(self):
+        """
+        Three main paths:
+          1) CSV - will be ingested into internal pysofa SQLite database (tbl_name optional - later analyses
+             might be referring to that ingested table so nice to let user choose the name)
+          2) cursor, dbe_name, and tbl_name
+          3) or just a tbl_name (assumed to be using internal pysofa SQLite database)
+        Any supplied cursors are "wrapped" inside an ExtendedCursor so we can use .exe() instead of execute
+        so better error messages on query failure.
+        """
+        if self.csv_fpath:
+            if self.cur or self.dbe_name:
+                raise Exception("If supplying a CSV path don't also supply database requirements")
             if not self.csv_separator:
                 self.csv_separator = ','
             if not SQLITE_DB.get('sqlite_default_cur'):
                 SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
-                SQLITE_DB['sqlite_default_cur'] = SQLITE_DB['sqlite_default_con'].cursor()
-        cur = SQLITE_DB['sqlite_default_cur']
-        db_name = DbName.SQLITE
-        return cur, db_name
-
-    def __post_init__(self):
-        self.cur, self.db_name = self.get_cur_and_db_name()
-        self.db_spec = get_db_spec(self.db_name)
-        if self.csv_fpath:
+                SQLITE_DB['sqlite_default_cur'] = ExtendedCursor(SQLITE_DB['sqlite_default_con'].cursor())
+            self.cur = SQLITE_DB['sqlite_default_cur']
+            self.dbe_name = DbeName.SQLITE
+            if not self.tbl_name:
+                self.tbl_name = get_safer_name(self.csv_fpath.stem)
             ## ingest CSV into database
-            tbl_name = get_safer_name(self.csv_fpath.stem)
             df = pd.read_csv(self.csv_fpath, sep=self.csv_separator)
             if_exists = 'replace' if self.overwrite_csv_derived_tbl_if_there else 'fail'
-            df.to_sql(tbl_name, SQLITE_DB['sqlite_default_con'], if_exists=if_exists, index=False)
+            try:
+                df.to_sql(self.tbl_name, SQLITE_DB['sqlite_default_con'], if_exists=if_exists, index=False)
+            except Exception as e:  ## TODO: supply more specific exception
+                logger.info(f"Failed at attempt to ingest CSV from '{self.csv_fpath}' "
+                    f"into internal pysofa SQLite database as table '{self.tbl_name}'.\nError: {e}")
+            else:
+                logger.info(f"Successfully ingested CSV from '{self.csv_fpath}' "
+                    f"into internal pysofa SQLite database as table '{self.tbl_name}'")
+        elif self.cur:
+            self.cur = ExtendedCursor(self.cur)
+            if not self.dbe_name:
+                raise Exception("When supplying a cursor, a dbe_name (database engine name) must also be supplied")
+            if not self.tbl_name:
+                raise Exception("When supplying a cursor, a tbl_name must also be supplied")
+        elif self.tbl_name:
+            if not SQLITE_DB.get('sqlite_default_cur'):
+                SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
+                SQLITE_DB['sqlite_default_cur'] = ExtendedCursor(SQLITE_DB['sqlite_default_con'].cursor())
+            self.cur = SQLITE_DB['sqlite_default_cur']  ## not already set if in the third path - will have gone down first
+            if self.dbe_name and self.dbe_name != DbeName.SQLITE:
+                raise Exception("If not supplying a csv_fpath, or a cursor, the only permitted database engine is "
+                    "SQLite (the dbe of the internal pysofa SQLite database)")
+            self.dbe_name = DbeName.SQLITE
+        else:
+            raise Exception("Either supply a path to a CSV "
+                "(optional tbl_name for when ingested into internal pysofa SQLite database), "
+                "a cursor (with dbe_name and tbl_name), "
+                "or a tbl_name (data assumed to be in internal pysofa SQLite database)")
 
 HTML_AND_SOME_HEAD_TPL = """\
 <!DOCTYPE html>

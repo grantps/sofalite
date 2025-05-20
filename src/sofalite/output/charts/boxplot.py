@@ -422,7 +422,6 @@ class MultiSeriesBoxplotChartSpec(Source):
     series_fld_name: str = ''
     category_fld_name: str = ''
     fld_name: str = ''
-    tbl_name: str = ''  ## must all have defaults because Source does - so must enforce completion in post init
     tbl_filt_clause: str | None = None
     category_sort_order: SortOrder = SortOrder.VALUE
     boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
@@ -435,8 +434,7 @@ class MultiSeriesBoxplotChartSpec(Source):
         Source.__post_init__(self)
         if not all([self.style_name, ]):
             raise ValueError("Must supply all of the following with values - currently: "
-                f"{self.style_name=}; {self.series_fld_name=}; {self.category_fld_name=}; "
-                f"{self.fld_name=}; {self.tbl_name=}.")
+                f"{self.style_name=}; {self.series_fld_name=}; {self.category_fld_name=}; {self.fld_name=}.")
 
     def to_html_spec(self) -> HTMLItemSpec:
         # style

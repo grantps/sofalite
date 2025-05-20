@@ -12,7 +12,7 @@ from textwrap import dedent
 
 from ruamel.yaml import YAML
 
-from sofalite.conf.main import CUSTOM_DBS_FOLDER, DbName, DbSpec
+from sofalite.conf.main import CUSTOM_DBS_FOLDER, DbeName, DbeSpec
 
 yaml = YAML(typ='safe')  ## default, if not specified, is 'rt' (round-trip)
 
@@ -37,7 +37,7 @@ class ExtendedCursor:
         return method
 
 
-class Sqlite:
+class Sqlite:  ## TODO kill once Source takes over everywhere
 
     def __init__(self, database: Path):
         self.database = database
@@ -52,9 +52,9 @@ class Sqlite:
         self.con.close()
 
 
-def _yaml_to_db_spec(*, db_name: str, yaml_dict: dict[str, str]) -> DbSpec:
+def _yaml_to_dbe_spec(*, yaml_dict: dict[str, str]) -> DbeSpec:
     y = yaml_dict
-    return DbSpec(
+    return DbeSpec(
         if_clause=y['if_clause'],
         placeholder=y['placeholder'],
         left_obj_quote=y['left_obj_quote'],
@@ -66,8 +66,8 @@ def _yaml_to_db_spec(*, db_name: str, yaml_dict: dict[str, str]) -> DbSpec:
         summable=y['summable'],
     )
 
-std_db_name2spec = {
-    DbName.SQLITE: DbSpec(
+std_dbe_name2spec = {
+    DbeName.SQLITE: DbeSpec(
             if_clause='CASE WHEN %s THEN %s ELSE %s END',
             placeholder='?',
             left_obj_quote='`',
@@ -80,27 +80,27 @@ std_db_name2spec = {
         )
 }
 
-def _get_std_db_spec(db_name: DbName | str) -> DbSpec:
-    return std_db_name2spec.get(db_name)
+def _get_std_dbe_spec(dbe_name: DbeName | str) -> DbeSpec:
+    return std_dbe_name2spec.get(dbe_name)
 
-def get_db_spec(db_name: str, *, debug=False) -> DbSpec:
-    db_spec = _get_std_db_spec(db_name)
+def get_db_spec(dbe_name: str, *, debug=False) -> DbeSpec:
+    db_spec = _get_std_db_spec(dbe_name)
     if not db_spec:
         ## look for custom YAML file
-        yaml_fpath = CUSTOM_DBS_FOLDER / f"{db_name}.yaml"
+        yaml_fpath = CUSTOM_DBS_FOLDER / f"{dbe_name}.yaml"
         try:
             yaml_dict = yaml.load(yaml_fpath)
         except FileNotFoundError as e:
-            e.add_note(f"Unable to open {yaml_fpath} to extract db specification for '{db_name}'")
+            e.add_note(f"Unable to open {yaml_fpath} to extract database engine specification for '{dbe_name}'")
             raise
         except Exception as e:
-            e.add_note(f"Experienced a problem extracting db information from '{yaml_fpath}'")
+            e.add_note(f"Experienced a problem extracting database engine information from '{yaml_fpath}'")
             raise
         else:
             if debug: print(yaml_dict)
             try:
-                db_spec = _yaml_to_db_spec(db_name=db_name, yaml_dict=yaml_dict)
+                dbe_spec = _yaml_to_dbe_spec(yaml_dict=yaml_dict)
             except KeyError as e:
-                e.add_note(f"Unable to create db spec from '{yaml_fpath}'")
+                e.add_note(f"Unable to create database engine spec from '{yaml_fpath}'")
                 raise
-    return db_spec
+    return dbe_spec
