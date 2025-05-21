@@ -82,7 +82,7 @@ def get_multi_series_boxplot() -> MultiSeriesBoxplotChartSpec:
         tbl_filt_clause=None,
         cur=None,
         category_sort_order=SortOrder.LABEL,
-        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
+        boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
         show_n_records=True,
         x_axis_font_size=12,
         dp=3,

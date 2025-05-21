@@ -312,7 +312,7 @@ def boxplot_chart():
         tbl_filt_clause=None,
         cur=None,
         category_sort_order=SortOrder.LABEL,
-        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
+        boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
         show_n_records=True,
         x_axis_font_size=12,
         dp=3,
@@ -331,7 +331,7 @@ def multi_series_boxplot():
         tbl_name='demo_tbl',
         tbl_filt_clause=None,
         category_sort_order=SortOrder.LABEL,
-        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
+        boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
         show_n_records=True,
         x_axis_font_size=12,
         dp=3,
@@ -351,7 +351,7 @@ def multi_series_boxplot_from_csv():
         tbl_name='demo_tbl_from_csv',
         tbl_filt_clause=None,
         category_sort_order=SortOrder.LABEL,
-        boxplot_type=BoxplotType.IQR_1_PT_5_OR_INSIDE,
+        boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
         show_n_records=True,
         x_axis_font_size=12,
         dp=3,
@@ -378,5 +378,5 @@ if __name__ == '__main__':
     # histogram_chart()
     # multi_chart_histogram()
     # boxplot_chart()
-    # multi_series_boxplot()
-    multi_series_boxplot_from_csv()
+    multi_series_boxplot()
+    # multi_series_boxplot_from_csv()

@@ -138,7 +138,7 @@ def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         tbl_filt_clause: str | None = None,
         category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE,
-        boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE) -> BoxplotCategoryValsSpecs:
+        boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR) -> BoxplotCategoryValsSpecs:
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
@@ -232,7 +232,7 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         series_vals2lbls: dict | None = None,
         category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE,
-        boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE) -> BoxplotSeriesCategoryValsSpecs:
+        boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR) -> BoxplotSeriesCategoryValsSpecs:
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare clauses
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''

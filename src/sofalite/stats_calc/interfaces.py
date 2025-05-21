@@ -200,14 +200,14 @@ class SortOrder(StrEnum):
     DECREASING = 'by decreasing frequency'
 
 class BoxplotType(StrEnum):
-    MIN_MAX_WHISKERS = 'min_max_whiskers'
-    HIDE_OUTLIERS = 'hide_outliers'
-    IQR_1_PT_5_OR_INSIDE = '1.5 IQR or inside'
+    MIN_MAX_WHISKERS = 'min-max whiskers'
+    HIDE_OUTLIERS = 'hide outliers'
+    INSIDE_1_POINT_5_TIMES_IQR = 'IQR-based'  ## Inside 1.5 x Inter-Quartile Range
 
 @dataclass(frozen=False)
 class BoxResult:
     vals: Sequence[float]
-    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+    boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR
 
     def __post_init__(self):
         """
@@ -233,7 +233,7 @@ class BoxResult:
             self.bottom_whisker = get_bottom_whisker(raw_bottom_whisker, self.box_bottom, self.vals)
             self.top_whisker = get_top_whisker(raw_top_whisker, self.box_top, self.vals)
         ## outliers
-        if self.boxplot_type == BoxplotType.IQR_1_PT_5_OR_INSIDE:
+        if self.boxplot_type == BoxplotType.INSIDE_1_POINT_5_TIMES_IQR:
             self.outliers = [x for x in self.vals
                 if x < self.bottom_whisker or x > self.top_whisker]
         else:

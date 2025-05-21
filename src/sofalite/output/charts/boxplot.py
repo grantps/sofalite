@@ -368,7 +368,7 @@ class BoxplotChartSpec:
     tbl_filt_clause: str | None = None
     cur: Any | None = None
     category_sort_order: SortOrder = SortOrder.VALUE
-    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+    boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR
     rotate_x_lbls: bool = False
     show_n_records: bool = True
     x_axis_font_size: int = 12
@@ -416,25 +416,30 @@ class BoxplotChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
+from pathlib import Path
+
 @dataclass(frozen=False)
 class MultiSeriesBoxplotChartSpec(Source):
-    style_name: str = ''
-    series_fld_name: str = ''
-    category_fld_name: str = ''
-    fld_name: str = ''
+    style_name: str
+    series_fld_name: str
+    category_fld_name: str
+    fld_name: str
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
+    cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    tbl_name: str | None = None
+
     tbl_filt_clause: str | None = None
     category_sort_order: SortOrder = SortOrder.VALUE
-    boxplot_type: BoxplotType = BoxplotType.IQR_1_PT_5_OR_INSIDE
+    boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR
     rotate_x_lbls: bool = False
     show_n_records: bool = True
     x_axis_font_size: int = 12
     dp: int = 3
-
-    def __post_init__(self):
-        Source.__post_init__(self)
-        if not all([self.style_name, ]):
-            raise ValueError("Must supply all of the following with values - currently: "
-                f"{self.style_name=}; {self.series_fld_name=}; {self.category_fld_name=}; {self.fld_name=}.")
 
     def to_html_spec(self) -> HTMLItemSpec:
         # style

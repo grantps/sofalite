@@ -37,7 +37,7 @@ class ExtendedCursor:
         return method
 
 
-class Sqlite:  ## TODO kill once Source takes over everywhere
+class Sqlite:  ## TODO kill once Source takes over everywhere (get rid of local_cur etc)
 
     def __init__(self, database: Path):
         self.database = database

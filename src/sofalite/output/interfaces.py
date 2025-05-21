@@ -2,6 +2,7 @@
 Note - output.utils.get_report() replies on the template param names here so keep aligned.
 Not worth formally aligning them given how easy to do manually and how static.
 """
+from abc import ABC
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -20,13 +21,38 @@ from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_sp
 from sofalite.utils.misc import get_safer_name
 
 @dataclass(frozen=False)
-class Source:
+class Source(ABC):
+    """
+    Output classes (e.g. MultiSeriesBoxplotChartSpec) inherit from Source
+    but only to enforce validation and fill in attributes (e.g. setting dbe_name to SQLite where appropriate)
+    via __post_init__.
+
+    Originally, the common attributes:
+
     csv_fpath: Path | None = None
     csv_separator: str = ','
     overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
     dbe_name: str | None = None  ## database engine name
     tbl_name: str | None = None
+
+    were here in the Source class and not in the output classes. Following the DRY principle.
+    But because these Source attributes had defaults it forced us to give defaults to mandatory output class attributes
+    and rely on output class __post_init__ to enforce them being supplied. Ugly.
+
+    Instead, the decision was to force every output class to repeat the source attributes and their defaults.
+    This sacrifices DRY but the copying and pasting is not hard, and it would be easy to make updates across the project
+    if ever needed because we just look for inheritance from Source. So not a practical problem.
+
+    At least, using the approach finally adopted, the signatures of the output classes are complete
+    and include the Source attributes with their defaults.
+    This makes it easier for end users to understand what is required.
+    And nothing is required but strings and booleans which makes using the output class easy for end users..
+
+    Alternative approaches in which we avoided inheritance were rejected
+    as the output classes are the end-user interface, and we don't want to make the end user craft special objects
+    (e.g. a source_spec object) to supply as an attribute to the output class.
+    """
 
     def __post_init__(self):
         """
