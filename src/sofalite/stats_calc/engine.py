@@ -13,6 +13,7 @@ import math
 
 import numpy as np
 
+from sofalite import logger
 from sofalite.conf.main import MAX_RANK_DATA_VALS
 from sofalite.stats_calc.interfaces import (
     AnovaResult,

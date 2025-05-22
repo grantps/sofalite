@@ -132,7 +132,7 @@ class BoxplotCategoryValsSpecs:
         )
         return indiv_chart_spec
 
-def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None,
@@ -148,7 +148,7 @@ def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         `{category_fld_name}` AS
       category_val,
       `{fld_name}`
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{category_fld_name}` IS NOT NULL
     AND `{fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -224,7 +224,7 @@ class BoxplotSeriesCategoryValsSpecs:
         )
         return indiv_chart_spec
 
-def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
@@ -244,7 +244,7 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         `{category_fld_name}` AS
       category_val,
       `{fld_name}`
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{series_fld_name}` IS NOT NULL
     AND `{category_fld_name}` IS NOT NULL
     AND `{fld_name}` IS NOT NULL

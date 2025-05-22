@@ -7,12 +7,11 @@ from sofalite.output.stats.ttest_indep import TTestIndepSpec
 def run_anova():
     stats = AnovaSpec(
         style_name='default', #'prestige_screen',
-        tbl_name='demo_tbl',
         grouping_fld_name='country',
         group_vals=[1, 2, 3],
         measure_fld_name='age',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         high_precision_required=False,
         dp=3,
     )
@@ -24,7 +23,7 @@ def run_anova():
 def run_ttest_indep():
     stats = TTestIndepSpec(
         style_name='default',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         grouping_fld_name='gender',
         group_a_val=1,
         group_b_val=2,
@@ -39,5 +38,5 @@ def run_ttest_indep():
 
 if __name__ == '__main__':
     pass
-    run_anova()
-    run_ttest_indep()
+    # run_anova()
+    # run_ttest_indep()

@@ -26,11 +26,10 @@ class ExtendedCursor:
             self.cur.execute(sql)
         except Exception as e:
             raise Exception(dedent(f"""
-            Error: {e}
+Error: {e}
 
-            Original SQL:
-            {sql}
-            """))
+Original SQL:
+{sql}"""))
 
     def __getattr__(self, method_name):  ## delegate everything to real cursor
         method = getattr(self.cur, method_name)

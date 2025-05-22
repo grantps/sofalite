@@ -7,8 +7,9 @@ from matplotlib import rcParams as mpl_settings
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
+from sofalite import logger
 from sofalite.stats_calc.engine import get_normal_ys, get_regression_result
-from sofalite.output.charts.histogram import HistogramConf, HistogramData
+from sofalite.output.charts.histogram import HistogramConf
 from sofalite.output.charts.scatterplot import ScatterplotConf, ScatterplotSeries
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
 

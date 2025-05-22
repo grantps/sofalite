@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
-from sofalite.data_extraction.db import Sqlite
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.tables.interfaces import BLANK, DimSpec, PctType
 from sofalite.output.styles.utils import get_style_spec
 from sofalite.output.tables.utils.html_fixes import fix_top_left_box, merge_cols_of_blanks
@@ -120,14 +120,21 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     return df
 
 
-@dataclass(frozen=True, kw_only=True)
-class FreqTblSpec:
+@dataclass(frozen=False, kw_only=True)
+class FreqTblSpec(Source):
     style_name: str
-    src_tbl: str
     row_specs: list[DimSpec]
     var_labels: VAR_LABELS
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
     tbl_filt_clause: str | None = None
+
     inc_col_pct: bool = False
     dp: int = 3
     debug: bool = False
@@ -150,6 +157,7 @@ class FreqTblSpec:
         return max_depth
 
     def __post_init__(self):
+        Source.__post_init__(self)
         row_vars = [spec.var for spec in self.row_specs]
         row_dupes = set()
         seen = set()
@@ -168,7 +176,7 @@ class FreqTblSpec:
         row_spec = self.row_specs[row_idx]
         totalled_variables = row_spec.self_and_descendant_totalled_vars
         row_vars = row_spec.self_and_descendant_vars
-        data = get_data_from_spec(cur, src_tbl=self.src_tbl, tbl_filt_clause=self.tbl_filt_clause,
+        data = get_data_from_spec(cur, src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             all_variables=row_vars, totalled_variables=totalled_variables, debug=self.debug)
         n_row_fillers = self.max_row_depth - len(row_vars)
         df = get_all_metrics_df_from_vars(
@@ -188,7 +196,7 @@ class FreqTblSpec:
         df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
         if self.debug: print(f"\nCOMBINED:\n{df}")
         ## Sorting indexes
-        raw_df = get_raw_df(cur, src_tbl=self.src_tbl)
+        raw_df = get_raw_df(cur, src_tbl_name=self.src_tbl_name)
         order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(self.row_specs)
         ## ROWS
         unsorted_row_multi_index_list = list(df.index)
@@ -206,12 +214,7 @@ class FreqTblSpec:
 
     def to_html_spec(self) -> HTMLItemSpec:
         get_tbl_df_for_cur = partial(self.get_tbl_df)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                df = get_tbl_df_for_cur(cur)
-        else:
-            df = get_tbl_df_for_cur(self.cur)
+        df = get_tbl_df_for_cur(self.cur)
         pd_styler = set_table_styles(df.style)
         style_spec = get_style_spec(style_name=self.style_name)
         pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')

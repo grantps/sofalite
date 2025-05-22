@@ -1,18 +1,18 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Literal
 import uuid
 
 import jinja2
 
-from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS, INTERNAL_DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import HISTO_AVG_CHAR_WIDTH_PIXELS, VAR_LABELS
 from sofalite.data_extraction.charts.histogram import (
     HistoIndivChartSpec, get_by_chart_charting_spec, get_by_vals_charting_spec)
-from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_style_spec
 from sofalite.utils.maths import format_num
@@ -278,13 +278,20 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     html_result = template.render(context)
     return html_result
 
-@dataclass(frozen=True)
-class HistogramChartSpec:
+@dataclass(frozen=False)
+class HistogramChartSpec(Source):
     style_name: str
     fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_borders: bool = False
     show_n_records: bool = True
     show_normal_curve: bool = True
@@ -298,13 +305,8 @@ class HistogramChartSpec:
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         get_by_vals_charting_spec_for_cur = partial(get_by_vals_charting_spec,
-            tbl_name=self.tbl_name, fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_vals_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
+            src_tbl_name=self.src_tbl_name, fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
+        intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
         ## charts details
@@ -328,14 +330,21 @@ class HistogramChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiChartHistogramChartSpec:
+@dataclass(frozen=False)
+class MultiChartHistogramChartSpec(Source):
     style_name: str
     chart_fld_name: str
     fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_borders: bool = False
     show_n_records: bool = True
     show_normal_curve: bool = True
@@ -351,17 +360,12 @@ class MultiChartHistogramChartSpec:
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         get_by_chart_charting_spec_for_cur = partial(get_by_chart_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_chart_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_chart_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_chart_charting_spec_for_cur(self.cur)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
         ## charts details

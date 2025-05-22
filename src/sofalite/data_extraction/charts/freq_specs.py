@@ -440,7 +440,7 @@ class ChartSeriesCategoryFreqSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE, tbl_filt_clause: str | None = None) -> CategoryFreqSpecs:
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
@@ -453,9 +453,9 @@ def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
       category_val,
         COUNT(*) AS
       freq,
-        (100.0 * COUNT(*)) / (SELECT COUNT(*) FROM `{tbl_name}`) AS
+        (100.0 * COUNT(*)) / (SELECT COUNT(*) FROM `{src_tbl_name}`) AS
       raw_category_pct
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{category_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
     GROUP BY `{category_fld_name}`
@@ -478,7 +478,7 @@ def get_by_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         series_vals2lbls: dict | None,
@@ -501,11 +501,11 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{tbl_name}`
+          FROM `{src_tbl_name}`
           WHERE `{series_fld_name}` = src.{series_fld_name}
         )) AS
       raw_category_pct
-    FROM {tbl_name} AS src
+    FROM {src_tbl_name} AS src
     WHERE `{series_fld_name}` IS NOT NULL
     AND `{category_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -545,7 +545,7 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_vals2lbls: dict | None,
@@ -568,11 +568,11 @@ def get_by_chart_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{tbl_name}`
+          FROM `{src_tbl_name}`
           WHERE `{chart_fld_name}` = src.{chart_fld_name}
         )) AS
       raw_category_pct
-    FROM {tbl_name} AS src
+    FROM {src_tbl_name} AS src
     WHERE `{chart_fld_name}` IS NOT NULL
     AND `{category_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -612,7 +612,7 @@ def get_by_chart_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return charting_spec
 
-def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
          series_fld_name: str, series_fld_lbl: str,
          category_fld_name: str, category_fld_lbl: str,
@@ -640,12 +640,12 @@ def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, tbl_name: st
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{tbl_name}`
+          FROM `{src_tbl_name}`
           WHERE `{chart_fld_name}` = src.{chart_fld_name}
           AND `{series_fld_name}` = src.{series_fld_name}
         )) AS
       raw_category_pct
-    FROM {tbl_name} AS src
+    FROM {src_tbl_name} AS src
     WHERE `{chart_fld_name}` IS NOT NULL
     AND `{series_fld_name}` IS NOT NULL
     AND `{category_fld_name}` IS NOT NULL
@@ -695,7 +695,7 @@ def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, tbl_name: st
     )
     return data_spec
 
-def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
+def get_freq_specs(cur: ExtendedCursor, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_fld_name: str | None = None, chart_fld_lbl: str | None = None,
         series_fld_name: str | None = None, series_fld_lbl: str | None = None,
@@ -711,13 +711,13 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
     if chart_fld_name is None:  ## no chart
         if series_fld_name is None:  ## no series (so category only)
             data_spec = get_by_category_charting_spec(
-                cur=cur, tbl_name=tbl_name,
+                cur=cur, src_tbl_name=src_tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 category_vals2lbls=category_vals2lbls,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## series and category
             data_spec = get_by_series_category_charting_spec(
-                cur=cur, tbl_name=tbl_name,
+                cur=cur, src_tbl_name=src_tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
                 series_vals2lbls=series_vals2lbls,
@@ -726,7 +726,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
     else:  ## chart
         if series_fld_name is None:  ## chart and category only (no series)
             data_spec = get_by_chart_category_charting_spec(
-                cur=cur, tbl_name=tbl_name,
+                cur=cur, src_tbl_name=src_tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 chart_vals2lbls=chart_vals2lbls,
@@ -734,7 +734,7 @@ def get_freq_specs(cur: ExtendedCursor, tbl_name: str,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## chart, series, and category
             data_spec = get_by_chart_series_category_charting_spec(
-                cur=cur, tbl_name=tbl_name,
+                cur=cur, src_tbl_name=src_tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,

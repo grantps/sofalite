@@ -7,14 +7,14 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 import sqlite3 as sqlite
-from typing import Any, Protocol
+from typing import Protocol
 
 import jinja2
 import pandas as pd
 
 from sofalite import SQLITE_DB, logger
 from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbeName
-from sofalite.data_extraction.db import ExtendedCursor, get_db_spec
+from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
@@ -34,7 +34,7 @@ class Source(ABC):
     overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
     dbe_name: str | None = None  ## database engine name
-    tbl_name: str | None = None
+    src_tbl_name: str | None = None
 
     were here in the Source class and not in the output classes. Following the DRY principle.
     But because these Source attributes had defaults it forced us to give defaults to mandatory output class attributes
@@ -74,26 +74,26 @@ class Source(ABC):
                 SQLITE_DB['sqlite_default_cur'] = ExtendedCursor(SQLITE_DB['sqlite_default_con'].cursor())
             self.cur = SQLITE_DB['sqlite_default_cur']
             self.dbe_name = DbeName.SQLITE
-            if not self.tbl_name:
-                self.tbl_name = get_safer_name(self.csv_fpath.stem)
+            if not self.src_tbl_name:
+                self.src_tbl_name = get_safer_name(self.csv_fpath.stem)
             ## ingest CSV into database
             df = pd.read_csv(self.csv_fpath, sep=self.csv_separator)
             if_exists = 'replace' if self.overwrite_csv_derived_tbl_if_there else 'fail'
             try:
-                df.to_sql(self.tbl_name, SQLITE_DB['sqlite_default_con'], if_exists=if_exists, index=False)
+                df.to_sql(self.src_tbl_name, SQLITE_DB['sqlite_default_con'], if_exists=if_exists, index=False)
             except Exception as e:  ## TODO: supply more specific exception
                 logger.info(f"Failed at attempt to ingest CSV from '{self.csv_fpath}' "
-                    f"into internal pysofa SQLite database as table '{self.tbl_name}'.\nError: {e}")
+                    f"into internal pysofa SQLite database as table '{self.src_tbl_name}'.\nError: {e}")
             else:
                 logger.info(f"Successfully ingested CSV from '{self.csv_fpath}' "
-                    f"into internal pysofa SQLite database as table '{self.tbl_name}'")
+                    f"into internal pysofa SQLite database as table '{self.src_tbl_name}'")
         elif self.cur:
             self.cur = ExtendedCursor(self.cur)
             if not self.dbe_name:
                 raise Exception("When supplying a cursor, a dbe_name (database engine name) must also be supplied")
-            if not self.tbl_name:
+            if not self.src_tbl_name:
                 raise Exception("When supplying a cursor, a tbl_name must also be supplied")
-        elif self.tbl_name:
+        elif self.src_tbl_name:
             if not SQLITE_DB.get('sqlite_default_cur'):
                 SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
                 SQLITE_DB['sqlite_default_cur'] = ExtendedCursor(SQLITE_DB['sqlite_default_con'].cursor())

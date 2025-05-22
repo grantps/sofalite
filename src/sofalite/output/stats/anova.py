@@ -1,12 +1,12 @@
 from collections.abc import Collection
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import jinja2
 
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
-from sofalite.data_extraction.db import Sqlite
+from sofalite.conf.main import VAR_LABELS
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.stats.anova import get_results
 from sofalite.data_extraction.stats.msgs import (
@@ -16,7 +16,7 @@ from sofalite.data_extraction.stats.msgs import (
     skew_explain, std_dev_explain,
 )
 from sofalite.output.charts import mpl_pngs
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
@@ -190,15 +190,22 @@ def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int, s
     html = template.render(context)
     return html
 
-@dataclass(frozen=True)
-class AnovaSpec:
+@dataclass(frozen=False)
+class AnovaSpec(Source):
     style_name: str
-    tbl_name: str
     grouping_fld_name: str
     group_vals: Collection[Any]
     measure_fld_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     high_precision_required: bool = True
     dp: int = 3
 
@@ -214,19 +221,14 @@ class AnovaSpec:
         ## data
         grouping_val_is_numeric = all(is_numeric(x) for x in self.group_vals)
         get_results_for_cur = partial(get_results,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             grouping_fld_vals_spec=grouping_fld_vals_spec,
             grouping_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl,
             high_precision_required=self.high_precision_required,
         )
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                results = get_results_for_cur(cur)
-        else:
-            results = get_results_for_cur(self.cur)
+        results = get_results_for_cur(self.cur)
         html = make_anova_html(results, style_spec, dp=self.dp, show_workings=False)
         return HTMLItemSpec(
             html_item_str=html,

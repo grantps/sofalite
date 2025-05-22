@@ -20,11 +20,10 @@ def run_main_poc_cross_tab():
 
     tbl = CrossTabTblSpec(
         style_name='default',  #'default', 'two_degrees', 'grey_spirals'
-        src_tbl='demo_cross_tab',
         row_specs=[row_spec_0, row_spec_1, row_spec_2],
         col_specs=[col_spec_0, col_spec_1, col_spec_2],
         var_labels=VAR_LABELS,
-        cur=None,
+        src_tbl_name='demo_cross_tab',
         tbl_filt_clause="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
         dp=2,
         debug=False,
@@ -49,11 +48,10 @@ def run_repeat_level_two_row_var_cross_tab():
 
     tbl = CrossTabTblSpec(
         style_name='grey_spirals',  #'default', 'two_degrees', 'grey_spirals'
-        src_tbl='demo_cross_tab',
         row_specs=[row_spec_0, row_spec_1, ],
         col_specs=[col_spec_0, ],
         var_labels=VAR_LABELS,
-        cur=None,
+        src_tbl_name='demo_cross_tab',
         tbl_filt_clause="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
         dp=2,
         debug=False,
@@ -71,10 +69,9 @@ def run_simple_freq_tbl():
 
     tbl = FreqTblSpec(
         style_name='grey_spirals',  # 'default', 'two_degrees', 'grey_spirals'
-        src_tbl='demo_cross_tab',
+        src_tbl_name='demo_cross_tab',
         row_specs=[row_spec_0, row_spec_1, ],
         var_labels=VAR_LABELS,
-        cur=None,
         tbl_filt_clause="WHERE browser NOT IN ('Internet Explorer', 'Opera', 'Safari') AND car IN (2, 3, 11)",
         inc_col_pct=True,
         dp=3,
@@ -88,6 +85,6 @@ def run_simple_freq_tbl():
 
 if __name__ == '__main__':
     pass
-    run_main_poc_cross_tab()
-    run_repeat_level_two_row_var_cross_tab()
-    run_simple_freq_tbl()
+    # run_main_poc_cross_tab()
+    # run_repeat_level_two_row_var_cross_tab()
+    # run_simple_freq_tbl()

@@ -25,9 +25,8 @@ def simple_bar_chart():
     chart = SimpleBarChartSpec(
         style_name='default', #'prestige_screen',
         category_fld_name='browser',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.VALUE,
         legend_lbl=None,
         rotate_x_lbls=False,
@@ -45,9 +44,8 @@ def simple_bar_chart_lots_of_x_vals():
     chart = SimpleBarChartSpec(
         style_name='prestige_screen',
         category_fld_name='car',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.VALUE,
         legend_lbl=None,
         rotate_x_lbls=False,
@@ -57,7 +55,7 @@ def simple_bar_chart_lots_of_x_vals():
         y_axis_title='Freq',
     )
     html_item_spec = chart.to_html_spec()
-    fpath = Path('/home/g/Documents/sofalite/reports/test_simple_bar_chart_from_item.html')
+    fpath = Path('/home/g/Documents/sofalite/reports/test_simple_bar_chart_with_lots_of_x_vals.html')
     html_item_spec.to_file(fpath, 'Simple Bar Chart - Lots of x values')
     open_new_tab(url=f"file://{fpath}")
 
@@ -66,9 +64,8 @@ def multi_bar_chart():
         style_name='default',
         chart_fld_name='country',
         category_fld_name='gender',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.VALUE,
         legend_lbl=None,
         rotate_x_lbls=False,
@@ -87,9 +84,8 @@ def clustered_bar_chart():
         style_name='default',
         series_fld_name='country',
         category_fld_name='gender',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.LABEL,
         rotate_x_lbls=False,
         show_borders=False,
@@ -108,9 +104,8 @@ def multi_clustered_bar_chart():
         chart_fld_name='country',
         series_fld_name='gender',
         category_fld_name='browser',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.LABEL,
         rotate_x_lbls=False,
         show_borders=False,
@@ -128,9 +123,8 @@ def multi_line_chart():
         style_name='default',
         series_fld_name='country',
         category_fld_name='browser',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.LABEL,
         is_time_series=False,
         show_major_ticks_only=True,
@@ -152,9 +146,8 @@ def area_chart():
         style_name='default',
         chart_fld_name='country',
         category_fld_name='browser',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.LABEL,
         is_time_series=False,
         show_major_ticks_only=True,
@@ -174,9 +167,8 @@ def pie_chart():
         style_name='default',
         chart_fld_name='country',
         category_fld_name='browser',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.VALUE,
         legend_lbl=None,
         rotate_x_lbls=False,
@@ -195,9 +187,8 @@ def single_series_scatterplot():
         style_name='default',
         x_fld_name='age',
         y_fld_name='weight',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
@@ -214,9 +205,8 @@ def multi_series_scatterplot():
         series_fld_name='gender',
         x_fld_name='age',
         y_fld_name='weight',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
@@ -233,9 +223,8 @@ def multi_chart_scatterplot():
         chart_fld_name='gender',
         x_fld_name='age',
         y_fld_name='weight',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
@@ -253,9 +242,8 @@ def multi_chart_series_scatterplot():
         series_fld_name='country',
         x_fld_name='age',
         y_fld_name='weight',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_dot_borders=True,
         show_n_records=True,
         show_regression_line=True,
@@ -270,9 +258,8 @@ def histogram_chart():
     chart = HistogramChartSpec(
         style_name='default',
         fld_name='age',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
@@ -289,9 +276,8 @@ def multi_chart_histogram():
         style_name='default',
         chart_fld_name='gender',
         fld_name='age',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         show_borders=False,
         show_n_records=True,
         show_normal_curve=True,
@@ -308,9 +294,8 @@ def boxplot_chart():
         style_name='default',
         category_fld_name='browser',
         fld_name='age',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
-        cur=None,
         category_sort_order=SortOrder.LABEL,
         boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
         show_n_records=True,
@@ -328,7 +313,7 @@ def multi_series_boxplot():
         series_fld_name='gender',
         category_fld_name='country',
         fld_name='age',
-        tbl_name='demo_tbl',
+        src_tbl_name='demo_tbl',
         tbl_filt_clause=None,
         category_sort_order=SortOrder.LABEL,
         boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
@@ -337,7 +322,7 @@ def multi_series_boxplot():
         dp=3,
     )
     html_item_spec = chart.to_html_spec()
-    fpath = Path('/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_item.html')
+    fpath = Path('/home/g/Documents/sofalite/reports/test_multiseries_boxplot.html')
     html_item_spec.to_file(fpath, 'Multi-Series Boxplot')
     open_new_tab(url=f"file://{fpath}")
 
@@ -348,7 +333,7 @@ def multi_series_boxplot_from_csv():
         category_fld_name='country',
         fld_name='age',
         csv_fpath=Path("/home/g/Documents/sofalite/_internal/demo_tbl.csv"),
-        tbl_name='demo_tbl_from_csv',
+        src_tbl_name='demo_tbl_from_csv',
         tbl_filt_clause=None,
         category_sort_order=SortOrder.LABEL,
         boxplot_type=BoxplotType.INSIDE_1_POINT_5_TIMES_IQR,
@@ -357,7 +342,7 @@ def multi_series_boxplot_from_csv():
         dp=3,
     )
     html_item_spec = chart.to_html_spec()
-    fpath = Path('/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_item.html')
+    fpath = Path('/home/g/Documents/sofalite/reports/test_multiseries_boxplot_from_csv.html')
     html_item_spec.to_file(fpath, 'Multi-Series Boxplot')
     open_new_tab(url=f"file://{fpath}")
 
@@ -378,5 +363,5 @@ if __name__ == '__main__':
     # histogram_chart()
     # multi_chart_histogram()
     # boxplot_chart()
-    multi_series_boxplot()
+    # multi_series_boxplot()
     # multi_series_boxplot_from_csv()

@@ -105,7 +105,7 @@ class ChartSeriesXYSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
@@ -116,7 +116,7 @@ def get_by_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
     SELECT
         `{x_fld_name}` AS x,
         `{y_fld_name}` AS y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{x_fld_name}` IS NOT NULL
     AND `{y_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -132,7 +132,7 @@ def get_by_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
@@ -147,7 +147,7 @@ def get_by_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         `{series_fld_name}` AS series_val,
         `{x_fld_name}` AS x,
         `{y_fld_name}` AS y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{x_fld_name}` IS NOT NULL
     AND `{y_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -174,7 +174,7 @@ def get_by_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
@@ -189,7 +189,7 @@ def get_by_chart_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         `{chart_fld_name}` AS charts_val,
         `{x_fld_name}` AS x,
         `{y_fld_name}` AS y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{x_fld_name}` IS NOT NULL
     AND `{y_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
@@ -215,7 +215,7 @@ def get_by_chart_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
@@ -234,7 +234,7 @@ def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, tbl_name: str,
         `{series_fld_name}` AS series_val,
         `{x_fld_name}` AS x,
         `{y_fld_name}` AS y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{x_fld_name}` IS NOT NULL
     AND `{y_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}

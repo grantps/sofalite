@@ -89,7 +89,7 @@ class HistoValsSpecs:
         x_axis_max_val = bin_spec.upper_limit
         return x_axis_min_val, x_axis_max_val
 
-def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_vals_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None) -> HistoValsSpec:
     ## prepare clauses
@@ -98,7 +98,7 @@ def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,
     sql = f"""\
     SELECT
         `{fld_name}` AS y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
     """
@@ -114,7 +114,7 @@ def get_by_vals_charting_spec(cur: ExtendedCursor, tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_charting_spec(cur: ExtendedCursor, tbl_name: str,
+def get_by_chart_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         chart_vals2lbls: dict | None,
@@ -127,7 +127,7 @@ def get_by_chart_charting_spec(cur: ExtendedCursor, tbl_name: str,
       {chart_fld_name},
         `{fld_name}` AS
       y
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{chart_fld_name}` IS NOT NULL
     AND `{fld_name}` IS NOT NULL
     {and_tbl_filt_clause}

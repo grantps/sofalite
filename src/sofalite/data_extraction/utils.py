@@ -3,7 +3,7 @@ from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.stats_calc.interfaces import Sample
 
 def get_sample(cur: ExtendedCursor,
-        tbl_name: str,
+        src_tbl_name: str,
         grouping_filt_fld_name: str, grouping_filt_val_spec: ValSpec, grouping_filt_val_is_numeric: bool,
         measure_fld_name: str,
         tbl_filt_clause: str | None = None) -> Sample:
@@ -40,7 +40,7 @@ def get_sample(cur: ExtendedCursor,
     ## assemble SQL
     sql = f"""
     SELECT `{measure_fld_name}`
-    FROM {tbl_name}
+    FROM {src_tbl_name}
     WHERE `{measure_fld_name}` IS NOT NULL
     {and_tbl_filt_clause}
     {and_grouping_filt_clause}

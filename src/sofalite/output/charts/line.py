@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from statistics import median
 from typing import Any
 import uuid
@@ -8,15 +9,14 @@ import uuid
 import jinja2
 
 from sofalite import logger
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import VAR_LABELS
 from sofalite.data_extraction.charts.freq_specs import get_by_series_category_charting_spec
-from sofalite.data_extraction.db import Sqlite
 from sofalite.data_extraction.interfaces import DataSeriesSpec
 from sofalite.output.charts.common import (
     get_common_charting_spec, get_html, get_indiv_chart_html, get_line_area_misc_spec)
 from sofalite.output.charts.interfaces import (
     DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec, LineArea, LineChartingSpec, PlotStyle)
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
@@ -247,14 +247,21 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     html_result = template.render(context)
     return html_result
 
-@dataclass(frozen=True)
-class MultiLineChartSpec:
+@dataclass(frozen=False)
+class MultiLineChartSpec(Source):
     style_name: str
     series_fld_name: str
     category_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     is_time_series: bool = False
     show_major_ticks_only: bool = True
@@ -276,18 +283,13 @@ class MultiLineChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()

@@ -1,23 +1,23 @@
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Literal
 import uuid
 
 import jinja2
 
 from sofalite.conf.main import (
-    AVG_CHAR_WIDTH_PIXELS, INTERNAL_DATABASE_FPATH, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS)
+    AVG_CHAR_WIDTH_PIXELS, MIN_CHART_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS)
 from sofalite.data_extraction.charts.freq_specs import (get_by_category_charting_spec,
     get_by_chart_category_charting_spec, get_by_chart_series_category_charting_spec,
     get_by_series_category_charting_spec)
-from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import (
     ChartingSpecAxes, DojoSeriesSpec, IndivChartSpec, JSBool, LeftMarginOffsetSpec)
 from sofalite.output.charts.utils import (get_axis_lbl_drop, get_left_margin_offset, get_height,
     get_x_axis_lbls_val_and_text, get_x_axis_font_size, get_y_axis_title_offset)
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.stats_calc.interfaces import SortOrder
@@ -29,13 +29,20 @@ MIN_CLUSTER_WIDTH_PIXELS = 60
 PADDING_PIXELS = 35
 DOJO_MINOR_TICKS_NEEDED_PER_X_ITEM = 10  ## whatever works. Tested on cluster of Age vs Cars
 
-@dataclass(frozen=True)
-class SimpleBarChartSpec:
+@dataclass(frozen=False)
+class SimpleBarChartSpec(Source):
     style_name: str
     category_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     legend_lbl: str | None = None,
     rotate_x_lbls: bool = False,
@@ -52,16 +59,11 @@ class SimpleBarChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             category_vals2lbls=category_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause, category_sort_order=SortOrder.VALUE)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
@@ -84,14 +86,21 @@ class SimpleBarChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiBarChartSpec:
+@dataclass(frozen=False)
+class MultiBarChartSpec(Source):
     style_name: str
     chart_fld_name: str
     category_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     legend_lbl: str | None = None,
     rotate_x_lbls: bool = False,
@@ -110,18 +119,13 @@ class MultiBarChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_chart_category_charting_spec_for_cur = partial(get_by_chart_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=SortOrder.LABEL,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_chart_category_charting_spec_for_cur(self.cur)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
@@ -144,14 +148,21 @@ class MultiBarChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class ClusteredBarChartSpec:
+@dataclass(frozen=False)
+class ClusteredBarChartSpec(Source):
     style_name: str
     series_fld_name: str
     category_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     rotate_x_lbls: bool = False,
     show_borders: bool = False,
@@ -169,18 +180,13 @@ class ClusteredBarChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()
@@ -203,15 +209,22 @@ class ClusteredBarChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiClusteredBarChartSpec:
+@dataclass(frozen=False)
+class MultiClusteredBarChartSpec(Source):
     style_name: str
     chart_fld_name: str
     series_fld_name: str
     category_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     rotate_x_lbls: bool = False,
     show_borders: bool = False,
@@ -231,19 +244,14 @@ class MultiClusteredBarChartSpec:
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         get_by_chart_series_category_charting_spec_for_cur = partial(get_by_chart_series_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             chart_vals2lbls=chart_vals2lbls, series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_chart_series_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_chart_series_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_chart_series_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()

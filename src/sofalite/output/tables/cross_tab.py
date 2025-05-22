@@ -20,14 +20,14 @@ But that's enough complexity. Anything more, better making multiple, individuall
 from dataclasses import dataclass
 from functools import partial
 from itertools import product
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import VAR_LABELS
 from sofalite.conf.var_labels import VarLabels
-from sofalite.data_extraction.db import Sqlite
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.utils import get_style_spec
 from sofalite.output.tables.interfaces import BLANK, DimSpec, Metric, PctType
 from sofalite.output.tables.utils.html_fixes import (
@@ -183,15 +183,22 @@ def get_all_metrics_df_from_vars(data, var_labels: VarLabels, *, row_vars: list[
     return df
 
 
-@dataclass(frozen=True, kw_only=True)
-class CrossTabTblSpec:
+@dataclass(frozen=False, kw_only=True)
+class CrossTabTblSpec(Source):
     style_name: str
-    src_tbl: str
     row_specs: list[DimSpec]
     col_specs: list[DimSpec]
     var_labels: VAR_LABELS
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
     tbl_filt_clause: str | None = None
+
     dp: int = 2
     debug: bool = False
     verbose: bool = False
@@ -234,6 +241,7 @@ class CrossTabTblSpec:
         return self._get_max_dim_depth(is_col=True)
 
     def __post_init__(self):
+        Source.__post_init__(self)
         row_dupes = CrossTabTblSpec._get_dupes([spec.var for spec in self.row_specs])
         if row_dupes:
             raise ValueError(f"Duplicate top-level variable(s) detected in row dimension - {sorted(row_dupes)}")
@@ -294,7 +302,7 @@ class CrossTabTblSpec:
             col_vars = col_spec.self_and_descendant_vars
             totalled_variables = row_spec.self_and_descendant_totalled_vars + col_spec.self_and_descendant_totalled_vars
             all_variables = row_vars + col_vars
-            data = get_data_from_spec(cur, src_tbl=self.src_tbl, tbl_filt_clause=self.tbl_filt_clause,
+            data = get_data_from_spec(cur, src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
                 all_variables=all_variables, totalled_variables=totalled_variables, debug=self.debug)
             df_col = get_all_metrics_df_from_vars(data, self.var_labels, row_vars=row_vars, col_vars=col_vars,
                 n_row_fillers=n_row_fillers, n_col_fillers=self.max_col_depth - len(col_vars),
@@ -363,7 +371,7 @@ class CrossTabTblSpec:
         df = df_t.T  ## re-transpose back so cols are cols and rows are rows again
         if self.debug: print(f"\nCOMBINED:\n{df}")
         ## Sorting indexes
-        raw_df = get_raw_df(cur, src_tbl=self.src_tbl, debug=self.debug)
+        raw_df = get_raw_df(cur, src_tbl_name=self.src_tbl_name, debug=self.debug)
         order_rules_for_multi_index_branches = get_order_rules_for_multi_index_branches(self.row_specs, self.col_specs)
         ## COLS
         unsorted_col_multi_index_list = list(df.columns)
@@ -383,12 +391,7 @@ class CrossTabTblSpec:
 
     def to_html_spec(self) -> HTMLItemSpec:
         get_tbl_df_for_cur = partial(self.get_tbl_df)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                df = get_tbl_df_for_cur(cur)
-        else:
-            df = get_tbl_df_for_cur(self.cur)
+        df = get_tbl_df_for_cur(self.cur)
         pd_styler = set_table_styles(df.style)
         style_spec = get_style_spec(style_name=self.style_name)
         pd_styler = apply_index_styles(df, style_spec, pd_styler, axis='rows')

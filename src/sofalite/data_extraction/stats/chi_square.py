@@ -26,7 +26,7 @@ def get_obs_exp(cur, tbl, tbl_filt, where_tbl_filt, and_tbl_filt, flds, fld_a, f
     GROUP BY {qfld_a}
     ORDER BY {qfld_a}
     """
-    cur.execute(SQL_row_vals_used)
+    cur.exe(SQL_row_vals_used)
     row_vals_used = cur.fetchall()
     vals_a = get_unique_dim_vals(row_vals_used, dbe, flds, fld_a)
     if len(vals_a) > mg.MAX_CHI_DIMS:
@@ -42,7 +42,7 @@ def get_obs_exp(cur, tbl, tbl_filt, where_tbl_filt, and_tbl_filt, flds, fld_a, f
     GROUP BY {qfld_b}
     ORDER BY {qfld_b}
     """
-    cur.execute(SQL_col_vals_used)
+    cur.exe(SQL_col_vals_used)
     col_vals_used = cur.fetchall()
     vals_b = get_unique_dim_vals(col_vals_used, dbe, flds, fld_b)
     if len(vals_b) > mg.MAX_CHI_DIMS:
@@ -67,7 +67,7 @@ def get_obs_exp(cur, tbl, tbl_filt, where_tbl_filt, and_tbl_filt, flds, fld_a, f
     SQL_get_obs += f'\nFROM {qtbl} '
     SQL_get_obs += f'\n{where_tbl_filt} '
     logger.debug(SQL_get_obs)
-    cur.execute(SQL_get_obs)
+    cur.exe(SQL_get_obs)
     tup_obs = cur.fetchall()[0]
     if not tup_obs:
         raise Exception('No observed values')
@@ -94,7 +94,7 @@ def get_obs_exp(cur, tbl, tbl_filt, where_tbl_filt, and_tbl_filt, flds, fld_a, f
     return vals_a, vals_b, lst_obs, lst_exp, min_count, perc_cells_lt_5, df
 
 
-def get_results(cur: ExtendedCursor, tbl_name: str,
+def get_results(cur: ExtendedCursor, src_tbl_name: str,
         grouping_fld_lbl: str, grouping_fld_name: str,
         grouping_fld_vals_spec: Sequence[ValSpec], grouping_val_is_numeric,
         measure_fld_lbl: str, measure_fld_name: str,

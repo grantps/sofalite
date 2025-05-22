@@ -1,20 +1,20 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Literal
 import uuid
 
 import jinja2
 
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
+from sofalite.conf.main import VAR_LABELS
 from sofalite.data_extraction.charts.scatterplot import ScatterChartingSpec, ScatterIndivChartSpec
 from sofalite.data_extraction.charts.xys import (get_by_chart_series_xy_charting_spec, get_by_chart_xy_charting_spec,
     get_by_series_xy_charting_spec, get_by_xy_charting_spec)
-from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import get_left_margin_offset, get_y_axis_title_offset
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import ColourWithHighlight, StyleSpec
 from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.utils.maths import format_num
@@ -55,7 +55,7 @@ class ScatterplotDojoSeriesSpec:
     """
     series_id: str  ## e.g. 01
     lbl: str
-    xy_pairs: Sequence[tuple[float, float]]
+    xy_pairs: str  ## e.g. [(1.2, 2.0), ...]
     options: str  ## e.g. stroke, color, width etc. - things needed in a generic DOJO series
 
 @dataclass(frozen=True)
@@ -279,14 +279,21 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     html_result = template.render(context)
     return html_result
 
-@dataclass(frozen=True)
-class SingleSeriesScatterChartSpec:
+@dataclass(frozen=False)
+class SingleSeriesScatterChartSpec(Source):
     style_name: str
     x_fld_name: str
     y_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_dot_borders: bool = True
     show_n_records: bool = True
     show_regression_line: bool = True
@@ -300,16 +307,11 @@ class SingleSeriesScatterChartSpec:
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         get_by_xy_charting_spec_for_cur = partial(get_by_xy_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_xy_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_xy_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -330,15 +332,22 @@ class SingleSeriesScatterChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiSeriesScatterChartSpec:
+@dataclass(frozen=False)
+class MultiSeriesScatterChartSpec(Source):
     style_name: str
     series_fld_name: str
     x_fld_name: str
     y_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_dot_borders: bool = True
     show_n_records: bool = True
     show_regression_line: bool = True
@@ -354,18 +363,13 @@ class MultiSeriesScatterChartSpec:
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         get_by_series_xy_charting_spec_for_cur = partial(get_by_series_xy_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -386,15 +390,22 @@ class MultiSeriesScatterChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiChartScatterChartSpec:
+@dataclass(frozen=False)
+class MultiChartScatterChartSpec(Source):
     style_name: str
     chart_fld_name: str
     x_fld_name: str
     y_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_dot_borders: bool = True
     show_n_records: bool = True
     show_regression_line: bool = True
@@ -410,18 +421,13 @@ class MultiChartScatterChartSpec:
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         get_by_chart_xy_charting_spec_for_cur = partial(get_by_chart_xy_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -442,16 +448,23 @@ class MultiChartScatterChartSpec:
             output_item_type=OutputItemType.CHART,
         )
 
-@dataclass(frozen=True)
-class MultiChartSeriesScatterChartSpec:
+@dataclass(frozen=False)
+class MultiChartSeriesScatterChartSpec(Source):
     style_name: str
     chart_fld_name: str
     series_fld_name: str
     x_fld_name: str
     y_fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     show_dot_borders: bool = True
     show_n_records: bool = True
     show_regression_line: bool = True
@@ -469,19 +482,14 @@ class MultiChartSeriesScatterChartSpec:
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         get_by_chart_series_xy_charting_spec_for_cur = partial(get_by_chart_series_xy_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls, series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(

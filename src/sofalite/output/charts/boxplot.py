@@ -1,15 +1,15 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any
 import uuid
 
 import jinja2
 
-from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, INTERNAL_DATABASE_FPATH, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS
+from sofalite.conf.main import AVG_CHAR_WIDTH_PIXELS, TEXT_WIDTH_WHEN_ROTATED, VAR_LABELS
 from sofalite.data_extraction.charts.boxplot import (
     BoxplotChartingSpec, BoxplotIndivChartSpec, get_by_category_charting_spec, get_by_series_category_charting_spec)
-from sofalite.data_extraction.db import Sqlite
 from sofalite.output.charts.common import get_common_charting_spec, get_html, get_indiv_chart_html
 from sofalite.output.charts.interfaces import JSBool, LeftMarginOffsetSpec
 from sofalite.output.charts.utils import (
@@ -359,14 +359,21 @@ def get_indiv_chart_html(common_charting_spec: CommonChartingSpec, indiv_chart_s
     html_result = template.render(context)
     return html_result
 
-@dataclass(frozen=True)
-class BoxplotChartSpec:
+@dataclass(frozen=False)
+class BoxplotChartSpec(Source):
     style_name: str
     category_fld_name: str
     fld_name: str
-    tbl_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR
     rotate_x_lbls: bool = False
@@ -383,19 +390,14 @@ class BoxplotChartSpec:
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause,
             boxplot_type=self.boxplot_type,
         )
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)
@@ -431,9 +433,9 @@ class MultiSeriesBoxplotChartSpec(Source):
     overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
     dbe_name: str | None = None  ## database engine name
-    tbl_name: str | None = None
-
+    src_tbl_name: str | None = None
     tbl_filt_clause: str | None = None
+
     category_sort_order: SortOrder = SortOrder.VALUE
     boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR
     rotate_x_lbls: bool = False
@@ -452,7 +454,7 @@ class MultiSeriesBoxplotChartSpec(Source):
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
-            tbl_name=self.tbl_name,
+            src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
@@ -461,12 +463,7 @@ class MultiSeriesBoxplotChartSpec(Source):
             tbl_filt_clause=self.tbl_filt_clause,
             boxplot_type=self.boxplot_type,
         )
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(cur)
-        else:
-            intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)

@@ -2,14 +2,12 @@ from collections.abc import Collection
 from functools import partial
 from itertools import combinations, count
 from typing import Literal, Sequence
-from webbrowser import open_new_tab
 
 import pandas as pd
 from pandas.io.formats.style import Styler
 import numpy as np
 
 from sofalite.output.styles.interfaces import StyleSpec
-from sofalite.output.styles.utils import get_generic_unstyled_css, get_styled_placeholder_css_for_main_tbls
 from sofalite.output.tables.interfaces import DimSpec
 from sofalite.output.tables.interfaces import PCT_METRICS, TOTAL, Metric, PctType
 
@@ -28,15 +26,15 @@ def correct_str_dps(val: str, *, dp: int) -> str:
     zeros2add = '0' * n_zeros2add
     return val + zeros2add
 
-def get_raw_df(cur, src_tbl: str, *, debug=False) -> pd.DataFrame:
-    cur.execute(f"SELECT * FROM {src_tbl}")
+def get_raw_df(cur, src_tbl_name: str, *, debug=False) -> pd.DataFrame:
+    cur.exe(f"SELECT * FROM {src_tbl_name}")
     data = cur.fetchall()
     df = pd.DataFrame(data, columns=[desc[0] for desc in cur.description])
     if debug:
         print(df)
     return df
 
-def get_data_from_spec(cur, src_tbl: str, tbl_filt_clause: str,
+def get_data_from_spec(cur, src_tbl_name: str, tbl_filt_clause: str,
         all_variables: Collection[str], totalled_variables: Collection[str], *, debug=False) -> list[list]:
     """
     rows: country (TOTAL) > gender (TOTAL)
@@ -90,11 +88,11 @@ def get_data_from_spec(cur, src_tbl: str, tbl_filt_clause: str,
     main_flds = ', '.join(all_variables)
     sql_main = f"""\
     SELECT {main_flds}, COUNT(*) AS n
-    FROM {src_tbl}
+    FROM {src_tbl_name}
     {tbl_filt_clause}
     GROUP BY {main_flds}
     """
-    cur.execute(sql_main)
+    cur.exe(sql_main)
     data.extend(cur.fetchall())
     ## Step 2 - combos
     totalled_combinations = []
@@ -120,12 +118,12 @@ def get_data_from_spec(cur, src_tbl: str, tbl_filt_clause: str,
         group_by = "GROUP BY " + ', '.join(group_by_vars) if group_by_vars else ''
         sql_totalled = f"""\
         {select_str}
-        FROM {src_tbl}
+        FROM {src_tbl_name}
         {tbl_filt_clause}
         {group_by}
         """
         if debug: print(f"sql_totalled={sql_totalled}")
-        cur.execute(sql_totalled)
+        cur.exe(sql_totalled)
         data.extend(cur.fetchall())
     if debug:
         for row in data:

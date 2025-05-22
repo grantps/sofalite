@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import jinja2
 
-from sofalite.conf.main import INTERNAL_DATABASE_FPATH, VAR_LABELS
-from sofalite.data_extraction.db import Sqlite
+from sofalite.conf.main import VAR_LABELS
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.stats.msgs import (
     ci_explain, kurtosis_explain,
@@ -15,7 +15,7 @@ from sofalite.data_extraction.stats.msgs import (
 )
 from sofalite.data_extraction.stats.ttest_indep import get_results
 from sofalite.output.charts import mpl_pngs
-from sofalite.output.interfaces import HTMLItemSpec, OutputItemType
+from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.stats.common import get_group_histogram_html
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
@@ -155,16 +155,22 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
     html = template.render(context)
     return html
 
-@dataclass(frozen=True)
-class TTestIndepSpec:
+@dataclass(frozen=False)
+class TTestIndepSpec(Source):
     style_name: str
-    tbl_name: str
     grouping_fld_name: str
     group_a_val: Any
     group_b_val: Any
     measure_fld_name: str
-    tbl_filt_clause: str | None = None
+
+    ## do not try to DRY this repeated code ;-) - see doc string for Source
+    csv_fpath: Path | None = None
+    csv_separator: str = ','
+    overwrite_csv_derived_tbl_if_there: bool = False
     cur: Any | None = None
+    dbe_name: str | None = None  ## database engine name
+    src_tbl_name: str | None = None
+    tbl_filt_clause: str | None = None
 
     def to_html_spec(self) -> HTMLItemSpec:
         ## style
@@ -177,18 +183,13 @@ class TTestIndepSpec:
         group_b_val_spec = ValSpec(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
         ## data
         get_results_for_cur = partial(get_results,
-            tbl_name=self.tbl_name, tbl_filt_clause=self.tbl_filt_clause,
+            src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             group_a_val_spec=group_a_val_spec, group_b_val_spec=group_b_val_spec,
             grouping_val_is_numeric=True,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl
         )
-        local_cur = not bool(self.cur)
-        if local_cur:
-            with Sqlite(INTERNAL_DATABASE_FPATH) as (_con, cur):
-                results = get_results_for_cur(cur)
-        else:
-            results = get_results_for_cur(self.cur)
+        results = get_results_for_cur(self.cur)
         html = make_ttest_indep_html(results, style_spec, dp=3, show_workings=False)
         return HTMLItemSpec(
             html_item_str=html,
