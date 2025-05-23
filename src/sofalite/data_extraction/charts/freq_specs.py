@@ -25,7 +25,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from textwrap import dedent
 
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_db_spec
 from sofalite.data_extraction.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
 from sofalite.stats_calc.interfaces import SortOrder
 
@@ -545,39 +545,43 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         tbl_filt_clause: str | None = None) -> ChartCategoryFreqSpecs:
+    dbe_spec = get_db_spec(dbe_name)
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{chart_fld_name}` AS
+        {chart_fld_name_quoted} AS
       chart_val,
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
         COUNT(*) AS
       freq,
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{src_tbl_name}`
-          WHERE `{chart_fld_name}` = src.{chart_fld_name}
+          FROM {src_tbl_name_quoted}
+          WHERE {chart_fld_name_quoted} = src.{chart_fld_name_quoted}
         )) AS
       raw_category_pct
-    FROM {src_tbl_name} AS src
-    WHERE `{chart_fld_name}` IS NOT NULL
-    AND `{category_fld_name}` IS NOT NULL
+    FROM {src_tbl_name_quoted} AS src
+    WHERE {chart_fld_name_quoted} IS NOT NULL
+    AND {category_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY `{chart_fld_name}`, `{category_fld_name}`
-    ORDER BY `{chart_fld_name}`, `{category_fld_name}`
+    GROUP BY {chart_fld_name_quoted}, {category_fld_name_quoted}
+    ORDER BY {chart_fld_name_quoted}, {category_fld_name_quoted}
     """
     ## get data
     cur.exe(sql)
@@ -612,6 +616,7 @@ def get_by_chart_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return charting_spec
 
+## TODO: use dbe_name and spec here to quote (as in function above)
 def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
          series_fld_name: str, series_fld_lbl: str,
@@ -695,7 +700,7 @@ def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name
     )
     return data_spec
 
-def get_freq_specs(cur: ExtendedCursor, src_tbl_name: str,
+def get_freq_specs(cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_fld_name: str | None = None, chart_fld_lbl: str | None = None,
         series_fld_name: str | None = None, series_fld_lbl: str | None = None,
@@ -704,7 +709,7 @@ def get_freq_specs(cur: ExtendedCursor, src_tbl_name: str,
         category_vals2lbls: dict | None = None,
         tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
     """
-    Single interface irrespective of which settings are None
+    KEEP - Single interface irrespective of which settings are None
     e.g. if no By Chart variable selected can still use same interface.
     Convenient when calling code from a GUI.
     """
@@ -726,7 +731,7 @@ def get_freq_specs(cur: ExtendedCursor, src_tbl_name: str,
     else:  ## chart
         if series_fld_name is None:  ## chart and category only (no series)
             data_spec = get_by_chart_category_charting_spec(
-                cur=cur, src_tbl_name=src_tbl_name,
+                cur=cur, dbe_name=dbe_name, src_tbl_name=src_tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 chart_vals2lbls=chart_vals2lbls,

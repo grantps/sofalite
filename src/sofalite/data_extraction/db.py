@@ -6,8 +6,6 @@ we would need to be able to quote and escape the content.
 Only internal SQLite (for CSV ingestion) requires us to close off cursors and connections.
 Otherwise, that is an external responsibility.
 """
-from pathlib import Path
-import sqlite3 as sqlite
 from textwrap import dedent
 
 from ruamel.yaml import YAML
@@ -35,33 +33,17 @@ Original SQL:
         method = getattr(self.cur, method_name)
         return method
 
-
-class Sqlite:  ## TODO kill once Source takes over everywhere (get rid of local_cur etc)
-
-    def __init__(self, database: Path):
-        self.database = database
-
-    def __enter__(self) -> tuple:
-        self.con = sqlite.connect(self.database)
-        self.cur = ExtendedCursor(self.con.cursor())
-        return self.con, self.cur
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cur.close()
-        self.con.close()
-
-
 def _yaml_to_dbe_spec(*, yaml_dict: dict[str, str]) -> DbeSpec:
     y = yaml_dict
     return DbeSpec(
         if_clause=y['if_clause'],
         placeholder=y['placeholder'],
-        left_obj_quote=y['left_obj_quote'],
-        right_obj_quote=y['right_obj_quote'],
+        left_entity_quote=y['left_entity_quote'],
+        right_entity_quote=y['right_entity_quote'],
         gte_not_equals=y['gte_not_equals'],
         cartesian_joiner=y['cartesian_joiner'],
-        sql_str_literal_quote=y['sql_str_literal_quote'],
-        sql_esc_str_literal_quote=y['sql_esc_str_literal_quote'],
+        str_value_quote=y['str_value_quote'],
+        str_value_quote_escaped=y['str_value_quote_escaped'],
         summable=y['summable'],
     )
 
@@ -69,12 +51,12 @@ std_dbe_name2spec = {
     DbeName.SQLITE: DbeSpec(
             if_clause='CASE WHEN %s THEN %s ELSE %s END',
             placeholder='?',
-            left_obj_quote='`',
-            right_obj_quote='`',
+            left_entity_quote='`',
+            right_entity_quote='`',
             gte_not_equals='!=',
             cartesian_joiner=' JOIN ',
-            sql_str_literal_quote="'",
-            sql_esc_str_literal_quote="''",
+            str_value_quote="'",
+            str_value_quote_escaped="''",
             summable='',
         )
 }
@@ -83,8 +65,8 @@ def _get_std_dbe_spec(dbe_name: DbeName | str) -> DbeSpec:
     return std_dbe_name2spec.get(dbe_name)
 
 def get_db_spec(dbe_name: str, *, debug=False) -> DbeSpec:
-    db_spec = _get_std_db_spec(dbe_name)
-    if not db_spec:
+    dbe_spec = _get_std_dbe_spec(dbe_name)
+    if not dbe_spec:
         ## look for custom YAML file
         yaml_fpath = CUSTOM_DBS_FOLDER / f"{dbe_name}.yaml"
         try:

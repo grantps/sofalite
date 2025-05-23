@@ -87,12 +87,33 @@ class DbeName(StrEnum):  ## database engine
 
 @dataclass(frozen=True)
 class DbeSpec:
+    """
+    entity: e.g. table name 'demo_tbl'
+    string value: e.g. 'New Zealand'
+    """
     if_clause: str
     placeholder: str
-    left_obj_quote: str
-    right_obj_quote: str
+    left_entity_quote: str
+    right_entity_quote: str
     gte_not_equals: str
     cartesian_joiner: str
-    sql_str_literal_quote: str
-    sql_esc_str_literal_quote: str
+    str_value_quote: str
+    str_value_quote_escaped: str
     summable: str
+
+    def entity_quoter(self, entity: str) -> str:
+        """
+        E.g. "demo_tbl" -> "`demo_tbl`"
+        or "table name with spaces" -> "`table name with spaces`"
+        for use in
+        SELECT * FROM `table name with spaces`
+        """
+        return f"{self.left_entity_quote}{entity}{self.right_entity_quote}"
+
+    def str_value_quoter(self, str_value: str) -> str:
+        """
+        E.g. "New Zealand" -> "'New Zealand'"
+        for use in
+        SELECT * FROM `demo_tbl` WHERE `country` = 'New Zealand'
+        """
+        return f"{self.str_value_quote}{str_value}{self.str_value_quote}"
