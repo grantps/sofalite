@@ -355,7 +355,7 @@ if __name__ == '__main__':
     # multi_clustered_bar_chart()
     # multi_line_chart()
     # area_chart()
-    pie_chart()
+    # pie_chart()
     # single_series_scatterplot()
     # multi_series_scatterplot()
     # multi_chart_scatterplot()

@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any, Literal
 import uuid
@@ -306,12 +305,11 @@ class SingleSeriesScatterChartSpec(Source):
         x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
-        get_by_xy_charting_spec_for_cur = partial(get_by_xy_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_xy_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -362,14 +360,13 @@ class MultiSeriesScatterChartSpec(Source):
         x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
-        get_by_series_xy_charting_spec_for_cur = partial(get_by_series_xy_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_series_xy_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_series_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -420,14 +417,13 @@ class MultiChartScatterChartSpec(Source):
         x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
-        get_by_chart_xy_charting_spec_for_cur = partial(get_by_chart_xy_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_chart_xy_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_chart_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(
@@ -481,15 +477,14 @@ class MultiChartSeriesScatterChartSpec(Source):
         x_fld_lbl = VAR_LABELS.var2var_lbl.get(self.x_fld_name, self.x_fld_name)
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
-        get_by_chart_series_xy_charting_spec_for_cur = partial(get_by_chart_series_xy_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_chart_series_xy_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             chart_vals2lbls=chart_vals2lbls, series_vals2lbls=series_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_chart_series_xy_charting_spec_for_cur(self.cur)
         ## charts details
         indiv_chart_specs = intermediate_charting_spec.to_indiv_chart_specs()
         charting_spec = ScatterChartingSpec(

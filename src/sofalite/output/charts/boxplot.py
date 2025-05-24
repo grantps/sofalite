@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any
 import uuid
@@ -389,15 +388,13 @@ class BoxplotChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
-        get_by_category_charting_spec_for_cur = partial(get_by_category_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_category_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause,
-            boxplot_type=self.boxplot_type,
-        )
-        intermediate_charting_spec = get_by_category_charting_spec_for_cur(self.cur)
+            boxplot_type=self.boxplot_type)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)
@@ -453,17 +450,15 @@ class MultiSeriesBoxplotChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
-        get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_series_category_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause,
-            boxplot_type=self.boxplot_type,
-        )
-        intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
+            boxplot_type=self.boxplot_type)
         ## charts details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec(dp=self.dp)

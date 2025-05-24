@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.stats_calc.engine import get_normal_ys
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
 
@@ -89,17 +89,20 @@ class HistoValsSpecs:
         x_axis_max_val = bin_spec.upper_limit
         return x_axis_min_val, x_axis_max_val
 
-def get_by_vals_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_vals_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None) -> HistoValsSpec:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    fld_name_quoted = dbe_spec.entity_quoter(fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{fld_name}` AS y
-    FROM {src_tbl_name}
-    WHERE `{fld_name}` IS NOT NULL
+        {fld_name_quoted} AS y
+    FROM {src_tbl_name_quoted}
+    WHERE {fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data
@@ -114,22 +117,26 @@ def get_by_vals_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_chart_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         chart_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> HistoValsSpecs:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)
+    fld_name_quoted = dbe_spec.entity_quoter(fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-      {chart_fld_name},
-        `{fld_name}` AS
+      {chart_fld_name_quoted},
+        {fld_name_quoted} AS
       y
-    FROM {src_tbl_name}
-    WHERE `{chart_fld_name}` IS NOT NULL
-    AND `{fld_name}` IS NOT NULL
+    FROM {src_tbl_name_quoted}
+    WHERE {chart_fld_name_quoted} IS NOT NULL
+    AND {fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data

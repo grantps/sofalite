@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any, Literal
 import uuid
@@ -304,9 +303,9 @@ class HistogramChartSpec(Source):
         ## lbls
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
-        get_by_vals_charting_spec_for_cur = partial(get_by_vals_charting_spec,
-            src_tbl_name=self.src_tbl_name, fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_vals_charting_spec_for_cur(self.cur)
+        intermediate_charting_spec = get_by_vals_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
         ## charts details
@@ -359,13 +358,12 @@ class MultiChartHistogramChartSpec(Source):
         chart_vals2lbls = VAR_LABELS.var2val2lbl.get(self.chart_fld_name, self.chart_fld_name)
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
-        get_by_chart_charting_spec_for_cur = partial(get_by_chart_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_chart_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_chart_charting_spec_for_cur(self.cur)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
         ## charts details

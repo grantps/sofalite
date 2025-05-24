@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -182,14 +181,12 @@ class TTestIndepSpec(Source):
         group_a_val_spec = ValSpec(val=self.group_a_val, lbl=val2lbl.get(self.group_a_val, str(self.group_a_val)))
         group_b_val_spec = ValSpec(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
         ## data
-        get_results_for_cur = partial(get_results,
-            src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
+        results = get_results(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             group_a_val_spec=group_a_val_spec, group_b_val_spec=group_b_val_spec,
             grouping_val_is_numeric=True,
-            measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl
-        )
-        results = get_results_for_cur(self.cur)
+            measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl)
         html = make_ttest_indep_html(results, style_spec, dp=3, show_workings=False)
         return HTMLItemSpec(
             html_item_str=html,

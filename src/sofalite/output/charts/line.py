@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -282,14 +281,13 @@ class MultiLineChartSpec(Source):
         series_vals2lbls = VAR_LABELS.var2val2lbl.get(self.series_fld_name, self.series_fld_name)
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
-        get_by_series_category_charting_spec_for_cur = partial(get_by_series_category_charting_spec,
-            src_tbl_name=self.src_tbl_name,
+        intermediate_charting_spec = get_by_series_category_charting_spec(
+            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
             tbl_filt_clause=self.tbl_filt_clause)
-        intermediate_charting_spec = get_by_series_category_charting_spec_for_cur(self.cur)
         ## chart details
         category_specs = intermediate_charting_spec.to_sorted_category_specs()
         indiv_chart_spec = intermediate_charting_spec.to_indiv_chart_spec()

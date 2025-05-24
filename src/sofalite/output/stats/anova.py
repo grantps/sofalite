@@ -1,6 +1,5 @@
 from collections.abc import Collection
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -220,15 +219,12 @@ class AnovaSpec(Source):
             ValSpec(val=group_val, lbl=val2lbl.get(group_val, str(group_val))) for group_val in self.group_vals}
         ## data
         grouping_val_is_numeric = all(is_numeric(x) for x in self.group_vals)
-        get_results_for_cur = partial(get_results,
-            src_tbl_name=self.src_tbl_name,
+        results = get_results(cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             grouping_fld_vals_spec=grouping_fld_vals_spec,
             grouping_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl,
-            high_precision_required=self.high_precision_required,
-        )
-        results = get_results_for_cur(self.cur)
+            high_precision_required=self.high_precision_required)
         html = make_anova_html(results, style_spec, dp=self.dp, show_workings=False)
         return HTMLItemSpec(
             html_item_str=html,

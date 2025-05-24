@@ -64,7 +64,7 @@ std_dbe_name2spec = {
 def _get_std_dbe_spec(dbe_name: DbeName | str) -> DbeSpec:
     return std_dbe_name2spec.get(dbe_name)
 
-def get_db_spec(dbe_name: str, *, debug=False) -> DbeSpec:
+def get_dbe_spec(dbe_name: str, *, debug=False) -> DbeSpec:
     dbe_spec = _get_std_dbe_spec(dbe_name)
     if not dbe_spec:
         ## look for custom YAML file

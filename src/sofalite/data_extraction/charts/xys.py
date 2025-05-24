@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from sofalite.data_extraction.charts.scatterplot import ScatterDataSeriesSpec, ScatterIndivChartSpec
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 
 @dataclass(frozen=True)
 class XYSpecs:
@@ -105,20 +105,24 @@ class ChartSeriesXYSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
+    y_fld_name_quoted = dbe_spec.entity_quoter(y_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{x_fld_name}` AS x,
-        `{y_fld_name}` AS y
-    FROM {src_tbl_name}
-    WHERE `{x_fld_name}` IS NOT NULL
-    AND `{y_fld_name}` IS NOT NULL
+        {x_fld_name_quoted} AS x,
+        {y_fld_name_quoted} AS y
+    FROM {src_tbl_name_quoted}
+    WHERE {x_fld_name_quoted} IS NOT NULL
+    AND {y_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data
@@ -132,24 +136,29 @@ def get_by_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> SeriesXYSpecs:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
+    y_fld_name_quoted = dbe_spec.entity_quoter(y_fld_name)
+    series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
+    ## prepare items
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{series_fld_name}` AS series_val,
-        `{x_fld_name}` AS x,
-        `{y_fld_name}` AS y
-    FROM {src_tbl_name}
-    WHERE `{x_fld_name}` IS NOT NULL
-    AND `{y_fld_name}` IS NOT NULL
+        {series_fld_name_quoted} AS series_val,
+        {x_fld_name_quoted} AS x,
+        {y_fld_name_quoted} AS y
+    FROM {src_tbl_name_quoted}
+    WHERE {x_fld_name_quoted} IS NOT NULL
+    AND {y_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data
@@ -174,24 +183,29 @@ def get_by_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_chart_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         chart_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartXYSpecs:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)
+    x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
+    y_fld_name_quoted = dbe_spec.entity_quoter(y_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{chart_fld_name}` AS charts_val,
-        `{x_fld_name}` AS x,
-        `{y_fld_name}` AS y
-    FROM {src_tbl_name}
-    WHERE `{x_fld_name}` IS NOT NULL
-    AND `{y_fld_name}` IS NOT NULL
+        {chart_fld_name_quoted} AS charts_val,
+        {x_fld_name_quoted} AS x,
+        {y_fld_name_quoted} AS y
+    FROM {src_tbl_name_quoted}
+    WHERE {x_fld_name_quoted} IS NOT NULL
+    AND {y_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data
@@ -215,7 +229,7 @@ def get_by_chart_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_chart_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
@@ -223,20 +237,26 @@ def get_by_chart_series_xy_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         chart_vals2lbls: dict | None,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartSeriesXYSpecs:
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)
+    series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
+    x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
+    y_fld_name_quoted = dbe_spec.entity_quoter(y_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{chart_fld_name}` AS chart_val,
-        `{series_fld_name}` AS series_val,
-        `{x_fld_name}` AS x,
-        `{y_fld_name}` AS y
-    FROM {src_tbl_name}
-    WHERE `{x_fld_name}` IS NOT NULL
-    AND `{y_fld_name}` IS NOT NULL
+        {chart_fld_name_quoted} AS chart_val,
+        {series_fld_name_quoted} AS series_val,
+        {x_fld_name_quoted} AS x,
+        {y_fld_name_quoted} AS y
+    FROM {src_tbl_name_quoted}
+    WHERE {x_fld_name_quoted} IS NOT NULL
+    AND {y_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     """
     ## get data

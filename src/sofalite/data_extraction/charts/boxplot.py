@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import groupby  ## actually quite performant
 
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.data_extraction.interfaces import CategorySpec
 from sofalite.stats_calc.interfaces import BoxResult, BoxplotType, SortOrder
 from sofalite.stats_calc.utils import get_optimal_axis_bounds
@@ -132,27 +132,31 @@ class BoxplotCategoryValsSpecs:
         )
         return indiv_chart_spec
 
-def get_by_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None,
         category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR) -> BoxplotCategoryValsSpecs:
+    dbe_spec = get_dbe_spec(dbe_name)
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
+    fld_name_quoted = dbe_spec.entity_quoter(fld_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
-      `{fld_name}`
-    FROM {src_tbl_name}
-    WHERE `{category_fld_name}` IS NOT NULL
-    AND `{fld_name}` IS NOT NULL
+      {fld_name_quoted}
+    FROM {src_tbl_name_quoted}
+    WHERE {category_fld_name_quoted} IS NOT NULL
+    AND {fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    ORDER BY `{category_fld_name}`, `{fld_name}`
+    ORDER BY {category_fld_name_quoted}, {fld_name_quoted}
     """
     ## get data
     cur.exe(sql)
@@ -224,7 +228,7 @@ class BoxplotSeriesCategoryValsSpecs:
         )
         return indiv_chart_spec
 
-def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_series_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         fld_name: str, fld_lbl: str,
@@ -233,23 +237,29 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
         category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         boxplot_type: BoxplotType = BoxplotType.INSIDE_1_POINT_5_TIMES_IQR) -> BoxplotSeriesCategoryValsSpecs:
+    dbe_spec = get_dbe_spec(dbe_name)
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
+    fld_name_quoted = dbe_spec.entity_quoter(fld_name)
+    series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{series_fld_name}` AS
+        {series_fld_name_quoted} AS
       series_val,
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
-      `{fld_name}`
-    FROM {src_tbl_name}
-    WHERE `{series_fld_name}` IS NOT NULL
-    AND `{category_fld_name}` IS NOT NULL
-    AND `{fld_name}` IS NOT NULL
+      {fld_name_quoted}
+    FROM {src_tbl_name_quoted}
+    WHERE {series_fld_name_quoted} IS NOT NULL
+    AND {category_fld_name_quoted} IS NOT NULL
+    AND {fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    ORDER BY `{series_fld_name}`, `{category_fld_name}`, `{fld_name}`
+    ORDER BY {series_fld_name_quoted}, {category_fld_name_quoted}, {fld_name_quoted}
     """
     ## get data
     cur.exe(sql)

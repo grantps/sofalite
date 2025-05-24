@@ -25,7 +25,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from textwrap import dedent
 
-from sofalite.data_extraction.db import ExtendedCursor, get_db_spec
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.data_extraction.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
 from sofalite.stats_calc.interfaces import SortOrder
 
@@ -440,26 +440,30 @@ class ChartSeriesCategoryFreqSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE, tbl_filt_clause: str | None = None) -> CategoryFreqSpecs:
+    dbe_spec = get_dbe_spec(dbe_name)
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
         COUNT(*) AS
       freq,
-        (100.0 * COUNT(*)) / (SELECT COUNT(*) FROM `{src_tbl_name}`) AS
+        (100.0 * COUNT(*)) / (SELECT COUNT(*) FROM {src_tbl_name_quoted}) AS
       raw_category_pct
-    FROM {src_tbl_name}
-    WHERE `{category_fld_name}` IS NOT NULL
+    FROM {src_tbl_name_quoted}
+    WHERE {category_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY `{category_fld_name}`
-    ORDER BY `{category_fld_name}`
+    GROUP BY {category_fld_name_quoted}
+    ORDER BY {category_fld_name_quoted}
     """
     ## get data
     cur.exe(sql)
@@ -478,39 +482,43 @@ def get_by_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str, dbe_name: str,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         series_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         tbl_filt_clause: str | None = None) -> SeriesCategoryFreqSpecs:
+    dbe_spec = get_dbe_spec(dbe_name)
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{series_fld_name}` AS
+        {series_fld_name_quoted} AS
       series_val,
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
         COUNT(*) AS
       freq,
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{src_tbl_name}`
-          WHERE `{series_fld_name}` = src.{series_fld_name}
+          FROM {src_tbl_name_quoted}
+          WHERE {series_fld_name_quoted} = src.{series_fld_name_quoted}
         )) AS
       raw_category_pct
     FROM {src_tbl_name} AS src
-    WHERE `{series_fld_name}` IS NOT NULL
-    AND `{category_fld_name}` IS NOT NULL
+    WHERE {series_fld_name_quoted} IS NOT NULL
+    AND {category_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY `{series_fld_name}`, `{category_fld_name}`
-    ORDER BY `{series_fld_name}`, `{category_fld_name}`
+    GROUP BY {series_fld_name_quoted}, {category_fld_name_quoted}
+    ORDER BY {series_fld_name_quoted}, {category_fld_name_quoted}
     """
     ## get data
     cur.exe(sql)
@@ -552,7 +560,7 @@ def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, s
         category_vals2lbls: dict | None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         tbl_filt_clause: str | None = None) -> ChartCategoryFreqSpecs:
-    dbe_spec = get_db_spec(dbe_name)
+    dbe_spec = get_dbe_spec(dbe_name)
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare items
@@ -616,8 +624,7 @@ def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, s
     )
     return charting_spec
 
-## TODO: use dbe_name and spec here to quote (as in function above)
-def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
+def get_by_chart_series_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
          series_fld_name: str, series_fld_lbl: str,
          category_fld_name: str, category_fld_lbl: str,
@@ -626,37 +633,42 @@ def get_by_chart_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name
          category_vals2lbls: dict | None,
          category_sort_order: SortOrder = SortOrder.VALUE,
          tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
+    dbe_spec = get_dbe_spec(dbe_name)
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
-    ## prepare clauses
+    ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
+    chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)
+    series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
+    category_fld_name_quoted = dbe_spec.entity_quoter(category_fld_name)
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
     ## assemble SQL
     sql = f"""\
     SELECT
-        `{chart_fld_name}` AS
+        {chart_fld_name_quoted} AS
       chart_val,
-        `{series_fld_name}` AS
+        {series_fld_name_quoted} AS
       series_val,
-        `{category_fld_name}` AS
+        {category_fld_name_quoted} AS
       category_val,
         COUNT(*) AS
       freq,
         ((100.0 * COUNT(*))
         / (
           SELECT COUNT(*)
-          FROM `{src_tbl_name}`
-          WHERE `{chart_fld_name}` = src.{chart_fld_name}
-          AND `{series_fld_name}` = src.{series_fld_name}
+          FROM {src_tbl_name_quoted}
+          WHERE {chart_fld_name_quoted} = src.{chart_fld_name_quoted}
+          AND {series_fld_name_quoted} = src.{series_fld_name_quoted}
         )) AS
       raw_category_pct
-    FROM {src_tbl_name} AS src
-    WHERE `{chart_fld_name}` IS NOT NULL
-    AND `{series_fld_name}` IS NOT NULL
-    AND `{category_fld_name}` IS NOT NULL
+    FROM {src_tbl_name_quoted} AS src
+    WHERE {chart_fld_name_quoted} IS NOT NULL
+    AND {series_fld_name_quoted} IS NOT NULL
+    AND {category_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY `{chart_fld_name}`, `{series_fld_name}`, `{category_fld_name}`
-    ORDER BY `{chart_fld_name}`, `{series_fld_name}`, `{category_fld_name}`
+    GROUP BY {chart_fld_name_quoted}, {series_fld_name_quoted}, {category_fld_name_quoted}
+    ORDER BY {chart_fld_name_quoted}, {series_fld_name_quoted}, {category_fld_name_quoted}
     """
     ## get data
     cur.exe(sql)
@@ -722,7 +734,7 @@ def get_freq_specs(cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## series and category
             data_spec = get_by_series_category_charting_spec(
-                cur=cur, src_tbl_name=src_tbl_name,
+                cur=cur, dbe_name=dbe_name, src_tbl_name=src_tbl_name,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
                 series_vals2lbls=series_vals2lbls,
@@ -739,7 +751,7 @@ def get_freq_specs(cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
                 tbl_filt_clause=tbl_filt_clause)
         else:  ## chart, series, and category
             data_spec = get_by_chart_series_category_charting_spec(
-                cur=cur, src_tbl_name=src_tbl_name,
+                cur=cur, dbe_name=dbe_name, src_tbl_name=src_tbl_name,
                 chart_fld_name=chart_fld_name, chart_fld_lbl=chart_fld_lbl,
                 series_fld_name=series_fld_name, series_fld_lbl=series_fld_lbl,
                 category_fld_name=category_fld_name, category_fld_lbl=category_fld_lbl,

@@ -1,9 +1,8 @@
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.stats_calc.interfaces import Sample
 
-def get_sample(cur: ExtendedCursor,
-        src_tbl_name: str,
+def get_sample(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
         grouping_filt_fld_name: str, grouping_filt_val_spec: ValSpec, grouping_filt_val_is_numeric: bool,
         measure_fld_name: str,
         tbl_filt_clause: str | None = None) -> Sample:
@@ -16,7 +15,7 @@ def get_sample(cur: ExtendedCursor,
     Note - various filters might apply e.g. we want a sample for male weight
     but only where age > 10
     -
-    :param tbl_name: name of table containing the data
+    :param src_tbl_name: name of table containing the data
     :param tbl_filt_clause: clause ready to put after AND in a WHERE filter.
      E.g. WHERE ... AND age > 10
      Sometimes there is a global filter active in SOFA for a table e.g. age > 10,
@@ -30,18 +29,21 @@ def get_sample(cur: ExtendedCursor,
     :param grouping_filt_val_is_numeric: so we know whether to quote it or not
     :param measure_fld_name: e.g. weight
     """
-    ## prepare clauses
+    dbe_spec = get_dbe_spec(dbe_name)
+    ## prepare items
     and_tbl_filt_clause = f"AND {tbl_filt_clause}" if tbl_filt_clause else ''
     if grouping_filt_val_is_numeric:
         grouping_filt_clause = f"{grouping_filt_fld_name} = {grouping_filt_val_spec.val}"
     else:
         grouping_filt_clause = f"{grouping_filt_fld_name} = '{grouping_filt_val_spec.val}'"
     and_grouping_filt_clause = f"AND {grouping_filt_clause}"
+    src_tbl_name_quoted = dbe_spec.entity_quoter(src_tbl_name)
+    measure_fld_name_quoted = dbe_spec.entity_quoter(measure_fld_name)
     ## assemble SQL
     sql = f"""
-    SELECT `{measure_fld_name}`
+    SELECT {measure_fld_name_quoted}
     FROM {src_tbl_name}
-    WHERE `{measure_fld_name}` IS NOT NULL
+    WHERE {measure_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     {and_grouping_filt_clause}
     """
