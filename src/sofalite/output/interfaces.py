@@ -14,7 +14,7 @@ import pandas as pd
 
 from sofalite import SQLITE_DB, logger
 from sofalite.conf.main import INTERNAL_DATABASE_FPATH, SOFALITE_WEB_RESOURCES_ROOT, DbeName
-from sofalite.data_extraction.db import ExtendedCursor
+from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.output.charts.conf import DOJO_CHART_JS
 from sofalite.output.styles.utils import (get_generic_unstyled_css, get_style_spec, get_styled_dojo_chart_css,
     get_styled_placeholder_css_for_main_tbls, get_styled_stats_tbl_css)
@@ -63,6 +63,9 @@ class Source(ABC):
           3) or just a tbl_name (assumed to be using internal pysofa SQLite database)
         Any supplied cursors are "wrapped" inside an ExtendedCursor so we can use .exe() instead of execute
         so better error messages on query failure.
+
+        Client code supplies dbe_name rather than dbe_spec for simplicity but internally
+        Source supplies all code that inherits from it dbe_spec ready to use.
         """
         if self.csv_fpath:
             if self.cur or self.dbe_name:
@@ -73,7 +76,7 @@ class Source(ABC):
                 SQLITE_DB['sqlite_default_con'] = sqlite.connect(INTERNAL_DATABASE_FPATH)
                 SQLITE_DB['sqlite_default_cur'] = ExtendedCursor(SQLITE_DB['sqlite_default_con'].cursor())
             self.cur = SQLITE_DB['sqlite_default_cur']
-            self.dbe_name = DbeName.SQLITE
+            self.dbe_spec = get_dbe_spec(DbeName.SQLITE)
             if not self.src_tbl_name:
                 self.src_tbl_name = get_safer_name(self.csv_fpath.stem)
             ## ingest CSV into database
@@ -91,6 +94,8 @@ class Source(ABC):
             self.cur = ExtendedCursor(self.cur)
             if not self.dbe_name:
                 raise Exception("When supplying a cursor, a dbe_name (database engine name) must also be supplied")
+            else:
+                self.dbe_spec = get_dbe_spec(self.dbe_name)
             if not self.src_tbl_name:
                 raise Exception("When supplying a cursor, a tbl_name must also be supplied")
         elif self.src_tbl_name:
@@ -101,7 +106,7 @@ class Source(ABC):
             if self.dbe_name and self.dbe_name != DbeName.SQLITE:
                 raise Exception("If not supplying a csv_fpath, or a cursor, the only permitted database engine is "
                     "SQLite (the dbe of the internal pysofa SQLite database)")
-            self.dbe_name = DbeName.SQLITE
+            self.dbe_spec = get_dbe_spec(DbeName.SQLITE)
         else:
             raise Exception("Either supply a path to a CSV "
                 "(optional tbl_name for when ingested into internal pysofa SQLite database), "

@@ -101,6 +101,7 @@ class AnovaResultExt(AnovaResult):
 
 @dataclass(frozen=True)
 class ChiSquareResult:
+    ## TODO: build what is required by output
     pass
 
 @dataclass(frozen=True)

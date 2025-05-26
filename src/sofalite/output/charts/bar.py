@@ -58,7 +58,7 @@ class SimpleBarChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         intermediate_charting_spec = get_by_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             category_vals2lbls=category_vals2lbls,
             tbl_filt_clause=self.tbl_filt_clause, category_sort_order=SortOrder.VALUE)
@@ -117,7 +117,7 @@ class MultiBarChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         intermediate_charting_spec = get_by_chart_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
@@ -177,7 +177,7 @@ class ClusteredBarChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         intermediate_charting_spec = get_by_series_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,
@@ -240,7 +240,7 @@ class MultiClusteredBarChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         intermediate_charting_spec = get_by_chart_series_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,

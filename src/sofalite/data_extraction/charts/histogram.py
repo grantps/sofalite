@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from sofalite.conf.main import DbeSpec
 from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.stats_calc.engine import get_normal_ys
 from sofalite.stats_calc.histogram import get_bin_details_from_vals
@@ -89,10 +90,9 @@ class HistoValsSpecs:
         x_axis_max_val = bin_spec.upper_limit
         return x_axis_min_val, x_axis_max_val
 
-def get_by_vals_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_vals_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         fld_name: str, fld_lbl: str,
         tbl_filt_clause: str | None = None) -> HistoValsSpec:
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     fld_name_quoted = dbe_spec.entity_quoter(fld_name)
@@ -117,12 +117,11 @@ def get_by_vals_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_nam
     )
     return data_spec
 
-def get_by_chart_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_chart_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         fld_name: str, fld_lbl: str,
         chart_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> HistoValsSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     chart_fld_name_quoted = dbe_spec.entity_quoter(chart_fld_name)

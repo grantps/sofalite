@@ -25,6 +25,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from textwrap import dedent
 
+from sofalite.conf.main import DbeSpec
 from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 from sofalite.data_extraction.interfaces import CategorySpec, DataItem, DataSeriesSpec, IndivChartSpec
 from sofalite.stats_calc.interfaces import SortOrder
@@ -440,10 +441,9 @@ class ChartSeriesCategoryFreqSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_category_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         category_fld_name: str, category_fld_lbl: str, category_vals2lbls: dict | None = None,
         category_sort_order: SortOrder = SortOrder.VALUE, tbl_filt_clause: str | None = None) -> CategoryFreqSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
@@ -482,14 +482,13 @@ def get_by_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl
     )
     return data_spec
 
-def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str, dbe_name: str,
+def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str, dbe_spec: DbeSpec,
         series_fld_name: str, series_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         series_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         tbl_filt_clause: str | None = None) -> SeriesCategoryFreqSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare items
@@ -553,14 +552,13 @@ def get_by_series_category_charting_spec(cur: ExtendedCursor, src_tbl_name: str,
     )
     return data_spec
 
-def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         category_fld_name: str, category_fld_lbl: str,
         chart_vals2lbls: dict | None,
         category_vals2lbls: dict | None,
         category_sort_order: SortOrder = SortOrder.VALUE,
         tbl_filt_clause: str | None = None) -> ChartCategoryFreqSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls
     ## prepare items
@@ -624,7 +622,7 @@ def get_by_chart_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, s
     )
     return charting_spec
 
-def get_by_chart_series_category_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_chart_series_category_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
          chart_fld_name: str, chart_fld_lbl: str,
          series_fld_name: str, series_fld_lbl: str,
          category_fld_name: str, category_fld_lbl: str,
@@ -633,7 +631,6 @@ def get_by_chart_series_category_charting_spec(*, cur: ExtendedCursor, dbe_name:
          category_vals2lbls: dict | None,
          category_sort_order: SortOrder = SortOrder.VALUE,
          tbl_filt_clause: str | None = None) -> ChartSeriesCategoryFreqSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls
     category_vals2lbls = {} if category_vals2lbls is None else category_vals2lbls

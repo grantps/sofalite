@@ -182,7 +182,7 @@ class TTestIndepSpec(Source):
         group_b_val_spec = ValSpec(val=self.group_b_val, lbl=val2lbl.get(self.group_b_val, str(self.group_b_val)))
         ## data
         results = get_results(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name, tbl_filt_clause=self.tbl_filt_clause,
             grouping_fld_name=self.grouping_fld_name, grouping_fld_lbl=grouping_fld_lbl,
             group_a_val_spec=group_a_val_spec, group_b_val_spec=group_b_val_spec,
             grouping_val_is_numeric=True,

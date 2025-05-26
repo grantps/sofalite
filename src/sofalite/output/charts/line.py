@@ -282,7 +282,7 @@ class MultiLineChartSpec(Source):
         category_vals2lbls = VAR_LABELS.var2val2lbl.get(self.category_fld_name, self.category_fld_name)
         ## data
         intermediate_charting_spec = get_by_series_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             series_vals2lbls=series_vals2lbls,

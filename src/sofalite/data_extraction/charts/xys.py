@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from sofalite.conf.main import DbeSpec
 from sofalite.data_extraction.charts.scatterplot import ScatterDataSeriesSpec, ScatterIndivChartSpec
 from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
 
@@ -105,11 +106,10 @@ class ChartSeriesXYSpecs:
             indiv_chart_specs.append(indiv_chart_spec)
         return indiv_chart_specs
 
-def get_by_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_xy_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         tbl_filt_clause: str | None = None) -> XYSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
@@ -136,13 +136,12 @@ def get_by_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name:
     )
     return data_spec
 
-def get_by_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> SeriesXYSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     x_fld_name_quoted = dbe_spec.entity_quoter(x_fld_name)
     y_fld_name_quoted = dbe_spec.entity_quoter(y_fld_name)
     series_fld_name_quoted = dbe_spec.entity_quoter(series_fld_name)
@@ -183,13 +182,12 @@ def get_by_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tb
     )
     return data_spec
 
-def get_by_chart_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_chart_xy_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
         y_fld_name: str, y_fld_lbl: str,
         chart_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartXYSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
@@ -229,7 +227,7 @@ def get_by_chart_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl
     )
     return data_spec
 
-def get_by_chart_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_by_chart_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         chart_fld_name: str, chart_fld_lbl: str,
         series_fld_name: str, series_fld_lbl: str,
         x_fld_name: str, x_fld_lbl: str,
@@ -237,7 +235,6 @@ def get_by_chart_series_xy_charting_spec(*, cur: ExtendedCursor, dbe_name: str, 
         chart_vals2lbls: dict | None,
         series_vals2lbls: dict | None,
         tbl_filt_clause: str | None = None) -> ChartSeriesXYSpecs:
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     chart_vals2lbls = {} if chart_vals2lbls is None else chart_vals2lbls
     series_vals2lbls = {} if series_vals2lbls is None else series_vals2lbls

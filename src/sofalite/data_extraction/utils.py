@@ -1,8 +1,9 @@
-from sofalite.data_extraction.db import ExtendedCursor, get_dbe_spec
+from sofalite.conf.main import DbeName, DbeSpec
+from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.stats_calc.interfaces import Sample
 
-def get_sample(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_sample(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         grouping_filt_fld_name: str, grouping_filt_val_spec: ValSpec, grouping_filt_val_is_numeric: bool,
         measure_fld_name: str,
         tbl_filt_clause: str | None = None) -> Sample:
@@ -29,7 +30,6 @@ def get_sample(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
     :param grouping_filt_val_is_numeric: so we know whether to quote it or not
     :param measure_fld_name: e.g. weight
     """
-    dbe_spec = get_dbe_spec(dbe_name)
     ## prepare items
     and_tbl_filt_clause = f"AND {tbl_filt_clause}" if tbl_filt_clause else ''
     if grouping_filt_val_is_numeric:
@@ -42,7 +42,7 @@ def get_sample(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
     ## assemble SQL
     sql = f"""
     SELECT {measure_fld_name_quoted}
-    FROM {src_tbl_name}
+    FROM {src_tbl_name_quoted}
     WHERE {measure_fld_name_quoted} IS NOT NULL
     {and_tbl_filt_clause}
     {and_grouping_filt_clause}
@@ -50,8 +50,10 @@ def get_sample(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
     ## get data
     cur.exe(sql)
     data = cur.fetchall()
-    ## coerce into floats because SQLite sometimes returns strings even if REAL
-    sample_vals = [float(x[0]) for x in data]
+    sample_vals = [row[0] for row in data]
+    ## coerce into floats because SQLite sometimes returns strings even if REAL TODO: reuse coerce logic and desc
+    if dbe_spec.dbe_name == DbeName.SQLITE:
+        sample_vals = [float(val) for val in sample_vals]
     if len(sample_vals) < 2:
         raise Exception(f"Too few {measure_fld_name} values in sample for analysis "
             f"when getting sample for {grouping_filt_clause}")

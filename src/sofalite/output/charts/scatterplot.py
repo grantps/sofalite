@@ -306,7 +306,7 @@ class SingleSeriesScatterChartSpec(Source):
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         intermediate_charting_spec = get_by_xy_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
             tbl_filt_clause=self.tbl_filt_clause)
@@ -361,7 +361,7 @@ class MultiSeriesScatterChartSpec(Source):
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         intermediate_charting_spec = get_by_series_xy_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
@@ -418,7 +418,7 @@ class MultiChartScatterChartSpec(Source):
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         intermediate_charting_spec = get_by_chart_xy_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,
             y_fld_name=self.y_fld_name, y_fld_lbl=y_fld_lbl,
@@ -478,7 +478,7 @@ class MultiChartSeriesScatterChartSpec(Source):
         y_fld_lbl = VAR_LABELS.var2var_lbl.get(self.y_fld_name, self.y_fld_name)
         ## data
         intermediate_charting_spec = get_by_chart_series_xy_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             x_fld_name=self.x_fld_name, x_fld_lbl=x_fld_lbl,

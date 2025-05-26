@@ -1,10 +1,11 @@
+from sofalite.conf.main import DbeSpec
 from sofalite.data_extraction.db import ExtendedCursor
 from sofalite.data_extraction.interfaces import ValSpec
 from sofalite.data_extraction.utils import get_sample
 from sofalite.stats_calc import interfaces as stats_interfaces, engine
 from sofalite.utils.misc import todict
 
-def get_results(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
+def get_results(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         grouping_fld_name: str, grouping_fld_lbl: str,
         group_a_val_spec: ValSpec, group_b_val_spec: ValSpec, grouping_val_is_numeric,
         measure_fld_name: str, measure_fld_lbl: str,
@@ -31,12 +32,12 @@ def get_results(*, cur: ExtendedCursor, dbe_name: str, src_tbl_name: str,
     :param measure_fld_name: e.g. weight
     """
     ## build samples ready for ttest_indep function
-    sample_a = get_sample(cur=cur, dbe_name=dbe_name, src_tbl_name=src_tbl_name,
+    sample_a = get_sample(cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name,
         grouping_filt_fld_name=grouping_fld_name,
         grouping_filt_val_spec=group_a_val_spec,
         grouping_filt_val_is_numeric=grouping_val_is_numeric,
         measure_fld_name=measure_fld_name, tbl_filt_clause=tbl_filt_clause)
-    sample_b = get_sample(cur=cur, dbe_name=dbe_name, src_tbl_name=src_tbl_name,
+    sample_b = get_sample(cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name,
         grouping_filt_fld_name=grouping_fld_name,
         grouping_filt_val_spec=group_b_val_spec,
         grouping_filt_val_is_numeric=grouping_val_is_numeric,

@@ -12,7 +12,11 @@ SOFALITE_WEB_RESOURCES_ROOT = 'http://www.sofastatistics.com/sofalite'
 # SOFALITE_WEB_RESOURCES_ROOT = 'file:///home/g/projects/sofalite/src/sofalite/output/js'  ## local development - note tooltips won't work because the pngs aren't in the same place in dev as in prod - don't worry about that
 SOFALITE_FS_RESOURCES_ROOT = Path('/home/g/Documents/sofalite/reports/report_extras')
 
+MAX_CHI_SQUARE_CELLS = 200  ## was 25
+MAX_CHI_SQUARE_VALS_IN_DIM = 30  ## was 6
+MIN_CHI_SQUARE_VALS_IN_DIM = 2
 MAX_RANK_DATA_VALS = 100_000
+MAX_VALUE_LENGTH_IN_SQL_CLAUSE = 90
 
 AVG_LINE_HEIGHT_PIXELS = 12
 AVG_CHAR_WIDTH_PIXELS = 20
@@ -91,9 +95,10 @@ class DbeSpec:
     entity: e.g. table name 'demo_tbl'
     string value: e.g. 'New Zealand'
     """
+    dbe_name: str
     if_clause: str
     placeholder: str
-    left_entity_quote: str
+    left_entity_quote: str  ## usually left and right are the same but in MS Access and MS SQL Server they are different: '[' and ']'
     right_entity_quote: str
     gte_not_equals: str
     cartesian_joiner: str

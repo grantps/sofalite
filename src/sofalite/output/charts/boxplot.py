@@ -389,7 +389,7 @@ class BoxplotChartSpec(Source):
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         intermediate_charting_spec = get_by_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             category_vals2lbls=category_vals2lbls, category_sort_order=self.category_sort_order,
@@ -451,7 +451,7 @@ class MultiSeriesBoxplotChartSpec(Source):
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         intermediate_charting_spec = get_by_series_category_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             series_fld_name=self.series_fld_name, series_fld_lbl=series_fld_lbl,
             category_fld_name=self.category_fld_name, category_fld_lbl=category_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,

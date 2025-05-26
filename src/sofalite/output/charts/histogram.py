@@ -304,7 +304,7 @@ class HistogramChartSpec(Source):
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         intermediate_charting_spec = get_by_vals_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             fld_name=self.fld_name, fld_lbl=fld_lbl, tbl_filt_clause=self.tbl_filt_clause)
         bin_lbls = intermediate_charting_spec.to_bin_lbls(dp=self.dp)
         x_axis_min_val, x_axis_max_val = intermediate_charting_spec.to_x_axis_range()
@@ -359,7 +359,7 @@ class MultiChartHistogramChartSpec(Source):
         fld_lbl = VAR_LABELS.var2var_lbl.get(self.fld_name, self.fld_name)
         ## data
         intermediate_charting_spec = get_by_chart_charting_spec(
-            cur=self.cur, dbe_name=self.dbe_name, src_tbl_name=self.src_tbl_name,
+            cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
             chart_fld_name=self.chart_fld_name, chart_fld_lbl=chart_fld_lbl,
             fld_name=self.fld_name, fld_lbl=fld_lbl,
             chart_vals2lbls=chart_vals2lbls,
