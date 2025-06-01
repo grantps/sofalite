@@ -23,11 +23,12 @@ def get_fractions_of_total_for_variable(*, cur: ExtendedCursor, dbe_spec: DbeSpe
     quoted_variable_name = dbe_spec.entity_quoter(variable_name)
     quoted_other_variable_name = dbe_spec.entity_quoter(other_variable_name)
     ## get data
+    and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     sql_get_fractions = f"""\
     SELECT {quoted_variable_name}, COUNT(*) AS n
     FROM {quoted_src_tbl_name} 
     WHERE {quoted_variable_name} IS NOT NULL AND {quoted_other_variable_name} IS NOT NULL
-    AND ({tbl_filt_clause})
+    {and_tbl_filt_clause}
     GROUP BY {quoted_variable_name}
     ORDER BY {quoted_variable_name}
     """
@@ -87,12 +88,13 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     quoted_src_tbl_name = dbe_spec.entity_quoter(src_tbl_name)
     quoted_variable_name_a = dbe_spec.entity_quoter(variable_name_a)
     quoted_variable_name_b = dbe_spec.entity_quoter(variable_name_b)
+    and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     ## A) get ROW vals used ***********************
     sql_row_vals_used = f"""\
     SELECT {quoted_variable_name_a}
     FROM {quoted_src_tbl_name}
     WHERE {quoted_variable_name_a} IS NOT NULL AND {quoted_variable_name_b} IS NOT NULL
-    AND ({tbl_filt_clause})
+    {and_tbl_filt_clause}
     GROUP BY {quoted_variable_name_a}
     ORDER BY {quoted_variable_name_a}
     """
@@ -112,7 +114,7 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     SELECT {quoted_variable_name_b}
     FROM {quoted_src_tbl_name}
     WHERE {quoted_variable_name_a} IS NOT NULL AND {quoted_variable_name_b} IS NOT NULL
-    AND ({tbl_filt_clause})
+    {and_tbl_filt_clause}
     GROUP BY {quoted_variable_name_b}
     ORDER BY {quoted_variable_name_b}
     """
@@ -133,6 +135,7 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
         raise Exception(f"Too many cells in Chi Square cross tab ({n_cells:,} "
             f"vs maximum allowed of {MAX_CHI_SQUARE_CELLS:,})")
     ## Build SQL to get all observed values (for each A, through B's)
+    ## This order is useful when running row by row into an HTML table
     ## Get frequency per A and B intersection
     sql_get_observed_freqs_bits = ['SELECT ', ]
     freq_per_a_b_intersection_clauses_bits = []
@@ -147,16 +150,17 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     freq_per_a_b_intersection_clauses = ',\n'.join(freq_per_a_b_intersection_clauses_bits)
     sql_get_observed_freqs_bits.append(freq_per_a_b_intersection_clauses)
     sql_get_observed_freqs_bits.append(f"FROM {quoted_src_tbl_name}")
-    sql_get_observed_freqs_bits.append(f"WHERE {tbl_filt_clause}")
+    if tbl_filt_clause:
+        sql_get_observed_freqs_bits.append(f"WHERE {tbl_filt_clause}")
     sql_get_observed_freqs = '\n'.join(sql_get_observed_freqs_bits)
     logger.debug(f"{sql_get_observed_freqs=}")
     cur.exe(sql_get_observed_freqs)
-    observed_values_ordered = cur.fetchone()
-    if not observed_values_ordered:
+    observed_values_a_then_b_ordered = cur.fetchone()
+    if not observed_values_a_then_b_ordered:
         raise Exception("No observed values")
-    observed_values_ordered = list(observed_values_ordered)
-    logger.debug(f"{observed_values_ordered=}")
-    total_observed_values = float(sum(observed_values_ordered))
+    observed_values_a_then_b_ordered = list(observed_values_a_then_b_ordered)
+    logger.debug(f"{observed_values_a_then_b_ordered=}")
+    total_observed_values = float(sum(observed_values_a_then_b_ordered))
     ## expected values
     fractions_of_total_for_variable_a = get_fractions_of_total_for_variable(
         cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
@@ -165,22 +169,22 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
         cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
         variable_name=variable_name_b, other_variable_name=variable_name_a)
     degrees_of_freedom = (n_variable_a_vals - 1) * (n_variable_b_vals - 1)
-    expected_values_same_order = []
+    expected_values_a_then_b_ordered = []
     for fraction_of_val_in_variable_a, fraction_of_val_in_variable_b in product(
             fractions_of_total_for_variable_a, fractions_of_total_for_variable_b):
-        expected_values_same_order.append(fraction_of_val_in_variable_a * fraction_of_val_in_variable_b * total_observed_values)
-    logger.debug(f"{expected_values_same_order=}")
-    if len(observed_values_ordered) != len(expected_values_same_order):
+        expected_values_a_then_b_ordered.append(fraction_of_val_in_variable_a * fraction_of_val_in_variable_b * total_observed_values)
+    logger.debug(f"{expected_values_a_then_b_ordered=}")
+    if len(observed_values_a_then_b_ordered) != len(expected_values_a_then_b_ordered):
         raise Exception('Different number of observed and expected values. '
-            f'{len(observed_values_ordered)} vs {len(expected_values_same_order)}')
-    minimum_cell_count = min(expected_values_same_order)
-    cells_freq_under_5 = [x for x in expected_values_same_order if x < 5]
-    pct_cells_freq_under_5 = (100 * len(cells_freq_under_5)) / float(len(expected_values_same_order))
+            f'{len(observed_values_a_then_b_ordered)} vs {len(expected_values_a_then_b_ordered)}')
+    minimum_cell_count = min(expected_values_a_then_b_ordered)
+    cells_freq_under_5 = [x for x in expected_values_a_then_b_ordered if x < 5]
+    pct_cells_freq_under_5 = (100 * len(cells_freq_under_5)) / float(len(expected_values_a_then_b_ordered))
     return ChiSquareData(
         variable_a_values=variable_a_values,
         variable_b_values=variable_b_values,
-        observed_values_ordered=observed_values_ordered,
-        expected_values_same_order=expected_values_same_order,
+        observed_values_a_then_b_ordered=observed_values_a_then_b_ordered,
+        expected_values_a_then_b_ordered=expected_values_a_then_b_ordered,
         minimum_cell_count=minimum_cell_count,
         pct_cells_freq_under_5=pct_cells_freq_under_5,
         degrees_of_freedom=degrees_of_freedom,
@@ -188,13 +192,19 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
 
 def get_results(cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
         variable_name_a: str, variable_name_b: str,
-        tbl_filt_clause: str | None = None,) -> stats_interfaces.ChiSquareResult:
+        tbl_filt_clause: str | None = None, *, dp: int) -> stats_interfaces.ChiSquareResult:
     chi_square_data = get_chi_square_data(cur=cur, dbe_spec=dbe_spec,
         src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
         variable_name_a=variable_name_a, variable_name_b=variable_name_b)
     ## get results
-    chi_square, chi_square_prob = engine.chisquare(
-        f_obs=chi_square_data.observed_values_ordered, f_exp=chi_square_data.expected_values_same_order,
-        df=chi_square_data.degrees_of_freedom)  ## df = degree of freedom
-
-    return stats_interfaces.ChiSquareResult()
+    chi_square, p = engine.chisquare(
+        f_obs=chi_square_data.observed_values_a_then_b_ordered, f_exp=chi_square_data.expected_values_a_then_b_ordered,
+        df=chi_square_data.degrees_of_freedom)
+    return stats_interfaces.ChiSquareResult(
+        variable_name_a=variable_name_a, variable_name_b=variable_name_b,
+        variable_a_values=chi_square_data.variable_a_values, variable_b_values=chi_square_data.variable_b_values,
+        observed_values_a_then_b_ordered=chi_square_data.observed_values_a_then_b_ordered,
+        expected_values_a_then_b_ordered=chi_square_data.expected_values_a_then_b_ordered,
+        p=p, chi_square=chi_square, degrees_of_freedom=chi_square_data.degrees_of_freedom,
+        minimum_cell_count=chi_square_data.minimum_cell_count, pct_cells_lt_5=chi_square_data.pct_cells_freq_under_5,
+    )

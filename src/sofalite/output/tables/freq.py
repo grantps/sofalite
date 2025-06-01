@@ -227,7 +227,7 @@ class FreqTblSpec(Source):
         html = fix_top_left_box(html, style_spec, debug=self.debug, verbose=self.verbose)
         html = merge_cols_of_blanks(html, debug=self.debug)
         if self.debug:
-            print(pd_styler.uuid)
+            print(pd_styler.uuid)  ## A unique identifier to avoid CSS collisions; generated automatically.
             print(html)
         return HTMLItemSpec(
             html_item_str=html,

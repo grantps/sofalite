@@ -101,8 +101,17 @@ class AnovaResultExt(AnovaResult):
 
 @dataclass(frozen=True)
 class ChiSquareResult:
-    ## TODO: build what is required by output
-    pass
+    variable_name_a: str
+    variable_name_b: str
+    variable_a_values: Sequence[str | int]
+    variable_b_values: Sequence[str | int]
+    observed_values_a_then_b_ordered: Sequence[float]
+    expected_values_a_then_b_ordered: Sequence[float]
+    p: float
+    chi_square: float
+    degrees_of_freedom: int
+    minimum_cell_count: int
+    pct_cells_lt_5: float
 
 @dataclass(frozen=True)
 class MannWhitneyResult:

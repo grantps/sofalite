@@ -26,69 +26,69 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         dp: int, show_workings=False) -> str:
     tpl = """\
     <style>
-        {{generic_unstyled_css}}
-        {{styled_stats_tbl_css}}
+        {{ generic_unstyled_css }}
+        {{ styled_stats_tbl_css }}
     </style>
 
     <div class='default'>
-    <h2>{{title}}</h2>
+    <h2>{{ title }}</h2>
 
-    <p>p value: {{p}}<a class='tbl-heading-footnote' href='#ft1'><sup>1</sup></a></p>
-    <p>t statistic: {{t}}</p>
-    <p>Degrees of Freedom (df): {{df}}</p>
-    <p>O'Brien's test for homogeneity of variance: {{obriens_msg}}<a href='#ft2'><sup>2</sup></a></p>
+    <p>p value: {{ p }}<a class='tbl-heading-footnote' href='#ft1'><sup>1</sup></a></p>
+    <p>t statistic: {{ t }}</p>
+    <p>Degrees of Freedom (df): {{ degrees_of_freedom }}</p>
+    <p>O'Brien's test for homogeneity of variance: {{ obriens_msg }}<a href='#ft2'><sup>2</sup></a></p>
 
     <h3>Group summary details</h3>
     <table cellspacing='0'>
       <thead>
         <tr>
-          <th class='firstcolvar'>Group</th>
-          <th class='firstcolvar'>N</th>
-          <th class='firstcolvar'>Mean</th>
-          <th class='firstcolvar'>CI 95%<a class='tbl-heading-footnote' href='#ft3'><sup>3</sup></a></th>
-          <th class='firstcolvar'>Standard Deviation<a class='tbl-heading-footnote' href='#ft4'><sup>4</sup></a></th>
-          <th class='firstcolvar'>Min</th>
-          <th class='firstcolvar'>Max</th>
-          <th class='firstcolvar'>Kurtosis<a class='tbl-heading-footnote' href='#ft5'><sup>5</sup></a></th>
-          <th class='firstcolvar'>Skew<a class='tbl-heading-footnote' href='#ft6'><sup>6</sup></a></th>
-          <th class='firstcolvar'>p abnormal<a class='tbl-heading-footnote' href='#ft7'><sup>7</sup></a></th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Group</th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>N</th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Mean</th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>CI 95%<a class='tbl-heading-footnote' href='#ft3'><sup>3</sup></a></th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Standard Deviation<a class='tbl-heading-footnote' href='#ft4'><sup>4</sup></a></th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Min</th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Max</th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Kurtosis<a class='tbl-heading-footnote' href='#ft5'><sup>5</sup></a></th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>Skew<a class='tbl-heading-footnote' href='#ft6'><sup>6</sup></a></th>
+          <th class='firstcolvar-{{ style_name_hyphens }}'>p abnormal<a class='tbl-heading-footnote' href='#ft7'><sup>7</sup></a></th>
         </tr>
       </thead>
       <tbody>
         {% for group_spec in group_specs %}
           <tr>
-            <td class='lbl'>{{group_spec.lbl}}</td>
-            <td class='right'>{{group_spec.n}}</td>
-            <td class='right'>{{group_spec.mean}}</td>
-            <td class='right'>{{group_spec.ci95}}</td>
-            <td class='right'>{{group_spec.stdev}}</td>
-            <td class='right'>{{group_spec.sample_min}}</td>
-            <td class='right'>{{group_spec.sample_max}}</td>
-            <td class='right'>{{group_spec.kurtosis}}</td>
-            <td class='right'>{{group_spec.skew}}</td>
-            <td class='right'>{{group_spec.p}}</td>
+            <td class='lbl-{{ style_name_hyphens }}'>{{group_spec.lbl}}</td>
+            <td class='right'>{{ group_spec.n }}</td>
+            <td class='right'>{{ group_spec.mean }}</td>
+            <td class='right'>{{ group_spec.ci95 }}</td>
+            <td class='right'>{{ group_spec.stdev }}</td>
+            <td class='right'>{{ group_spec.sample_min }}</td>
+            <td class='right'>{{ group_spec.sample_max }}</td>
+            <td class='right'>{{ group_spec.kurtosis }}</td>
+            <td class='right'>{{ group_spec.skew }}</td>
+            <td class='right'>{{ group_spec.p }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <p><a id='ft1'></a><sup>1</sup>{{p_explain_multiple_groups}}<br><br>{{one_tail_explain}}</p>
-    <p><a id='ft2'></a><sup>2</sup>{{obrien_explain}}</p>
-    <p><a id='ft3'></a><sup>3</sup>{{ci_explain}}</p>
-    <p><a id='ft4'></a><sup>4</sup>{{std_dev_explain}}</p>
-    <p><a id='ft5'></a><sup>5</sup>{{kurtosis_explain}}</p>
-    <p><a id='ft6'></a><sup>6</sup>{{skew_explain}}</p>
-    <p><a id='ft7'></a><sup>7</sup>{{normality_measure_explain}}</p>
+    <p><a id='ft1'></a><sup>1</sup>{{ p_explain_multiple_groups }}<br><br>{{one_tail_explain}}</p>
+    <p><a id='ft2'></a><sup>2</sup>{{ obrien_explain }}</p>
+    <p><a id='ft3'></a><sup>3</sup>{{ ci_explain }}</p>
+    <p><a id='ft4'></a><sup>4</sup>{{ std_dev_explain }}</p>
+    <p><a id='ft5'></a><sup>5</sup>{{ kurtosis_explain }}</p>
+    <p><a id='ft6'></a><sup>6</sup>{{ skew_explain }}</p>
+    <p><a id='ft7'></a><sup>7</sup>{{ normality_measure_explain }}</p>
     {% for histogram2show in histograms2show %}
       {{histogram2show}}  <!-- either an <img> or an error message <p> -->
     {% endfor %}
     {% if workings_msg %}
-      {{workings_msg}}
+      {{ workings_msg }}
     {% endif %}
     </div>
     """
     generic_unstyled_css = get_generic_unstyled_css()
-    styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec.table)
+    styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec)
     title = (f"Results of independent samples t-test of average {result.measure_fld_lbl} "
         f'''for "{result.group_lbl}" groups "{result.group_a_spec.lbl}" and "{result.group_b_spec.lbl}"''')
     num_tpl = f"{{:,.{dp}f}}"  ## use comma as thousands separator, and display specified decimal places
@@ -131,22 +131,24 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
     workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
         'generic_unstyled_css': generic_unstyled_css,
+        'style_name_hyphens': style_spec.style_name_hyphens,
         'styled_stats_tbl_css': styled_stats_tbl_css,
         'title': title,
-        't': round(result.t, dp),
-        'p': get_p_str(result.p),
-        'df': result.degrees_of_freedom,
-        'obriens_msg': result.obriens_msg,
-        'p_explain_multiple_groups': p_explain_multiple_groups,
-        'one_tail_explain': one_tail_explain,
-        'obrien_explain': obrien_explain,
+
         'ci_explain': ci_explain,
-        'std_dev_explain': std_dev_explain,
-        'kurtosis_explain': kurtosis_explain,
-        'skew_explain': skew_explain,
-        'normality_measure_explain': normality_measure_explain,
+        'degrees_of_freedom': result.degrees_of_freedom,
         'group_specs': formatted_group_specs,
         'histograms2show': histograms2show,
+        'kurtosis_explain': kurtosis_explain,
+        'normality_measure_explain': normality_measure_explain,
+        'obrien_explain': obrien_explain,
+        'obriens_msg': result.obriens_msg,
+        'one_tail_explain': one_tail_explain,
+        'p_explain_multiple_groups': p_explain_multiple_groups,
+        'p': get_p_str(result.p),
+        'skew_explain': skew_explain,
+        'std_dev_explain': std_dev_explain,
+        't': round(result.t, dp),
         'workings_msg': workings_msg,
     }
     environment = jinja2.Environment()

@@ -345,32 +345,48 @@ def set_table_styles(pd_styler: Styler) -> Styler:
 def apply_index_styles(
         df: pd.DataFrame, style_spec: StyleSpec, pd_styler: Styler, *, axis: Literal['rows', 'columns']) -> Styler:
     """
-    Index i.e. row and column headings.
+    Args:
+        axis: needed because we have different styles for measure items which only exist in column axes
 
-    Index styles are applied as per
+    Task - Pandas has a way of enabling custom CSS according to axis and level - namely:
+
+    pd_styler.apply_index(style_fn, axis=axis, level=level_idx)
     https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.apply_index.html
+
+    The style_fn needs to take a series and return a CSS string for each item in series.
+    The calling function tells us the axis we are setting this for.
+    What we have to figure out is which style function for which level.
 
     Styling is applied by axis (rows or columns),
     and level (how far nested).
     Every cell for that axis and level gets a specific, individual CSS style string.
     In my case I give them all the same CSS for that axis-level combination so it is
-    [css_str] * len(s).
+    [css_str] * len(<series>).
 
     The specific style I give a level depends on whether a first-level variable, other variables, a value, or a measure.
 
     E.g.
+    rows:
     df.index.levshape
-    (2, 5, 2, 3) var, val, var, val
+    (2, 5, 2, 3)
+    var, val, var, val
+
+    columns (last one is measure):
     df.columns.levshape
-    (2, 10, 2, 5, 3) var, val, var, val, measure <==== always has one level for measure
+    (2, 10, 2, 5, 3)
+    var, val, var, val, measure <==== always has one level for measure (measure value 3 in this case)
     """
     tbl_style_spec = style_spec.table
     n_row_index_levels = df.index.nlevels
     n_col_index_levels = df.columns.nlevels
 
-    def get_css_list(s: pd.Series, css_str: str) -> list[str]:
-        css_strs = [css_str] * len(s)
+    ## Needed by whatever style_fn we decide we need, so that function can return a series of CSS strings,
+    ## one per item in the index series
+    def get_css_list(s_series: pd.Series, css_str: str) -> list[str]:
+        css_strs = [css_str] * len(s_series)
         return css_strs
+
+    ## Style functions to choose from depending on what sort of cell this is
 
     def variable_name_first_level(s: pd.Series) -> list[str]:
         css_str = (f"background-color: {tbl_style_spec.var_bg_colour_first_level}; "
@@ -393,6 +409,7 @@ def apply_index_styles(
     def measure(s: pd.Series) -> list[str]:
         return get_css_list(s, "background-color: white; color: black;")
 
+    ## Now to actually set one style_fn per level for this type of multi-index (rows or columns)
     for level_idx in count():
         if axis == 'rows':
             last_level = (level_idx == n_row_index_levels - 1)

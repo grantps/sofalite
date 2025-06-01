@@ -228,7 +228,7 @@ class HTMLItemSpec:
         if self.output_item_type == OutputItemType.MAIN_TABLE:
             context['styled_placeholder_css_for_main_tbls'] = get_styled_placeholder_css_for_main_tbls(self.style_name)
         if self.output_item_type == OutputItemType.STATS:
-            context['styled_stats_tbl_css'] = get_styled_stats_tbl_css(style_spec.table)
+            context['styled_stats_tbl_css'] = get_styled_stats_tbl_css(style_spec)
         html = template.render(context)
         return html
 

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import math
 
 import jinja2
 
@@ -84,7 +85,7 @@ def get_report(html_items: Sequence[HasToHTMLItemSpec], title: str) -> Report:
                 styled_stats_tbl_tpl = STATS_TBL_TPL.replace('styled_stats_tbl_css', styled_stats_tbl_context_param)
                 tpl_bits.append(styled_stats_tbl_tpl)
                 style_spec = get_style_spec(html_item_spec.style_name)
-                context[styled_stats_tbl_context_param] = get_styled_stats_tbl_css(style_spec.table)
+                context[styled_stats_tbl_context_param] = get_styled_stats_tbl_css(style_spec)
                 stats_styles_done.add(html_item_spec.style_name)
     ## unstyled & already styled
     tpl_bits.append(HEAD_END_TPL)
@@ -98,3 +99,60 @@ def get_report(html_items: Sequence[HasToHTMLItemSpec], title: str) -> Report:
     template = environment.from_string(tpl)
     html = template.render(context)
     return Report(html)
+
+def to_precision(num, precision):
+    """
+    Returns a string representation of x formatted with a precision of p.
+
+    Based on the webkit javascript implementation taken from here:
+    https://code.google.com/p/webkit-mirror/source/browse/JavaScriptCore/kjs/number_object.cpp
+
+    http://randlet.com/blog/python-significant-figures-format/
+    """
+    x = float(num)
+    if x == 0.:
+        return '0.' + '0'*(precision - 1)
+    out = []
+    if x < 0:
+        out.append('-')
+        x = -x
+    e = int(math.log10(x))
+    tens = math.pow(10, e - precision + 1)
+    n = math.floor(x/tens)
+    if n < math.pow(10, precision - 1):
+        e = e -1
+        tens = math.pow(10, e - precision + 1)
+        n = math.floor(x / tens)
+    if abs((n + 1.) * tens - x) <= abs(n * tens -x):
+        n = n + 1
+    if n >= math.pow(10, precision):
+        n = n / 10.
+        e = e + 1
+    m = '%.*g' % (precision, n)
+    if e < -2 or e >= precision:
+        out.append(m[0])
+        if precision > 1:
+            out.append('.')
+            out.extend(m[1:precision])
+        out.append('e')
+        if e > 0:
+            out.append('+')
+        out.append(str(e))
+    elif e == (precision -1):
+        out.append(m)
+    elif e >= 0:
+        out.append(m[:e+1])
+        if e+1 < len(m):
+            out.append('.')
+            out.extend(m[e+1:])
+    else:
+        out.append('0.')
+        out.extend(['0'] * -(e+1))
+        out.append(m)
+    return ''.join(out)
+
+def get_p(p):
+    p_str = to_precision(num=p, precision=4)
+    if p < 0.001:
+        p_str = f'< 0.001 ({p_str})'
+    return p_str

@@ -54,3 +54,7 @@ class StyleSpec:
     table: TableStyleSpec
     chart: ChartStyleSpec
     dojo: DojoStyleSpec
+
+    @property
+    def style_name_hyphens(self):
+        return self.name.replace('_', '-')

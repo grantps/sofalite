@@ -251,46 +251,49 @@ def get_styled_dojo_chart_css(dojo_style_spec: DojoStyleSpec) -> str:
     """
     Style-specific DOJO - needed only once even if multiple items with the same style.
     Not needed if style not used.
+    Each class contains the connector_style so charts with different styles can coexist in a single report.
+    If several styles share connector style there is no conflict - they'll also share the CSS.
+    Supplied by the attributes of the DojoStyleSpec.
     """
     tpl = """\
         /* Tool tip connector arrows */
-        .dijitTooltipBelow-{{connector_style}} {
+        .dijitTooltipBelow-{{ connector_style }} {
           padding-top: 13px;
         }
-        .dijitTooltipAbove-{{connector_style}} {
+        .dijitTooltipAbove-{{ connector_style }} {
           padding-bottom: 13px;
         }
-        .tundra .dijitTooltipBelow-{{connector_style}} .dijitTooltipConnector {
+        .tundra .dijitTooltipBelow-{{ connector_style }} .dijitTooltipConnector {
           top: 0px;
           left: 3px;
-          background: url("{{tooltip_connector_up}}") no-repeat top left !important;
+          background: url("{{ tooltip_connector_up }}") no-repeat top left !important;
           width: 16px;
           height: 14px;
         }
-        .tundra .dijitTooltipAbove-{{connector_style}} .dijitTooltipConnector {
+        .tundra .dijitTooltipAbove-{{ connector_style }} .dijitTooltipConnector {
           bottom: 0px;
           left: 3px;
-          background: url("{{tooltip_connector_down}}") no-repeat top left !important;
+          background: url("{{ tooltip_connector_down }}") no-repeat top left !important;
           width: 16px;
           height: 14px;
         }
-        .tundra .dijitTooltipLeft-{{connector_style}} {
+        .tundra .dijitTooltipLeft-{{ connector_style }} {
           padding-right: 14px;
         }
-        .tundra .dijitTooltipLeft-{{connector_style}} .dijitTooltipConnector {
+        .tundra .dijitTooltipLeft-{{ connector_style }} .dijitTooltipConnector {
           right: 0px;
           bottom: 3px;
-          background: url("{{tooltip_connector_right}}") no-repeat top left !important;
+          background: url("{{ tooltip_connector_right }}") no-repeat top left !important;
           width: 16px;
           height: 14px;
         }
-        .tundra .dijitTooltipRight-{{connector_style}} {
+        .tundra .dijitTooltipRight-{{ connector_style }} {
           padding-left: 14px;
         }
-        .tundra .dijitTooltipRight-{{connector_style}} .dijitTooltipConnector {
+        .tundra .dijitTooltipRight-{{ connector_style }} .dijitTooltipConnector {
           left: 0px;
           bottom: 3px;
-          background: url("{{tooltip_connector_left}}") no-repeat top left !important;
+          background: url("{{ tooltip_connector_left }}") no-repeat top left !important;
           width: 16px;
           height: 14px;
         }
@@ -306,38 +309,7 @@ def get_long_colour_list(colour_mappings: Sequence[ColourWithHighlight]) -> list
     long_colour_list = defined_colours + DOJO_COLOURS
     return long_colour_list
 
-def get_styled_stats_tbl_css(table_style_spec: TableStyleSpec) -> str:
-    """
-    Note - main table CSS is handled completely separately
-    (controlled by Pandas and the spaceholder CSS with embedded image)
-    """
-    tpl = """\
-        .firstcolvar {
-            color: {{var_font_colour_first_level}};
-            background-color: {{var_bg_colour_first_level}};
-        }
-        td.lbl {
-            color: {{var_font_colour_not_first_level}};
-            background-color: {{var_bg_colour_not_first_level}};
-        }
-        td, th {
-            border: 1px solid {{var_border_colour_not_first_level}};
-        }
-        .tbl-heading-footnote{
-            color: {{heading_footnote_font_colour}};
-        }
-    """
-    environment = jinja2.Environment()
-    template = environment.from_string(tpl)
-    context = todict(table_style_spec, shallow=True)
-    css = template.render(context)
-    return css
-
-def get_styled_placeholder_css_for_main_tbls(style_name: str) -> str:
-    """
-    Only used in main tables (cross-tab and freq) not in Stats output tables e.g. ANOVA results tables
-    """
-    style_spec = get_style_spec(style_name)
+def _get_bg_line(style_spec: StyleSpec) -> str:
     if style_spec.table.spaceholder_bg_img:
         binary_fc = open(style_spec.table.spaceholder_bg_img, 'rb').read()  ## fc a.k.a. file_content
         bg_img_base64 = base64.b64encode(binary_fc).decode('utf-8')
@@ -346,13 +318,67 @@ def get_styled_placeholder_css_for_main_tbls(style_name: str) -> str:
         bg_line = f"background-color: {style_spec.table.spaceholder_bg_colour};"
     else:
         bg_line = ''
+    return bg_line
+
+def get_styled_stats_tbl_css(style_spec: StyleSpec) -> str:
+    """
+    Note - main table CSS is handled completely separately
+    (controlled by Pandas and the spaceholder CSS with embedded image)
+    """
+    tpl = """\
+        .firstcolvar-{{ style_name_hyphens }}, .firstrowvar-{{ style_name_hyphens }}, .spaceholder-{{ style_name_hyphens }} {
+            font-family: Ubuntu, Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: {{ var_font_colour_first_level }};
+        }
+        .spaceholder-{{ style_name_hyphens }} {
+            {{ bg_line }}
+        }
+        .firstrowvar-{{ style_name_hyphens }} {
+            color: {{ var_font_colour_first_level }};
+            background-color: {{ var_bg_colour_first_level }};
+        }
+        .firstcolvar-{{ style_name_hyphens }} {
+            padding: 9px 6px;
+            vertical-align: top;
+            color: {{ var_font_colour_first_level }};
+            background-color: {{ var_bg_colour_first_level }};
+        }
+        td.lbl-{{ style_name_hyphens }} {
+            color: {{ var_font_colour_not_first_level }};
+            background-color: {{ var_bg_colour_not_first_level }};
+        }
+        td.{{ style_name_hyphens }}, th.{{ style_name_hyphens }}, td.rowval-{{ style_name_hyphens }}, td.datacell-{{ style_name_hyphens }} {
+            border: 1px solid {{ var_border_colour_not_first_level }};
+        }
+        .tbl-heading-footnote-{{ style_name_hyphens }}{
+            color: {{ heading_footnote_font_colour }};
+        }
+    """
+    environment = jinja2.Environment()
+    template = environment.from_string(tpl)
+    context = todict(style_spec.table, shallow=True)
+    context['style_name_hyphens'] = style_spec.style_name_hyphens
+    bg_line = _get_bg_line(style_spec)
+    context['bg_line'] = bg_line
+    css = template.render(context)
+    return css
+
+
+def get_styled_placeholder_css_for_main_tbls(style_name: str) -> str:
+    """
+    Only used in main tables (cross-tab and freq) not in Stats output tables e.g. ANOVA results tables
+    """
+    style_spec = get_style_spec(style_name)
+    bg_line = _get_bg_line(style_spec)
     placeholder_css = """
-    .spaceholder-%(style)s {
+    .spaceholder-%(style_name_hyphens)s {
         %(bg_line)s
         border: solid 1px %(border)s;
     }
     """ % {
-        'style': style_name.replace('_', '-'),
+        'style_name_hyphens': style_spec.style_name_hyphens,
         'bg_line': bg_line,
         'border': style_spec.table.var_border_colour_first_level,
     }

@@ -1,4 +1,24 @@
 """
+Labelling is based entirely on YAML:
+
+age:
+  var_lbl: Age (at date of study)
+agegroup:
+  var_lbl: Age Group
+  var_comment: Standard age groupings for SOFA
+  val_lbls:
+    1: "< 20"
+    2: "20-29"
+    3: "30-39"
+    4: "40-64"
+    5: "65+"
+...
+
+Some variables won't have any settings, and others will be set but lack value labels.
+Others will have value labels but not every value will have a label.
+
+
+
 There is no auto-labelling apart from converting non-string values into strings if we don't have a mapped value.
 The original SOFA used to convert to Title Case when no label was supplied. This is no longer the case.
 There are two reasons:
@@ -18,7 +38,7 @@ There are two reasons:
    value 'CategoryLabel' should not be changed to 'Categorylabel',
    value 'agegroup' is best labelled 'Age Group' not 'Agegroup'.
 
-WARNING - if values are integers and they are being used as categories e.g. in a table,
+WARNING - if values are integers, and they are being used as categories e.g. in a table,
 then the sort order of the categories will be by the string version of those values e.g. '1', '11', '12', '2', '3' etc.
 If this is not what is desired, then explicit value labels will have to be set in the YAML.
 """
@@ -69,7 +89,12 @@ class VarLabelSpec:
 @dataclass(frozen=True)
 class VarLabels:
     """
-    If a variable is asked for and it isn't there, add it then.
+    The MAIN Act. This is global, and we use it for all variable and value labelling.
+
+    Always use .get() when using dictionary properties like .var2var_label_spec or .var2val2lbl.
+    If you haven't added a variable to the YAML, it won't be in any of the dictionaries.
+    If a variable has been set it will always have a label, even if it is only the variable name itself.
+    There will always be a val2lbl for every variable, but it might just be an empty dictionary.
     """
     var_label_specs: list[VarLabelSpec]
 
@@ -116,6 +141,10 @@ class VarLabels:
         return '\n'.join(str(var_lbl_spec) for var_lbl_spec in self.var_label_specs)
 
 def yaml2varlabels(yaml_fpath: Path, *, debug=False) -> VarLabels:
+    """
+    Always returns a label for each variable, even if only a string representation of the original value
+    (possibly a number).
+    """
     raw_yaml = yaml.load(yaml_fpath)
     var_label_specs = []
     for var, var_spec in raw_yaml.items():
