@@ -156,3 +156,10 @@ def get_p(p):
     if p < 0.001:
         p_str = f'< 0.001 ({p_str})'
     return p_str
+
+def format_num(num):
+    try:
+        formatted = f'{num:,}'
+    except ValueError:
+        formatted = num
+    return formatted

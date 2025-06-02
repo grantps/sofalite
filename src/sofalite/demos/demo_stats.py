@@ -46,6 +46,7 @@ def run_chi_square():
         tbl_filt_clause=None,
         cur=None,
         dp=3,
+        show_workings=True,
     )
     html_item_spec = stats.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/chi_square_stats.html')

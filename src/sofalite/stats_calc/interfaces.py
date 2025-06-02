@@ -2,8 +2,6 @@
 Depends on stats_calc and utils which are lower level - so no problematic project dependencies :-)
 
 Some interfaces are extended beyond those required for the original stats.py function results.
-
-TODO: add a dc interface for Chi Square results?
 """
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -99,6 +97,36 @@ class AnovaResultExt(AnovaResult):
     group_lbl: str
     measure_fld_lbl: str
 
+## TODO: clarify what goes in stats_calc.interfaces and what goes in data_extraction.stats.interfaces and then document it!!!!!!!!!!!!!!!!!
+
+@dataclass(frozen=False)
+class ChiSquareWorkedResultCellData:
+    observed_value: int
+    row_sum: int  ## sum of the row this value is from
+    col_sum: int  ## sum of the column this value is from
+    expected_value: float
+    min_of_observed_and_expected: float
+    max_of_observed_and_expected: float
+    diff_of_min_and_max: float
+    diff_squared: float
+    pre_chi: float
+
+@dataclass(frozen=True)
+class ChiSquareWorkedResultData:
+    grand_tot: int
+    row_n2row_sum: dict[int, int]
+    row_n2obs_row: Sequence[int]
+    col_n2col_sum: dict[int, int]
+    col_n2obs_row: Sequence[int]
+    row_n: int
+    col_n: int
+    row_n_minus_1: int
+    col_n_minus_1: int
+    cells_data: dict[tuple[int, int], ChiSquareWorkedResultCellData]
+    pre_chis: Sequence[float]
+    chi_square: float
+    degrees_of_freedom: int
+
 @dataclass(frozen=True)
 class ChiSquareResult:
     variable_name_a: str
@@ -112,6 +140,7 @@ class ChiSquareResult:
     degrees_of_freedom: int
     minimum_cell_count: int
     pct_cells_lt_5: float
+    chi_square_worked_result_data: ChiSquareWorkedResultData | None = None
 
 @dataclass(frozen=True)
 class MannWhitneyResult:
