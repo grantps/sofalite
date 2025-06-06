@@ -1,13 +1,18 @@
-from collections.abc import Sequence
+import base64
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import jinja2
 
+from sofalite import logger
 from sofalite.conf.main import VAR_LABELS
 from sofalite.data_extraction.stats.chi_square import get_results
+from sofalite.output.charts import boomslang
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
@@ -15,8 +20,8 @@ from sofalite.output.utils import format_num, get_p
 from sofalite.stats_calc.interfaces import ChiSquareResult, ChiSquareWorkedResultData
 
 def get_observed_vs_expected_tbl(
-            variable_name_a: str, variable_name_b: str,
-            variable_a_values: Sequence[int | str], variable_b_values: Sequence[int | str],
+            variable_label_a: str, variable_label_b: str,
+            variable_a_labels: Sequence[str], variable_b_labels: Sequence[str],
             observed_values_a_then_b_ordered: Sequence[float],
             expected_values_a_then_b_ordered: Sequence[float],
             style_name_hyphens: str,
@@ -30,14 +35,8 @@ def get_observed_vs_expected_tbl(
     css_row_val = f"rowval-{style_name_hyphens}"
     cells_per_col = 2  ## obs, exp
 
-    variable_label_a = VAR_LABELS.var2var_lbl.get(variable_name_a, variable_name_a)
-    variable_label_b = VAR_LABELS.var2var_lbl.get(variable_name_b, variable_name_b)
     variable_label_a_html = html_escape(variable_label_a)
     variable_label_b_html = html_escape(variable_label_b)
-    val2lbl_for_var_a = VAR_LABELS.var2val2lbl.get(variable_name_a, {})
-    variable_a_labels = [val2lbl_for_var_a[val_a] for val_a in variable_a_values]
-    val2lbl_for_var_b = VAR_LABELS.var2val2lbl.get(variable_name_b, {})
-    variable_b_labels = [val2lbl_for_var_b[val_b] for val_b in variable_b_values]
     try:
         variable_a_labels_html = list(map(html_escape, variable_a_labels))
         variable_b_labels_html = list(map(html_escape, variable_b_labels))
@@ -46,27 +45,27 @@ def get_observed_vs_expected_tbl(
         variable_a_labels_html = variable_a_labels
         variable_b_labels_html = variable_b_labels
 
-    n_variable_a_values = len(variable_a_values)
-    n_variable_b_values = len(variable_b_values)
+    n_variable_a_labels = len(variable_a_labels)
+    n_variable_b_labels = len(variable_b_labels)
 
     html = []
     html.append(f"\n\n<table cellspacing='0'>\n<thead>")
     html.append(f"\n<tr><th class='{css_spaceholder}' colspan=2 rowspan=3></th>")
-    colspan2use = (n_variable_b_values + 1) * cells_per_col
+    colspan2use = (n_variable_b_labels + 1) * cells_per_col
     html.append(f"<th class='{css_first_col_var}' colspan={colspan2use}>{variable_label_b_html}</th></tr>")
     html.append('\n<tr>')
     for val in variable_b_labels_html:
         html.append(f'<th colspan={cells_per_col}>{val}</th>')
     html.append(f"<th colspan={cells_per_col}>TOTAL</th></tr>\n<tr>")
-    for _val in range(n_variable_b_values + 1):
+    for _val in range(n_variable_b_labels + 1):
         html.append("<th>Obs</th><th>Exp</th>")
     html.append("</tr>")
     ## body
     html.append("\n\n</thead><tbody>")
     item_i = 0
-    html.append(f"\n<tr><td class='{css_first_row_var}' rowspan={n_variable_a_values + 1}>{variable_label_a_html}</td>")
-    col_obs_tots = [0, ] * n_variable_b_values
-    col_exp_tots = [0, ] * n_variable_b_values
+    html.append(f"\n<tr><td class='{css_first_row_var}' rowspan={n_variable_a_labels + 1}>{variable_label_a_html}</td>")
+    col_obs_tots = [0, ] * n_variable_b_labels
+    col_exp_tots = [0, ] * n_variable_b_labels
     ## total row totals
     row_obs_tot_tot = 0
     row_exp_tot_tot = 0
@@ -172,103 +171,182 @@ def get_worked_example(worked_result_data: ChiSquareWorkedResultData) -> str:
         value</p>""")
     return '\n'.join(html)
 
-def get_chi_square_charts() -> str:
-    """
-    def add_chi_square_clustered_barcharts(grid_bg, bar_colours, line_colour,
-            lst_obs, var_label_a, var_label_b, val_labels_a, val_labels_b,
-            val_labels_b_n, report_fpath, html, *, add_to_report):
-        ## NB list_obs is bs within a and we need the other way around
-        ## width = 7
-        n_clusters = len(val_labels_b)
-        if n_clusters < 8:
-            width = 7
-            height = None  ## allow height to be set by golden ratio
-        else:
-            width = n_clusters*1.5
-            height = 4.5
-        rows_n = int(len(lst_obs) / val_labels_b_n)
-        cols_n = val_labels_b_n
-        bs_in_as = np.array(lst_obs).reshape(rows_n, cols_n)
-        as_in_bs_lst = bs_in_as.transpose().tolist()
-        ## proportions of b within a
-        propns_bs_in_as = []
-        ## expected propn bs in as - so we have a reference to compare rest to
-        total = sum(lst_obs)
-        expected_propn_bs_in_as = []
-        for as_in_b_lst in as_in_bs_lst:
-            expected_propn_bs_in_as.append(float(sum(as_in_b_lst))/float(total))
-        propns_bs_in_as.append(expected_propn_bs_in_as)
-        ## actual observed bs in as
-        bs_in_as_lst = bs_in_as.tolist()
-        for bs in bs_in_as_lst:
-            propns_lst = []
-            for b in bs:
-                propns_lst.append(float(b)/float(sum(bs)))
-            propns_bs_in_as.append(propns_lst)
-        propns_as_in_bs_lst = np.array(propns_bs_in_as).transpose().tolist()
-        logging.debug(lst_obs)
-        logging.debug(bs_in_as)
-        logging.debug(as_in_bs_lst)
-        logging.debug(bs_in_as_lst)
-        title_tmp = _("%(laba)s and %(labb)s - %(y)s")
-        title_overrides = {'fontsize': 14}
-        ## chart 1 - proportions ****************************************************
-        plot = boomslang.Plot()
-        y_label = _('Proportions')
-        title = title_tmp % {'laba': var_label_a, 'labb': var_label_b, 'y': y_label}
-        plot.setTitle(title)
-        plot.setTitleProperties(title_overrides)
-        plot.setDimensions(width, height)
-        plot.hasLegend(columns=val_labels_b_n, location='lower left')
-        plot.setAxesLabelSize(11)
-        plot.setXTickLabelSize(get_xaxis_fontsize(val_labels_a))
-        plot.setLegendLabelSize(9)
-        val_labels_a_with_ref = val_labels_a[:]
-        val_labels_a_with_ref.insert(0, 'All\ncombined')
-        logging.debug(grid_bg)
-        logging.debug(bar_colours)
-        logging.debug(line_colour)
-        logging.debug(var_label_a)
-        logging.debug(y_label)
-        logging.debug(val_labels_a_with_ref)
-        logging.debug(val_labels_b)
-        logging.debug(propns_as_in_bs_lst)
-        charting_pylab.config_clustered_barchart(grid_bg, bar_colours,
-            plot, var_label_a, y_label, val_labels_a_with_ref, val_labels_b,
-            propns_as_in_bs_lst)
-        img_src = charting_pylab.save_report_img(add_to_report, report_fpath,
-            save_func=plot.save, dpi=None)
-        html.append(f'\n{mg.IMG_SRC_START}{img_src}{mg.IMG_SRC_END}')
-        output.append_divider(html, title, indiv_title='proportion')
-        ## chart 2 - freqs **********************************************************
-        plot = boomslang.Plot()
-        y_label = _('Frequencies')
-        title = title_tmp % {'laba': var_label_a, 'labb': var_label_b, 'y': y_label}
-        plot.setTitle(title)
-        plot.setTitleProperties(title_overrides)
-        plot.setDimensions(width, height)
-        plot.hasLegend(columns=val_labels_b_n, location='lower left')
-        plot.setAxesLabelSize(11)
-        plot.setXTickLabelSize(get_xaxis_fontsize(val_labels_a))
-        plot.setLegendLabelSize(9)
-        ## only need 6 because program limits to that. See core_stats.get_obs_exp().
-        charting_pylab.config_clustered_barchart(grid_bg, bar_colours,
-            plot, var_label_a, y_label, val_labels_a, val_labels_b, as_in_bs_lst)
-        img_src = charting_pylab.save_report_img(add_to_report, report_fpath,
-            save_func=plot.save, dpi=None)
-        html.append(f'\n{mg.IMG_SRC_START}{img_src}{mg.IMG_SRC_END}')
-        output.append_divider(html, title, indiv_title='frequency')
+def get_x_axis_font_size(val_labels: Collection[str]) -> int:
+    max_len = max(len(x) for x in val_labels)
+    if max_len > 15:
+        font_size = 7
+    elif max_len > 10:
+        font_size = 9
+    elif max_len > 7:
+        font_size = 10
+    else:
+        font_size = 11
+    return font_size
 
-    css_dojo_dic = lib.OutputLib.extract_dojo_style(css_fpath)
-    item_colours = output.colour_mappings_to_item_colours(
-        css_dojo_dic['colour_mappings'])
-    output.append_divider(html, title, indiv_title='')
-    add_chi_square_clustered_barcharts(css_dojo_dic['plot_bg'], item_colours,
-        css_dojo_dic['major_gridline_colour'], lst_obs, var_label_a,
-        var_label_b, val_labels_a, val_labels_b, val_labels_b_n,
-        report_fpath, html, add_to_report=add_to_report)
+def get_lbls_in_lines(orig_txt: str, max_width: int, *, dojo=False, rotate=False) -> tuple[str, int, int]:
     """
-    return ''
+    Returns quoted text. Will not be further quoted.
+    Will be "%s" % wrapped txt not "\"%s\"" % wrapped_txt
+    actual_lbl_width -- may be broken into lines if not rotated.
+    If rotated, we need sum of each line (no line breaks possible at present).
+    """
+    lines = []
+    try:
+        words = orig_txt.split()
+    except Exception:
+        raise Exception("Tried to split a non-text label. Is the script not supplying text labels?")
+    line_words = []
+    for word in words:
+        line_words.append(word)
+        line_width = len(' '.join(line_words))
+        if line_width > max_width:
+            line_words.pop()
+            lines.append(' '.join(line_words))
+            line_words = [word]
+    lines.append(' '.join(line_words))
+    lines = [x.center(max_width) for x in lines]
+    logger.debug(line_words)
+    logger.debug(lines)
+    n_lines = len(lines)
+    if dojo:
+        if n_lines == 1:
+            raw_lbl = lines[0].strip()
+            wrapped_txt = '"' + raw_lbl + '"'
+            actual_lbl_width = len(raw_lbl)
+        else:
+            if rotate:  ## displays <br> for some reason so can't use it
+                ## no current way identified for line breaks when rotated
+                ## see - http://grokbase.com/t/dojo/dojo-interest/09cat4bkvg/dojox-charting-line-break-in-axis-labels-ie
+                wrapped_txt = '"' + '" + " " + "'.join(x.strip() for x in lines) + '"'
+                actual_lbl_width = sum(len(x)+1 for x in lines) - 1
+            else:
+                wrapped_txt = '"' + '" + labelLineBreak + "'.join(lines) + '"'
+                actual_lbl_width = max_width  ## they are centred in max_width
+    else:
+        if n_lines == 1:
+            raw_lbl = lines[0].strip()
+            wrapped_txt = raw_lbl
+            actual_lbl_width = len(raw_lbl)
+        else:
+            wrapped_txt = '\n'.join(lines)
+            actual_lbl_width = max_width  ## they are centred in max_width
+    logger.debug(wrapped_txt)
+    return wrapped_txt, actual_lbl_width, n_lines
+
+def config_clustered_barchart(plot, style_spec: StyleSpec, *,
+        variable_label_a: str, variable_a_labels: Sequence[str], variable_b_labels: Sequence[str], y_label,
+        as_in_bs_list: list[float]):
+    """
+    Clustered bar charts
+
+    Var A defines the clusters and B the split within the clusters e.g. gender
+    vs country = gender as boomslang bars and country as values within bars.
+    """
+    grid_bg = style_spec.chart.chart_bg_colour
+    bar_colours = [colour_with_highlight.main for colour_with_highlight in style_spec.chart.colour_mappings]
+    clustered_bars = boomslang.ClusteredBars()
+    clustered_bars.grid_bg = grid_bg
+    labels_n = len(variable_b_labels)
+    for i, val_label_b in enumerate(variable_b_labels):
+        cluster = boomslang.Bar()
+        x_vals = range(len(variable_a_labels))
+        cluster.xValues = x_vals
+        y_vals = as_in_bs_list[i]
+        logger.debug(f'x_vals={x_vals}')
+        logger.debug(f'y_vals={y_vals}')
+        cluster.yValues = y_vals
+        logger.debug(f"i={i}, bar_colours={bar_colours}")
+        cluster.color = bar_colours[i]
+        cluster.edgeColor = 'white'
+        max_width = 17 if labels_n < 5 else 10
+        cluster.label, _actual_lbl_width, _n_lines = get_lbls_in_lines(orig_txt=val_label_b, max_width=max_width)
+        clustered_bars.add(cluster)
+    clustered_bars.spacing = 0.5
+    clustered_bars.xTickLabels = variable_a_labels
+    logger.debug(f'xTickLabels: {clustered_bars.xTickLabels}')
+    plot.add(clustered_bars)
+    plot.setXLabel(variable_label_a)
+    plot.setYLabel(y_label)
+
+def get_chi_square_charts(style_spec: StyleSpec,
+        variable_label_a: str, variable_label_b: str,
+        variable_a_labels: list[str], variable_b_labels: Sequence[str],
+        observed_values_a_then_b_ordered: Sequence[float],) -> str:
+    """
+    Delivered as base64-encoded binary images
+    """
+    html_bits = []
+    ## NB observed_values_a_then_b_ordered is 'b's within 'a', and we need data structured the other way around
+    n_clusters = variable_b_labels_n = len(variable_b_labels)
+    if n_clusters < 8:
+        width = 7
+        height = None  ## allow height to be set by golden ratio
+    else:
+        width = n_clusters * 1.5
+        height = 4.5
+    rows_n = int(len(observed_values_a_then_b_ordered) / variable_b_labels_n)
+    cols_n = variable_b_labels_n
+    bs_in_as = np.array(observed_values_a_then_b_ordered).reshape(rows_n, cols_n)
+    as_in_bs_list = bs_in_as.transpose().tolist()
+    ## proportions of b within a
+    proportions_of_bs_in_as = []
+    ## expected proportion of b's in a's - so we have a reference to compare rest to
+    total = sum(observed_values_a_then_b_ordered)
+    expected_proportion_of_bs_in_as = []
+    for as_in_b_list in as_in_bs_list:
+        expected_proportion_of_bs_in_as.append(float(sum(as_in_b_list)) / float(total))
+    proportions_of_bs_in_as.append(expected_proportion_of_bs_in_as)
+    ## actual observed b's in a's
+    bs_in_as_list = bs_in_as.tolist()
+    for bs in bs_in_as_list:
+        proportions_list = []
+        for b in bs:
+            proportions_list.append(float(b) / float(sum(bs)))
+        proportions_of_bs_in_as.append(proportions_list)
+    proportions_of_as_in_bs_list = np.array(proportions_of_bs_in_as).transpose().tolist()
+    logger.debug(observed_values_a_then_b_ordered)
+    logger.debug(bs_in_as)
+    logger.debug(as_in_bs_list)
+    logger.debug(bs_in_as_list)
+    title_overrides = {'fontsize': 14}
+    ## chart 1 - proportions ****************************************************
+    plot_1 = boomslang.Plot()
+    chart_1_title = f"{variable_label_a} and {variable_label_b} - Proportions"
+    plot_1.setTitle(chart_1_title)
+    plot_1.setTitleProperties(title_overrides)
+    plot_1.setDimensions(width, height)
+    plot_1.hasLegend(columns=variable_b_labels_n, location='lower left')
+    plot_1.setAxesLabelSize(11)
+    plot_1.setXTickLabelSize(get_x_axis_font_size(variable_a_labels))
+    plot_1.setLegendLabelSize(9)
+    variable_a_labels_with_ref = variable_a_labels[:]
+    variable_a_labels_with_ref.insert(0, "All\ncombined")
+    config_clustered_barchart(plot_1, style_spec, variable_label_a=variable_label_a,
+        variable_a_labels=variable_a_labels_with_ref, variable_b_labels=variable_b_labels, y_label='Proportions',
+        as_in_bs_list=proportions_of_as_in_bs_list)
+    bio_1 = BytesIO()
+    plot_1.save(bio_1)  ## save to a fake file
+    chart_base64_1 = base64.b64encode(bio_1.getvalue()).decode('utf-8')
+    html_bits.append(f'<img src="data:image/png;base64,{chart_base64_1}"/>')
+    ## chart 2 - freqs **********************************************************
+    plot_2 = boomslang.Plot()
+    chart_2_title = f"{variable_label_a} and {variable_label_b} - Frequencies"
+    plot_2.setTitle(chart_2_title)
+    plot_2.setTitleProperties(title_overrides)
+    plot_2.setDimensions(width, height)
+    plot_2.hasLegend(columns=len(variable_b_labels), location='lower left')
+    plot_2.setAxesLabelSize(11)
+    plot_2.setXTickLabelSize(get_x_axis_font_size(variable_a_labels))
+    plot_2.setLegendLabelSize(9)
+    ## only need 6 because program limits to that. See core_stats.get_obs_exp().  ## TODO - clarify 6 what etc
+    config_clustered_barchart(plot_2, style_spec, variable_label_a=variable_label_a,
+        variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels, y_label='Frequencies',
+        as_in_bs_list=as_in_bs_list)
+    bio_2 = BytesIO()
+    plot_2.save(bio_2)  ## save to a fake file
+    chart_base64_2 = base64.b64encode(bio_2.getvalue()).decode('utf-8')
+    html_bits.append(f'<img src="data:image/png;base64,{chart_base64_2}"/>')
+    return '\n'.join(html_bits)
 
 def make_chi_square_html(result: ChiSquareResult, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
     tpl = """\
@@ -321,16 +399,29 @@ def make_chi_square_html(result: ChiSquareResult, style_spec: StyleSpec, *, dp: 
     one_tail_explain = (
         "This is a one-tailed result i.e. based on the likelihood of a difference in one particular direction")
     chi_square = round(result.chi_square, dp)
+
+    variable_label_a = VAR_LABELS.var2var_lbl.get(result.variable_name_a, result.variable_name_a)
+    variable_label_b = VAR_LABELS.var2var_lbl.get(result.variable_name_b, result.variable_name_b)
+    val2lbl_for_var_a = VAR_LABELS.var2val2lbl.get(result.variable_name_a, {})
+    variable_a_labels = [val2lbl_for_var_a[val_a] for val_a in result.variable_a_values]
+    val2lbl_for_var_b = VAR_LABELS.var2val2lbl.get(result.variable_name_b, {})
+    variable_b_labels = [val2lbl_for_var_b[val_b] for val_b in result.variable_b_values]
+
     observed_vs_expected_tbl = get_observed_vs_expected_tbl(
-        variable_name_a=result.variable_name_a, variable_name_b=result.variable_name_b,
-        variable_a_values=result.variable_a_values, variable_b_values=result.variable_b_values,
+        variable_label_a=variable_label_a, variable_label_b=variable_label_b,
+        variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels,
         observed_values_a_then_b_ordered=result.observed_values_a_then_b_ordered,
         expected_values_a_then_b_ordered=result.expected_values_a_then_b_ordered,
         style_name_hyphens=style_spec.style_name_hyphens,
     )
     min_count_rounded = round(result.minimum_cell_count, dp)
     pct_cells_lt_5_rounded = round(result.pct_cells_lt_5, 1)
-    chi_square_charts = get_chi_square_charts()
+
+    chi_square_charts = get_chi_square_charts(
+        style_spec=style_spec,
+        variable_label_a=variable_label_a, variable_label_b=variable_label_b,
+        variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels,
+        observed_values_a_then_b_ordered=result.observed_values_a_then_b_ordered)
     context = {
         'chi_square_charts': chi_square_charts,  ## TODO: make binary of charts and embed
         'chi_square': chi_square,
