@@ -61,15 +61,15 @@ def get_histogram_fig(chart_conf: HistogramConf, vals: Sequence[float]) -> Figur
     logger.debug(f"n={n}, bins={bins}, patches={patches}")
     return fig
 
-def get_scatterplot_fig(
-        vars_series: Sequence[ScatterplotSeries],
-        chart_conf: ScatterplotConf) -> Figure:
+def get_scatterplot_fig(vars_series: Sequence[ScatterplotSeries], chart_conf: ScatterplotConf) -> Figure:
     fig, ax = plt.subplots()
     fig.set_size_inches((chart_conf.width_inches, chart_conf.height_inches))
-    if chart_conf.xmin is not None and chart_conf.xmax is not None:
-        ax.axis(xmin=chart_conf.xmin, xmax=chart_conf.xmax)
-    if chart_conf.ymin is not None and chart_conf.ymax is not None:
-        ax.axis(ymin=chart_conf.ymin, ymax=chart_conf.ymax)
+    if chart_conf.x_min is not None and chart_conf.x_max is not None:
+        ax.axis(xmin=chart_conf.x_min, xmax=chart_conf.x_max)
+    if chart_conf.y_min is not None and chart_conf.y_max is not None:
+        ax.axis(ymin=chart_conf.y_min, ymax=chart_conf.y_max)
+    ax.set_xlabel(chart_conf.x_axis_label)
+    ax.set_ylabel(chart_conf.y_axis_label)
     for var_series in vars_series:
         xs = []
         ys = []
@@ -78,8 +78,7 @@ def get_scatterplot_fig(
             ys.append(coord.y)
         dot_line_colour = (var_series.dot_line_colour if chart_conf.show_dot_lines
             else var_series.dot_colour)
-        ax.plot(xs, ys, 'o', color=var_series.dot_colour, label=var_series.label,
-            markeredgecolor=dot_line_colour)
+        ax.plot(xs, ys, 'o', color=var_series.dot_colour, label=var_series.label, markeredgecolor=dot_line_colour)
         if var_series.show_regression_details:
             ## Label can't be identical as the points series so add a space.
             ## Will look like correct and matching label without clashing.
@@ -87,4 +86,5 @@ def get_scatterplot_fig(
             regression_result = get_regression_result(xs, ys)
             ax.plot([min(xs), max(ys)], [regression_result.y0, regression_result.y1], '-',
                 color=var_series.dot_colour, linewidth=5, label=line_lbl)
+    ax.set_facecolor(chart_conf.inner_background_colour)
     return fig

@@ -20,7 +20,8 @@ from sofalite.stats_calc.interfaces import (
     MannWhitneyResult, MannWhitneyResultExt,
     NormalTestResult,
     NumericSampleSpec, NumericSampleSpecExt,
-    OrdinalResult, RegressionResult, Result, Sample, SpearmansResult, SpearmansInitTbl, TTestResult, WilcoxonResult)
+    OrdinalResult, PearsonsRCalcResult, RegressionResult,
+    Result, Sample, SpearmansResult, SpearmansInitTbl, TTestResult, WilcoxonResult)
 from sofalite.utils.maths import n2d
 from sofalite.utils.stats import get_obriens_msg
 
@@ -770,18 +771,16 @@ def linregress(x, y):
     sterrest = math.sqrt(1 - r * r) * samplestdev(y)
     return slope, intercept, r, prob, sterrest
 
-
 def pearsonr(x, y):
     """
-    From stats.py. No changes apart from added error trapping, commenting out
-    unused variable calculation, and trapping zero division error. And Py3
-    changes.
+    From stats.py. No changes apart from added error trapping, commenting out unused variable calculation,
+    and trapping zero division error. And Py3 changes.
     -------------------------------------
 
-    Calculates a Pearson correlation coefficient and the associated probability
-    value. Taken from Heiman's Basic Statistics for the Behav. Sci (2nd), p.195.
+    Calculates a Pearson correlation coefficient and the associated probability value.
+    Taken from Heiman's Basic Statistics for the Behav. Sci (2nd), p.195.
 
-    Usage:   pearsonr(x,y)      where x and y are equal-length lists
+    Usage: pearsonr(x,y) where x and y are equal-length lists
     Returns: Pearson's r value, two-tailed p-value
     """
     TINY = 1.0e-30
@@ -808,11 +807,11 @@ def pearsonr(x, y):
     try:
         prob = betai(0.5 * df, 0.5, df / float(df + t * t))
     except ZeroDivisionError:
-        raise Exception("Unable to calculate Pearson's R. The df value and t are all 0 so trying to "
-            "divide by df + t*t meant trying to divide by zero which is an error. "
+        raise Exception("Unable to calculate Pearson's R. "
+            "The df value and t are all 0 so trying to divide by df + t*t meant trying to divide by zero "
+            "which is an error. "
             "But still worth looking at a scatterplot chart to assess the relationship.")
-    return r, prob, df
-
+    return PearsonsRCalcResult(r=r, p=prob, degrees_of_freedom=df)
 
 def spearmanr(x, y, *, high_volume_ok=False):
     """

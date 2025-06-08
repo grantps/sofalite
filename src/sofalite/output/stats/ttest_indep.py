@@ -23,7 +23,7 @@ from sofalite.utils.maths import format_num
 from sofalite.utils.stats import get_p_str
 
 def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
-        dp: int, show_workings=False) -> str:
+        dp: int) -> str:
     tpl = """\
     <style>
         {{ generic_unstyled_css }}
@@ -79,12 +79,13 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
     <p><a id='ft5'></a><sup>5</sup>{{ kurtosis_explain }}</p>
     <p><a id='ft6'></a><sup>6</sup>{{ skew_explain }}</p>
     <p><a id='ft7'></a><sup>7</sup>{{ normality_measure_explain }}</p>
+
     {% for histogram2show in histograms2show %}
       {{histogram2show}}  <!-- either an <img> or an error message <p> -->
     {% endfor %}
-    {% if workings_msg %}
-      {{ workings_msg }}
-    {% endif %}
+
+    <p>{{ workings_msg }}</p>
+
     </div>
     """
     generic_unstyled_css = get_generic_unstyled_css()
@@ -128,7 +129,6 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         else:
             html_or_msg = histogram_html
         histograms2show.append(html_or_msg)
-    workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
         'generic_unstyled_css': generic_unstyled_css,
         'style_name_hyphens': style_spec.style_name_hyphens,
@@ -149,7 +149,7 @@ def make_ttest_indep_html(result: TTestIndepResultExt, style_spec: StyleSpec, *,
         'skew_explain': skew_explain,
         'std_dev_explain': std_dev_explain,
         't': round(result.t, dp),
-        'workings_msg': workings_msg,
+        'workings_msg': "No worked example available for this test",
     }
     environment = jinja2.Environment()
     template = environment.from_string(tpl)
@@ -163,6 +163,7 @@ class TTestIndepSpec(Source):
     group_a_val: Any
     group_b_val: Any
     measure_fld_name: str
+    dp: int = 3
 
     ## do not try to DRY this repeated code ;-) - see doc string for Source
     csv_fpath: Path | None = None
@@ -189,7 +190,7 @@ class TTestIndepSpec(Source):
             group_a_val_spec=group_a_val_spec, group_b_val_spec=group_b_val_spec,
             grouping_val_is_numeric=True,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl)
-        html = make_ttest_indep_html(results, style_spec, dp=3, show_workings=False)
+        html = make_ttest_indep_html(results, style_spec, dp=self.dp)
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,

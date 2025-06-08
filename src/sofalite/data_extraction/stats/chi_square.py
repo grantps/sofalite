@@ -67,7 +67,7 @@ def get_cleaned_values(*, original_vals: list[str | float], dbe_spec: DbeSpec) -
     return original_vals
 
 def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str, tbl_filt_clause: str,
-        variable_name_a: str, variable_name_b: str) -> ChiSquareData:
+        variable_a_name: str, variable_b_name: str) -> ChiSquareData:
     """
     The Chi Square statistical calculation relies on having access to the raw counts per intersection between
     variable A and B. These are the observed values. E.g.
@@ -91,17 +91,17 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     """
     ## prepare items
     quoted_src_tbl_name = dbe_spec.entity_quoter(src_tbl_name)
-    quoted_variable_name_a = dbe_spec.entity_quoter(variable_name_a)
-    quoted_variable_name_b = dbe_spec.entity_quoter(variable_name_b)
+    quoted_variable_a_name = dbe_spec.entity_quoter(variable_a_name)
+    quoted_variable_b_name = dbe_spec.entity_quoter(variable_b_name)
     and_tbl_filt_clause = f"AND ({tbl_filt_clause})" if tbl_filt_clause else ''
     ## A) get ROW vals used ***********************
     sql_row_vals_used = f"""\
-    SELECT {quoted_variable_name_a}
+    SELECT {quoted_variable_a_name}
     FROM {quoted_src_tbl_name}
-    WHERE {quoted_variable_name_a} IS NOT NULL AND {quoted_variable_name_b} IS NOT NULL
+    WHERE {quoted_variable_a_name} IS NOT NULL AND {quoted_variable_b_name} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY {quoted_variable_name_a}
-    ORDER BY {quoted_variable_name_a}
+    GROUP BY {quoted_variable_a_name}
+    ORDER BY {quoted_variable_a_name}
     """
     cur.exe(sql_row_vals_used)
     row_data = cur.fetchall()
@@ -110,18 +110,18 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     n_variable_a_vals = len(variable_a_values)
     if n_variable_a_vals > MAX_CHI_SQUARE_VALS_IN_DIM:
         raise Exception(f"Too many separate values ({n_variable_a_vals} vs "
-            f"maximum allowed of {MAX_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_name_a}'")
+            f"maximum allowed of {MAX_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_a_name}'")
     if n_variable_a_vals < MIN_CHI_SQUARE_VALS_IN_DIM:
         raise Exception(f"Not enough separate values ({n_variable_a_vals} vs "
-            f"minimum allowed of {MIN_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_name_a}'")
+            f"minimum allowed of {MIN_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_a_name}'")
     ## B) get COL vals used (almost a repeat) ***********************
     sql_col_vals_used = f"""\
-    SELECT {quoted_variable_name_b}
+    SELECT {quoted_variable_b_name}
     FROM {quoted_src_tbl_name}
-    WHERE {quoted_variable_name_a} IS NOT NULL AND {quoted_variable_name_b} IS NOT NULL
+    WHERE {quoted_variable_a_name} IS NOT NULL AND {quoted_variable_b_name} IS NOT NULL
     {and_tbl_filt_clause}
-    GROUP BY {quoted_variable_name_b}
-    ORDER BY {quoted_variable_name_b}
+    GROUP BY {quoted_variable_b_name}
+    ORDER BY {quoted_variable_b_name}
     """
     cur.exe(sql_col_vals_used)
     col_data = cur.fetchall()
@@ -130,10 +130,10 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     n_variable_b_vals = len(variable_b_values)
     if n_variable_b_vals > MAX_CHI_SQUARE_VALS_IN_DIM:
         raise Exception(f"Too many separate values ({n_variable_b_vals} vs "
-            f"maximum allowed of {MAX_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_name_b}'")
+            f"maximum allowed of {MAX_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_b_name}'")
     if n_variable_b_vals < MIN_CHI_SQUARE_VALS_IN_DIM:
         raise Exception(f"Not enough separate values ({n_variable_b_vals} vs "
-            f"minimum allowed of {MIN_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_name_b}'")
+            f"minimum allowed of {MIN_CHI_SQUARE_VALS_IN_DIM}) in variable '{quoted_variable_b_name}'")
     ## C) combine results of A) and B) ***********************
     n_cells = len(variable_a_values) * len(variable_b_values)
     if n_cells > MAX_CHI_SQUARE_CELLS:
@@ -149,7 +149,7 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
         quoted_val_a = dbe_spec.str_value_quoter(val_a)
         quoted_val_b = dbe_spec.str_value_quoter(val_b)
         clause = (
-            f"SUM(CASE WHEN {quoted_variable_name_a} = {quoted_val_a} AND {quoted_variable_name_b} = {quoted_val_b} "
+            f"SUM(CASE WHEN {quoted_variable_a_name} = {quoted_val_a} AND {quoted_variable_b_name} = {quoted_val_b} "
             "THEN 1 ELSE 0 END)")
         freq_per_a_b_intersection_clauses_bits.append(clause)
     freq_per_a_b_intersection_clauses = ',\n'.join(freq_per_a_b_intersection_clauses_bits)
@@ -169,10 +169,10 @@ def get_chi_square_data(*, cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name:
     ## expected values
     fractions_of_total_for_variable_a = get_fractions_of_total_for_variable(
         cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
-        variable_name=variable_name_a, other_variable_name=variable_name_b)
+        variable_name=variable_a_name, other_variable_name=variable_b_name)
     fractions_of_total_for_variable_b = get_fractions_of_total_for_variable(
         cur=cur, dbe_spec=dbe_spec, src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
-        variable_name=variable_name_b, other_variable_name=variable_name_a)
+        variable_name=variable_b_name, other_variable_name=variable_a_name)
     degrees_of_freedom = (n_variable_a_vals - 1) * (n_variable_b_vals - 1)
     expected_values_a_then_b_ordered = []
     for fraction_of_val_in_variable_a, fraction_of_val_in_variable_b in product(
@@ -268,11 +268,11 @@ def get_worked_result_data(*, variable_a_values: Sequence[int | str], variable_b
     )
 
 def get_results(cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
-        variable_name_a: str, variable_name_b: str,
+        variable_a_name: str, variable_b_name: str,
         tbl_filt_clause: str | None = None, *, show_workings=False) -> ChiSquareResult:
     chi_square_data = get_chi_square_data(cur=cur, dbe_spec=dbe_spec,
         src_tbl_name=src_tbl_name, tbl_filt_clause=tbl_filt_clause,
-        variable_name_a=variable_name_a, variable_name_b=variable_name_b)
+        variable_a_name=variable_a_name, variable_b_name=variable_b_name)
     ## get results
     chi_square, p = engine.chisquare(
         f_obs=chi_square_data.observed_values_a_then_b_ordered, f_exp=chi_square_data.expected_values_a_then_b_ordered,
@@ -285,7 +285,7 @@ def get_results(cur: ExtendedCursor, dbe_spec: DbeSpec, src_tbl_name: str,
     else:
         chi_square_worked_result_data = None
     return ChiSquareResult(
-        variable_name_a=variable_name_a, variable_name_b=variable_name_b,
+        variable_a_name=variable_a_name, variable_b_name=variable_b_name,
         variable_a_values=chi_square_data.variable_a_values, variable_b_values=chi_square_data.variable_b_values,
         observed_values_a_then_b_ordered=chi_square_data.observed_values_a_then_b_ordered,
         expected_values_a_then_b_ordered=chi_square_data.expected_values_a_then_b_ordered,

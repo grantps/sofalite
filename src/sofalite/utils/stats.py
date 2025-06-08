@@ -32,6 +32,8 @@ def get_quartiles(vals):
         uq = (new_vals[-l_depth] + new_vals[-u_depth]) / 2.0
     return lq, uq
 
+## TODO: clarify what goes in here and what in sofalite.output.utils
+
 def get_p_str(p: float) -> str:
     """
     Get a nice representation of p value including significance if relevant.

@@ -19,6 +19,7 @@ from sofalite.output.styles.utils import get_long_colour_list, get_style_spec
 from sofalite.utils.maths import format_num
 from sofalite.utils.misc import todict
 
+
 left_margin_offset_spec = LeftMarginOffsetSpec(
     initial_offset=25, wide_offset=35, rotate_offset=15, multi_chart_offset=15)
 
@@ -39,16 +40,20 @@ class ScatterplotSeries:
 class ScatterplotConf:
     width_inches: float
     height_inches: float
+    inner_background_colour: str
+    x_axis_label: str
+    y_axis_label: str
     show_dot_lines: bool = False
-    xmin: float | None = None  ## if not set pylab will autoset chart bounds
-    xmax: float | None = None
-    ymin: float | None = None
-    ymax: float | None = None
+    x_min: float | None = None  ## if not set pylab will automatically set chart bounds
+    x_max: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
 
 @dataclass(frozen=True)
 class ScatterplotDojoSeriesSpec:
     """
     Used for DOJO scatterplots (which have series).
+
     Boxplots, and more general charts with series (e.g. bar charts and line charts),
     have different specs of their own for DOJO series.
     """

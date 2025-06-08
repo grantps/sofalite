@@ -23,7 +23,7 @@ from sofalite.stats_calc.interfaces import AnovaResultExt, NumericSampleSpecForm
 from sofalite.utils.maths import format_num, is_numeric
 from sofalite.utils.stats import get_p_str
 
-def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
+def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int) -> str:
     tpl = """\
     <style>
         {{ generic_unstyled_css }}
@@ -108,9 +108,9 @@ def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int, s
     {% for histogram2show in histograms2show %}
       {{ histogram2show }}  <!-- either an <img> or an error message <p> -->
     {% endfor %}
-    {% if workings_msg %}
-      {{ workings_msg }}
-    {% endif %}
+
+    <p>{{ workings_msg }}</p>
+
     </div>
     """
     generic_unstyled_css = get_generic_unstyled_css()
@@ -158,7 +158,6 @@ def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int, s
         else:
             html_or_msg = histogram_html
         histograms2show.append(html_or_msg)
-    workings_msg = "<p>No worked example available for this test</p>" if show_workings else ''
     context = {
         'generic_unstyled_css': generic_unstyled_css,
         'style_name_hyphens': style_spec.style_name_hyphens,
@@ -184,7 +183,7 @@ def make_anova_html(result: AnovaResultExt, style_spec: StyleSpec, *, dp: int, s
         'std_dev_explain': std_dev_explain,
         'sum_squares_between_groups': num_tpl.format(round(result.sum_squares_between_groups, dp)),
         'sum_squares_within_groups': num_tpl.format(round(result.sum_squares_within_groups, dp)),
-        'workings_msg': workings_msg,
+        'workings_msg': "No worked example available for this test",
     }
     environment = jinja2.Environment()
     template = environment.from_string(tpl)
@@ -197,6 +196,8 @@ class AnovaSpec(Source):
     grouping_fld_name: str
     group_vals: Collection[Any]
     measure_fld_name: str
+    high_precision_required: bool = True
+    dp: int = 3
 
     ## do not try to DRY this repeated code ;-) - see doc string for Source
     csv_fpath: Path | None = None
@@ -206,9 +207,6 @@ class AnovaSpec(Source):
     dbe_name: str | None = None  ## database engine name
     src_tbl_name: str | None = None
     tbl_filt_clause: str | None = None
-
-    high_precision_required: bool = True
-    dp: int = 3
 
     def to_html_spec(self) -> HTMLItemSpec:
         ## style
@@ -228,7 +226,7 @@ class AnovaSpec(Source):
             grouping_val_is_numeric=grouping_val_is_numeric,
             measure_fld_name=self.measure_fld_name, measure_fld_lbl=measure_fld_lbl,
             high_precision_required=self.high_precision_required)
-        html = make_anova_html(results, style_spec, dp=self.dp, show_workings=False)
+        html = make_anova_html(results, style_spec, dp=self.dp)
         return HTMLItemSpec(
             html_item_str=html,
             style_name=self.style_name,

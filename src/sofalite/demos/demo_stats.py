@@ -3,6 +3,7 @@ from webbrowser import open_new_tab
 
 from sofalite.output.stats.anova import AnovaSpec
 from sofalite.output.stats.chi_square import ChiSquareSpec
+from sofalite.output.stats.pearsonsr import PearsonsRSpec
 from sofalite.output.stats.ttest_indep import TTestIndepSpec
 
 def run_anova():
@@ -31,6 +32,7 @@ def run_ttest_indep():
         measure_fld_name='age',
         tbl_filt_clause=None,
         cur=None,
+        dp=3,
     )
     html_item_spec = stats.to_html_spec()
     fpath = Path('/home/g/Documents/sofalite/reports/ttest_indep_age_by_country_from_item.html')
@@ -41,8 +43,8 @@ def run_chi_square():
     stats = ChiSquareSpec(
         style_name='default',
         src_tbl_name='demo_tbl',
-        variable_name_a='agegroup',
-        variable_name_b='country',
+        variable_a_name='agegroup',
+        variable_b_name='country',
         tbl_filt_clause=None,
         cur=None,
         dp=3,
@@ -53,8 +55,24 @@ def run_chi_square():
     html_item_spec.to_file(fpath, 'Chi Square Test')
     open_new_tab(url=f"file://{fpath}")
 
+def run_pearsonsr():
+    stats = PearsonsRSpec(
+        style_name='default',
+        src_tbl_name='demo_tbl',
+        variable_a_name='age',
+        variable_b_name='weight',
+        tbl_filt_clause=None,
+        cur=None,
+        dp=3,
+    )
+    html_item_spec = stats.to_html_spec()
+    fpath = Path('/home/g/Documents/sofalite/reports/pearsonsr.html')
+    html_item_spec.to_file(fpath, "Pearson's R Test")
+    open_new_tab(url=f"file://{fpath}")
+
 if __name__ == '__main__':
     pass
     # run_anova()
     # run_ttest_indep()
-    run_chi_square()
+    # run_chi_square()
+    run_pearsonsr()

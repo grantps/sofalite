@@ -16,7 +16,7 @@ from sofalite.output.charts import boomslang
 from sofalite.output.interfaces import HTMLItemSpec, OutputItemType, Source
 from sofalite.output.styles.interfaces import StyleSpec
 from sofalite.output.styles.utils import get_generic_unstyled_css, get_style_spec, get_styled_stats_tbl_css
-from sofalite.output.utils import format_num, get_p
+from sofalite.output.utils import format_num, get_p, get_p_explain
 from sofalite.stats_calc.interfaces import ChiSquareResult, ChiSquareWorkedResultData
 
 def get_observed_vs_expected_tbl(
@@ -324,9 +324,9 @@ def get_chi_square_charts(style_spec: StyleSpec,
     config_clustered_barchart(plot_1, style_spec, variable_label_a=variable_label_a,
         variable_a_labels=variable_a_labels_with_ref, variable_b_labels=variable_b_labels, y_label='Proportions',
         as_in_bs_list=proportions_of_as_in_bs_list)
-    bio_1 = BytesIO()
-    plot_1.save(bio_1)  ## save to a fake file
-    chart_base64_1 = base64.b64encode(bio_1.getvalue()).decode('utf-8')
+    b_io_1 = BytesIO()
+    plot_1.save(b_io_1)  ## save to a fake file
+    chart_base64_1 = base64.b64encode(b_io_1.getvalue()).decode('utf-8')
     html_bits.append(f'<img src="data:image/png;base64,{chart_base64_1}"/>')
     ## chart 2 - freqs **********************************************************
     plot_2 = boomslang.Plot()
@@ -342,13 +342,14 @@ def get_chi_square_charts(style_spec: StyleSpec,
     config_clustered_barchart(plot_2, style_spec, variable_label_a=variable_label_a,
         variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels, y_label='Frequencies',
         as_in_bs_list=as_in_bs_list)
-    bio_2 = BytesIO()
-    plot_2.save(bio_2)  ## save to a fake file
-    chart_base64_2 = base64.b64encode(bio_2.getvalue()).decode('utf-8')
+    b_io_2 = BytesIO()
+    plot_2.save(b_io_2)  ## save to a fake file
+    chart_base64_2 = base64.b64encode(b_io_2.getvalue()).decode('utf-8')
     html_bits.append(f'<img src="data:image/png;base64,{chart_base64_2}"/>')
     return '\n'.join(html_bits)
 
-def make_chi_square_html(result: ChiSquareResult, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
+def make_chi_square_html(results: ChiSquareResult, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
+    ## TODO: also need to manually add reference to footnote 2
     tpl = """\
     <style>
         {{generic_unstyled_css}}
@@ -381,51 +382,49 @@ def make_chi_square_html(result: ChiSquareResult, style_spec: StyleSpec, *, dp: 
     This is not the same way of displaying data as a clustered bar chart although the similarity can be confusing.</p>
 
     {{ chi_square_charts }}   
-    
+
     </div>
     """
     generic_unstyled_css = get_generic_unstyled_css()
     styled_stats_tbl_css = get_styled_stats_tbl_css(style_spec)
-    variable_label_a = VAR_LABELS.var2var_lbl.get(result.variable_name_a, result.variable_name_a)
-    variable_label_b = VAR_LABELS.var2var_lbl.get(result.variable_name_b, result.variable_name_b)
-    title = (f"Results of Pearson's Chi Square Test of Association Between "
-        f'"{variable_label_a}" and "{variable_label_b}"')
-    worked_example = get_worked_example(result.chi_square_worked_result_data) if show_workings else ''
-    p_text = get_p(result.p)
-    p_explain = ("If p is small, e.g. less than 0.01, or 0.001, you can assume "
-        "the result is statistically significant i.e. there is a relationship "
-        f'between "{result.variable_name_a}" and "{result.variable_name_b}". Note: a statistically significant '
-        "difference may not necessarily be of any practical significance.")
-    one_tail_explain = (
-        "This is a one-tailed result i.e. based on the likelihood of a difference in one particular direction")
-    chi_square = round(result.chi_square, dp)
+    variable_label_a = VAR_LABELS.var2var_lbl.get(results.variable_a_name, results.variable_a_name)  ## TODO
+    variable_label_b = VAR_LABELS.var2var_lbl.get(results.variable_b_name, results.variable_b_name)
+    title = (f"Results of Pearson's Chi Square Test of Association "
+        f'Between "{variable_label_a}" and "{variable_label_b}"')
+    worked_example = get_worked_example(results.chi_square_worked_result_data) if show_workings else ''
+    p_text = get_p(results.p)
+    one_tail_explain = ("This is a one-tailed result "
+        "i.e. based on the likelihood of a difference in one particular direction")
+    chi_square = round(results.chi_square, dp)
 
-    variable_label_a = VAR_LABELS.var2var_lbl.get(result.variable_name_a, result.variable_name_a)
-    variable_label_b = VAR_LABELS.var2var_lbl.get(result.variable_name_b, result.variable_name_b)
-    val2lbl_for_var_a = VAR_LABELS.var2val2lbl.get(result.variable_name_a, {})
-    variable_a_labels = [val2lbl_for_var_a[val_a] for val_a in result.variable_a_values]
-    val2lbl_for_var_b = VAR_LABELS.var2val2lbl.get(result.variable_name_b, {})
-    variable_b_labels = [val2lbl_for_var_b[val_b] for val_b in result.variable_b_values]
+    variable_label_a = VAR_LABELS.var2var_lbl.get(results.variable_a_name, results.variable_a_name)
+    variable_label_b = VAR_LABELS.var2var_lbl.get(results.variable_b_name, results.variable_b_name)
+    val2lbl_for_var_a = VAR_LABELS.var2val2lbl.get(results.variable_a_name, {})
+    variable_a_labels = [val2lbl_for_var_a[val_a] for val_a in results.variable_a_values]
+    val2lbl_for_var_b = VAR_LABELS.var2val2lbl.get(results.variable_b_name, {})
+    variable_b_labels = [val2lbl_for_var_b[val_b] for val_b in results.variable_b_values]
+
+    p_explain = get_p_explain(variable_label_a, variable_label_b)
 
     observed_vs_expected_tbl = get_observed_vs_expected_tbl(
         variable_label_a=variable_label_a, variable_label_b=variable_label_b,
         variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels,
-        observed_values_a_then_b_ordered=result.observed_values_a_then_b_ordered,
-        expected_values_a_then_b_ordered=result.expected_values_a_then_b_ordered,
+        observed_values_a_then_b_ordered=results.observed_values_a_then_b_ordered,
+        expected_values_a_then_b_ordered=results.expected_values_a_then_b_ordered,
         style_name_hyphens=style_spec.style_name_hyphens,
     )
-    min_count_rounded = round(result.minimum_cell_count, dp)
-    pct_cells_lt_5_rounded = round(result.pct_cells_lt_5, 1)
+    min_count_rounded = round(results.minimum_cell_count, dp)
+    pct_cells_lt_5_rounded = round(results.pct_cells_lt_5, 1)
 
     chi_square_charts = get_chi_square_charts(
         style_spec=style_spec,
         variable_label_a=variable_label_a, variable_label_b=variable_label_b,
         variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels,
-        observed_values_a_then_b_ordered=result.observed_values_a_then_b_ordered)
+        observed_values_a_then_b_ordered=results.observed_values_a_then_b_ordered)
     context = {
-        'chi_square_charts': chi_square_charts,  ## TODO: make binary of charts and embed
+        'chi_square_charts': chi_square_charts,
         'chi_square': chi_square,
-        'degrees_of_freedom': result.degrees_of_freedom,
+        'degrees_of_freedom': results.degrees_of_freedom,
         'footnotes': [p_explain, one_tail_explain],
         'generic_unstyled_css': generic_unstyled_css,
         'min_count_rounded': min_count_rounded,
@@ -446,9 +445,9 @@ def make_chi_square_html(result: ChiSquareResult, style_spec: StyleSpec, *, dp: 
 @dataclass(frozen=False)
 class ChiSquareSpec(Source):
     style_name: str
-    variable_name_a: str
-    variable_name_b: str
-    dp: int
+    variable_a_name: str
+    variable_b_name: str
+    dp: int = 3
     show_workings: bool = False
 
     ## do not try to DRY this repeated code ;-) - see doc string for Source
@@ -465,7 +464,7 @@ class ChiSquareSpec(Source):
         style_spec = get_style_spec(style_name=self.style_name)
         ## data
         results = get_results(cur=self.cur, dbe_spec=self.dbe_spec, src_tbl_name=self.src_tbl_name,
-            variable_name_a=self.variable_name_a, variable_name_b=self.variable_name_b,
+            variable_a_name=self.variable_a_name, variable_b_name=self.variable_b_name,
             show_workings=self.show_workings)
         html = make_chi_square_html(results, style_spec, dp=self.dp, show_workings=self.show_workings)
         return HTMLItemSpec(

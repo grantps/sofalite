@@ -20,8 +20,8 @@ def get_group_histogram_html(measure_fld_lbl: str, style_spec: ChartStyleSpec,
         line_colour=style_spec.major_grid_line_colour)
     fig = mpl_pngs.get_histogram_fig(chart_conf, vals)
     fig.set_size_inches((5.0, 3.5))  ## see dpi to get image size in pixels
-    bio = BytesIO()
-    fig.savefig(bio)  ## save to a fake file
-    chart_base64 = base64.b64encode(bio.getvalue()).decode('utf-8')
+    b_io = BytesIO()
+    fig.savefig(b_io)  ## save to a fake file
+    chart_base64 = base64.b64encode(b_io.getvalue()).decode('utf-8')
     html = f'<img src="data:image/png;base64,{chart_base64}"/>'
     return html

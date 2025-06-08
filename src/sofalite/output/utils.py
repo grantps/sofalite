@@ -163,3 +163,14 @@ def format_num(num):
     except ValueError:
         formatted = num
     return formatted
+
+def get_p_explain(a: str, b: str) -> str:
+    p_explain = ("If p is small, e.g. less than 0.01, or 0.001, you can assume the result is statistically significant "
+     f'i.e. there is a relationship between "{a}" and "{b}". '
+     "Note: a statistically significant difference may not necessarily be of any practical significance.")
+    return p_explain
+
+def get_two_tailed_explanation_rel() -> str:
+    two_tailed_explanation_rel = ("This is a two-tailed result i.e. based on the likelihood of a difference "
+        "where the direction doesn't matter.")
+    return two_tailed_explanation_rel

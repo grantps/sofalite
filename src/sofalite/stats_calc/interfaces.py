@@ -11,23 +11,10 @@ from statistics import median
 
 from sofalite.stats_calc.boxplot import get_bottom_whisker, get_top_whisker
 from sofalite.stats_calc.histogram import BinSpec  ## noqa - so available for import from here as the one-stop shop for stats interfaces
+from sofalite.output.charts.scatterplot import Coord  ## TODO: put somewhere not in wrong level
 from sofalite.utils.stats import get_quartiles
 
 ## samples
-
-@dataclass(frozen=True)
-class Sample:
-    """
-    Sample including label.
-    To refer to the vals of a sample call them "sample_vals" not "sample" to prevent confusion.
-    "sample" must always mean an object with both lbl and vals.
-    If there are multiple sample_vals call it "samples_vals" not "samples".
-    "samples" should only ever refer to a sequence of Sample objects.
-    Sample spec refers primarily to metadata about sample values e.g. min, max, mean.
-    A "vals" attribute is included.
-    """
-    lbl: str
-    vals: Sequence[float]
 
 @dataclass(frozen=True, kw_only=True)
 class NumericSampleSpec:
@@ -63,6 +50,20 @@ class NumericSampleSpecFormatted:
     skew: str
     p: str
 
+@dataclass(frozen=True)
+class Sample:
+    """
+    Sample including label.
+    To refer to the vals of a sample call them "sample_vals" not "sample" to prevent confusion.
+    "sample" must always mean an object with both lbl and vals.
+    If there are multiple sample_vals call it "samples_vals" not "samples".
+    "samples" should only ever refer to a sequence of Sample objects.
+    Sample spec refers primarily to metadata about sample values e.g. min, max, mean.
+    A "vals" attribute is included.
+    """
+    lbl: str
+    vals: Sequence[float]
+
 ## other
 
 @dataclass(frozen=True)
@@ -72,6 +73,11 @@ class OrdinalResult:
     median: float
     sample_min: float
     sample_max: float
+
+@dataclass(frozen=True)
+class PairedData:
+    variable_a_vals: Sequence[float]
+    variable_b_vals: Sequence[float]
 
 @dataclass(frozen=True)
 class Result(OrdinalResult):
@@ -129,8 +135,8 @@ class ChiSquareWorkedResultData:
 
 @dataclass(frozen=True)
 class ChiSquareResult:
-    variable_name_a: str
-    variable_name_b: str
+    variable_a_name: str
+    variable_b_name: str
     variable_a_values: Sequence[str | int]
     variable_b_values: Sequence[str | int]
     observed_values_a_then_b_ordered: Sequence[float]
@@ -174,6 +180,12 @@ class NormalTestResult:
     z_kurtosis: float | None
 
 @dataclass(frozen=True)
+class PearsonsRCalcResult:
+    r: float
+    p: float
+    degrees_of_freedom: int
+
+@dataclass(frozen=True)
 class RegressionResult:
     slope: float
     intercept: float
@@ -182,6 +194,22 @@ class RegressionResult:
     y0: float
     x1: float
     y1: float
+
+@dataclass(frozen=True)
+class PearsonsRResult:
+    variable_a_label: str
+    variable_b_label: str
+    coords: Sequence[Coord]
+    stats_result: PearsonsRCalcResult
+    regression_result: RegressionResult
+
+    @property
+    def xs(self):
+        return [coord.x for coord in self.coords]
+
+    @property
+    def ys(self):
+        return [coord.y for coord in self.coords]
 
 @dataclass(frozen=True)
 class SpearmansInitTbl:
