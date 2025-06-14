@@ -16,11 +16,11 @@ import numpy as np
 from sofalite import logger
 from sofalite.conf.main import MAX_RANK_DATA_VALS
 from sofalite.stats_calc.interfaces import (
-    AnovaResult,
+    AnovaResult, CorrelationCalcResult,
     MannWhitneyResult, MannWhitneyResultExt,
     NormalTestResult,
     NumericSampleSpec, NumericSampleSpecExt,
-    OrdinalResult, PearsonsRCalcResult, RegressionResult,
+    OrdinalResult, RegressionResult,
     Result, Sample, SpearmansResult, SpearmansInitTbl, TTestResult, WilcoxonResult)
 from sofalite.utils.maths import n2d
 from sofalite.utils.stats import get_obriens_msg
@@ -167,7 +167,7 @@ def anova_orig(lst_samples, lst_labels, *, high=False):
     for i in range(a):
         sample = lst_samples[i]
         label = lst_labels[i]
-        sample_spec = NumericSampleResult(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
+        sample_spec = NumericSampleSpec(lbl=label, n=n, mean=mean(sample), stdev=stdev(sample),
             sample_min=min(sample), sample_max=max(sample))
         sample_specs.append(sample_spec)
     for i in range(len(lst_samples)):
@@ -771,7 +771,7 @@ def linregress(x, y):
     sterrest = math.sqrt(1 - r * r) * samplestdev(y)
     return slope, intercept, r, prob, sterrest
 
-def pearsonr(x, y):
+def pearsonr(x, y) -> CorrelationCalcResult:
     """
     From stats.py. No changes apart from added error trapping, commenting out unused variable calculation,
     and trapping zero division error. And Py3 changes.
@@ -811,15 +811,15 @@ def pearsonr(x, y):
             "The df value and t are all 0 so trying to divide by df + t*t meant trying to divide by zero "
             "which is an error. "
             "But still worth looking at a scatterplot chart to assess the relationship.")
-    return PearsonsRCalcResult(r=r, p=prob, degrees_of_freedom=df)
+    return CorrelationCalcResult(r=r, p=prob, degrees_of_freedom=df)
 
-def spearmanr(x, y, *, high_volume_ok=False):
+def spearmansr(x, y, *, high_volume_ok=False) -> CorrelationCalcResult:
     """
-    From stats.py. No changes apart from addition of headless option and
-    trapping zero division error.
+    From stats.py. No changes apart from minor renaming (spearmanr -> spearmansr), addition of high_volume option,
+    and trapping zero division error.
     -------------------------------------
-    Calculates a Spearman rank-order correlation coefficient. Taken
-    from Heiman's Basic Statistics for the Behav. Sci (1st), p.192.
+    Calculates a Spearman rank-order correlation coefficient.
+    Taken from Heiman's Basic Statistics for the Behav. Sci (1st), p.192.
 
     Usage:   spearmanr(x,y)      where x and y are equal-length lists
     Returns: Spearman's r, two-tailed p-value
@@ -841,8 +841,7 @@ def spearmanr(x, y, *, high_volume_ok=False):
     probrs = betai(0.5 * df, 0.5, df / (df + t * t))  ## t already a float
     ## probability values for rs are from part 2 of the spearman function in
     ## Numerical Recipes, p.510.  They are close to tables, but not exact. (?)
-    return rs, probrs, df
-
+    return CorrelationCalcResult(r=rs, p=probrs, degrees_of_freedom=df)
 
 def spearmanr_details(sample_x, sample_y, *, high_volume_ok=False) -> SpearmansResult:
     initial_tbl = []
@@ -884,6 +883,10 @@ def rankdata(inlist, *, high_volume_ok=False):
 
     Ranks the data in inlist, dealing with ties appropriately. Assumes
     a 1D inlist.  Adapted from Gary Perlman's |Stat ranksort.
+
+    Args:
+        high_volume_ok: only ever True if you don't mind if the calculation takes a long, long time as long
+          as it completes.
 
     Usage:   rankdata(inlist)
     Returns: a list of length equal to inlist, containing rank scores

@@ -1,7 +1,7 @@
 [project]
-name = "pysofa"
-version = "0.4.18"
-description = "pySOFA - SOFA Statistics the Python Library"  ## pySOFA is taken :-( statsweasel is probably available
+name = "sofastats"
+version = "0.4.19"
+description = "sofastats - SOFA Statistics the Python Library"  ## pySOFA and pystats are taken :-( statsweasel is probably available
 authors = [
     { name = "Grant Paton-Simpson", email = "grant@sofastatistics.com" }
 ]

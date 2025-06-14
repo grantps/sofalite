@@ -349,7 +349,6 @@ def get_chi_square_charts(style_spec: StyleSpec,
     return '\n'.join(html_bits)
 
 def make_chi_square_html(results: ChiSquareResult, style_spec: StyleSpec, *, dp: int, show_workings=False) -> str:
-    ## TODO: also need to manually add reference to footnote 2
     tpl = """\
     <style>
         {{generic_unstyled_css}}
@@ -391,10 +390,8 @@ def make_chi_square_html(results: ChiSquareResult, style_spec: StyleSpec, *, dp:
     variable_label_b = VAR_LABELS.var2var_lbl.get(results.variable_b_name, results.variable_b_name)
     title = (f"Results of Pearson's Chi Square Test of Association "
         f'Between "{variable_label_a}" and "{variable_label_b}"')
-    worked_example = get_worked_example(results.chi_square_worked_result_data) if show_workings else ''
+
     p_text = get_p(results.p)
-    one_tail_explain = ("This is a one-tailed result "
-        "i.e. based on the likelihood of a difference in one particular direction")
     chi_square = round(results.chi_square, dp)
 
     variable_label_a = VAR_LABELS.var2var_lbl.get(results.variable_a_name, results.variable_a_name)
@@ -405,6 +402,9 @@ def make_chi_square_html(results: ChiSquareResult, style_spec: StyleSpec, *, dp:
     variable_b_labels = [val2lbl_for_var_b[val_b] for val_b in results.variable_b_values]
 
     p_explain = get_p_explain(variable_label_a, variable_label_b)
+    one_tail_explain = ("This is a one-tailed result "
+        "i.e. based on the likelihood of a difference in one particular direction")
+    p_full_explanation = f"{p_explain}</br></br>{one_tail_explain}"
 
     observed_vs_expected_tbl = get_observed_vs_expected_tbl(
         variable_label_a=variable_label_a, variable_label_b=variable_label_b,
@@ -421,11 +421,13 @@ def make_chi_square_html(results: ChiSquareResult, style_spec: StyleSpec, *, dp:
         variable_label_a=variable_label_a, variable_label_b=variable_label_b,
         variable_a_labels=variable_a_labels, variable_b_labels=variable_b_labels,
         observed_values_a_then_b_ordered=results.observed_values_a_then_b_ordered)
+
+    worked_example = get_worked_example(results.chi_square_worked_result_data) if show_workings else ''
     context = {
         'chi_square_charts': chi_square_charts,
         'chi_square': chi_square,
         'degrees_of_freedom': results.degrees_of_freedom,
-        'footnotes': [p_explain, one_tail_explain],
+        'footnotes': [p_full_explanation, ],
         'generic_unstyled_css': generic_unstyled_css,
         'min_count_rounded': min_count_rounded,
         'observed_vs_expected_tbl': observed_vs_expected_tbl,

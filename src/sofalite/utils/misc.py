@@ -3,6 +3,9 @@ import re
 
 from sofalite import SQLITE_DB
 
+def pluralise_with_s(singular, n):
+    return singular if n == 1 else f'{singular}s'
+
 def todict(dc: dataclass, *, shallow=True) -> dict:
     """
     dataclasses.asdict is recursive i.e. if you have an internal sequence of dataclasses

@@ -30,9 +30,9 @@ class Coord:
 
 @dataclass(frozen=True)
 class ScatterplotSeries:
-    label: str
     coords: Sequence[Coord]
     dot_colour: str
+    label: str = ''  ## series label - only relevant if showing multiple series
     dot_line_colour: str | None = None
     show_regression_details: bool = False
 

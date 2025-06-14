@@ -180,7 +180,7 @@ class NormalTestResult:
     z_kurtosis: float | None
 
 @dataclass(frozen=True)
-class PearsonsRCalcResult:
+class CorrelationCalcResult:
     r: float
     p: float
     degrees_of_freedom: int
@@ -194,22 +194,6 @@ class RegressionResult:
     y0: float
     x1: float
     y1: float
-
-@dataclass(frozen=True)
-class PearsonsRResult:
-    variable_a_label: str
-    variable_b_label: str
-    coords: Sequence[Coord]
-    stats_result: PearsonsRCalcResult
-    regression_result: RegressionResult
-
-    @property
-    def xs(self):
-        return [coord.x for coord in self.coords]
-
-    @property
-    def ys(self):
-        return [coord.y for coord in self.coords]
 
 @dataclass(frozen=True)
 class SpearmansInitTbl:
@@ -231,6 +215,23 @@ class SpearmansResult:
     tot_d_squared_x_6: float
     pre_rho: float
     rho: float
+
+@dataclass(frozen=True)
+class CorrelationResult:
+    variable_a_label: str
+    variable_b_label: str
+    coords: Sequence[Coord]
+    stats_result: CorrelationCalcResult
+    regression_result: RegressionResult
+    worked_result: SpearmansResult | None = None
+
+    @property
+    def xs(self):
+        return [coord.x for coord in self.coords]
+
+    @property
+    def ys(self):
+        return [coord.y for coord in self.coords]
 
 @dataclass(frozen=True, kw_only=True)
 class TTestResult:
